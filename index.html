@@ -62,12 +62,11 @@
   .btn[disabled] { opacity: .55; cursor: default; }
   .btn svg { width: 20px; height: 20px; }
   .btn.sub { background: var(--surface-2); color: var(--fg); border: 1px solid var(--line); box-shadow: none; font-size: .92rem; padding: 12px 16px; }
-  .btn-row { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
+  .btn-row { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
   .status { font-size: .86rem; color: var(--muted); margin-top: 12px; min-height: 1.2em; text-align: center; }
   .status.err { color: #ff7a70; }
   .status.ok { color: var(--ok); }
 
-  /* Formulario */
   .result { display: none; }
   .result.on { display: block; }
   .estab { font-family: var(--ff-head); font-size: 1.08rem; font-weight: 600; margin: 2px 0 2px; text-wrap: balance; }
@@ -84,11 +83,16 @@
     border-radius: 10px; padding: 12px 12px; font-family: var(--ff-body); font-size: 1rem;
   }
   .field input:focus, .field select:focus, .field textarea:focus { outline: 2px solid color-mix(in srgb, var(--accent) 55%, transparent); outline-offset: 1px; border-color: var(--accent); }
-  .field .auto { border-color: #2a3b2f; }
   .field textarea { resize: vertical; min-height: 54px; }
   .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   .pill-auto { font-size: .68rem; color: var(--ok); margin-left: 6px; }
-  details.colab { background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 0; }
+
+  .itemcard { background: rgba(255,255,255,.025); border: 1px solid var(--line); border-radius: 12px; padding: 12px 12px 1px; margin-bottom: 10px; }
+  .itemcard.off { opacity: .45; }
+  .iteminc { display: flex; gap: 8px; align-items: center; font-size: .82rem; color: var(--muted); margin-bottom: 10px; cursor: pointer; }
+  .iteminc input { width: 18px; height: 18px; accent-color: var(--accent); }
+
+  details.colab { background: var(--bg); border: 1px solid var(--line); border-radius: 10px; }
   details.colab summary { padding: 12px; cursor: pointer; font-size: .92rem; list-style: none; display: flex; justify-content: space-between; align-items: center; }
   details.colab summary::-webkit-details-marker { display: none; }
   details.colab summary .cnt { color: var(--muted); font-size: .8rem; }
@@ -149,7 +153,7 @@
 
   <section class="card result" id="result"></section>
 
-  <footer>Escaneie o QR · os dados da nota vêm preenchidos · complete a obra e envie.</footer>
+  <footer>Escaneie o QR · os dados vêm preenchidos · cada item vira um lançamento.</footer>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js"></script>
@@ -175,6 +179,8 @@
   function grpChave(c) { return (c.match(/.{1,4}/g) || []).join(" "); }
   function brNum(s) { if (s == null) return ""; s = String(s).trim(); if (!s) return ""; if (s.indexOf(",") >= 0) s = s.replace(/\./g, "").replace(",", "."); return s.replace(/[^0-9.]/g, ""); }
   function ddmmToISO(d) { var m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(d || ""); return m ? (m[3] + "-" + m[2] + "-" + m[1]) : ""; }
+  function noAcc(s) { return String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase(); }
+  function horaHour(h) { var m = /^(\d{1,2}):/.exec(h || ""); return m ? parseInt(m[1], 10) : null; }
 
   function extrairChave(txt) {
     try { var m = txt.match(/[?&]p=([^&#]+)/i); if (m) { var p = decodeURIComponent(m[1]).split("|")[0].replace(/\D/g, ""); if (p.length >= 44) return p.slice(0, 44); } } catch (e) {}
@@ -185,15 +191,30 @@
     return { uf: UF[parseInt(cUF,10)] || cUF, cnpj: fmtCNPJ(cnpj), modelo: mod === "65" ? "NFC-e · cupom" : (mod === "55" ? "NF-e" : "Modelo " + mod), serie: String(parseInt(serie,10)), numero: String(parseInt(nnf,10)), chave: ch };
   }
 
-  function sugestaoTipo(desc) {
+  function sugestaoTipo(desc, hora) {
     if (!desc || !OPT.tipo.length) return "";
-    var d = desc.toLowerCase();
-    function find(sub) { for (var i=0;i<OPT.tipo.length;i++) if (OPT.tipo[i].toLowerCase().indexOf(sub) >= 0) return OPT.tipo[i]; return ""; }
+    var d = noAcc(desc);
+    function find(sub) { for (var i=0;i<OPT.tipo.length;i++) if (noAcc(OPT.tipo[i]).indexOf(sub) >= 0) return OPT.tipo[i]; return ""; }
+    // combustiveis
     if (/diesel/.test(d) && /s\s?-?\s?10/.test(d)) return find("diesel s-10");
     if (/diesel/.test(d)) return find("diesel s-500");
     if (/arla/.test(d)) return find("arla");
     if (/gasolina/.test(d)) return find("gasolina");
-    if (/etanol|[áa]lcool/.test(d)) return find("etanol");
+    if (/etanol|alcool/.test(d)) return find("etanol");
+    // refeicao -> decide pelo horario da nota
+    if (/refei|marmit|self|almoc|janta|jantar|\bkg\b|\bprato\b|comida|restaurant|buffet|rodizio|lanchonete/.test(d)) {
+      var h = horaHour(hora);
+      if (h != null) {
+        if (h >= 4 && h < 11) return find("cafe da manha");
+        if (h >= 11 && h < 17) return find("almoco");
+        return find("janta");
+      }
+      return find("almoco");
+    }
+    if (/cafe da manha|padaria|\bpao\b/.test(d)) return find("cafe da manha");
+    if (/amendoim/.test(d)) return find("amendoim");
+    // bebidas / lanche avulso -> mercado / alimenticio geral
+    if (/refrigerante|coca|pepsi|guarana|suco|cerveja|agua|energetic|salgad|lanche|biscoit|chocolate|\bbala\b|doce|sorvete|amendoim|bebida/.test(d)) return find("mercado");
     return "";
   }
   function sugestaoPlaca(placa) {
@@ -208,7 +229,6 @@
     for (var i=0;i<arr.length;i++) { var v = arr[i]; h += '<option value="' + esc(v) + '"' + (v === sel ? " selected" : "") + '>' + esc(v.replace(/\s+/g," ").trim()) + '</option>'; }
     return h;
   }
-
   function loadOpcoes() {
     if (!SERVER_URL) return;
     fetch(SERVER_URL.replace(/\/+$/, "") + "/opcoes").then(function (r) { return r.json(); }).then(function (j) {
@@ -218,39 +238,56 @@
 
   function field(label, id, value, opts) {
     opts = opts || {};
-    var auto = opts.auto ? " auto" : "";
     var req = opts.req ? ' <span class="req">*</span>' : "";
     var inp;
-    if (opts.type === "select") inp = '<select id="' + id + '" class="' + auto.trim() + '">' + optionsHtml(opts.options || [], value) + '</select>';
-    else if (opts.type === "textarea") inp = '<textarea id="' + id + '" class="' + auto.trim() + '" rows="2">' + esc(value) + '</textarea>';
-    else inp = '<input id="' + id + '" class="' + auto.trim() + '" type="' + (opts.inputType || "text") + '"' + (opts.inputmode ? ' inputmode="' + opts.inputmode + '"' : "") + ' value="' + esc(value) + '"' + (opts.ph ? ' placeholder="' + esc(opts.ph) + '"' : "") + '>';
+    if (opts.type === "select") inp = '<select id="' + id + '">' + optionsHtml(opts.options || [], value) + '</select>';
+    else if (opts.type === "textarea") inp = '<textarea id="' + id + '" rows="2">' + esc(value) + '</textarea>';
+    else inp = '<input id="' + id + '" type="' + (opts.inputType || "text") + '"' + (opts.inputmode ? ' inputmode="' + opts.inputmode + '"' : "") + ' value="' + esc(value) + '"' + (opts.ph ? ' placeholder="' + esc(opts.ph) + '"' : "") + '>';
     return '<div class="field"><label for="' + id + '">' + esc(label) + req + (opts.auto ? '<span class="pill-auto">auto</span>' : "") + '</label>' + inp + '</div>';
+  }
+
+  function itemCard(i, item, hora, single) {
+    var ehLitro = item.unidade && /^l/i.test(item.unidade);
+    var qtyQid = ehLitro ? "14" : "20";
+    var tipoSug = sugestaoTipo(item.descricao, hora);
+    var h = '<div class="itemcard" id="itemCard' + i + '">';
+    if (single) h += '<input type="checkbox" class="itemInc" data-i="' + i + '" checked hidden>';
+    else h += '<label class="iteminc"><input type="checkbox" class="itemInc" data-i="' + i + '" checked> Incluir este item no lançamento</label>';
+    h += field("Descrição do item", "fDesc" + i, item.descricao || "", { auto: !!item.descricao });
+    h += '<div class="grid2">';
+    h += field("Tipo de despesa", "fTipo" + i, tipoSug, { type: "select", options: OPT.tipo, auto: !!tipoSug });
+    h += field("Valor (R$)", "fValor" + i, item.vlTotal || "", { inputmode: "decimal", auto: !!item.vlTotal });
+    h += '</div>';
+    h += field(ehLitro ? "Litros" : "Quantidade", "fQty" + i, item.qtde || "", { inputmode: "decimal", auto: !!item.qtde });
+    h += '<input type="hidden" id="fQtyQid' + i + '" value="' + qtyQid + '">';
+    h += '</div>';
+    return h;
   }
 
   function render(ch, nota, loading) {
     var urlNota = window.__raw && /^https?:\/\//i.test(window.__raw) ? window.__raw : null;
-    var item = nota && nota.itens && nota.itens[0];
-    var ehLitro = item && item.unidade && /^l/i.test(item.unidade);
+    var itens = (nota && nota.itens && nota.itens.length) ? nota.itens : [];
+    var hora = nota ? nota.horaEmissao : null;
 
     var h = '<span class="modelo-tag">' + esc(ch.modelo) + '</span>';
     h += '<div class="estab">' + esc(nota && nota.estabelecimento ? nota.estabelecimento : "Cupom lido") + '</div>';
     if (loading) { h += '<div class="loading"><span class="spin"></span>Buscando os dados da nota…</div>'; }
 
-    // --- Dados da nota (auto, editaveis) ---
     h += '<div class="seclbl">Dados da nota</div>';
     h += field("Data da despesa", "fData", nota ? ddmmToISO(nota.dataEmissao) : "", { inputType: "date", auto: !!(nota && nota.dataEmissao) });
     h += field("Estabelecimento", "fEstab", nota ? (nota.estabelecimento || "") : "", { auto: !!(nota && nota.estabelecimento) });
     h += field("CNPJ", "fCnpj", nota && nota.cnpj ? nota.cnpj : ch.cnpj, { auto: true });
-    h += field("Descrição do item", "fItem", item ? item.descricao : "", { auto: !!item });
-    h += field("Tipo de despesa", "fTipo", item ? sugestaoTipo(item.descricao) : "", { type: "select", options: OPT.tipo, auto: !!(item && sugestaoTipo(item.descricao)) });
-    h += '<div class="grid2">';
-    var qtyQid = ehLitro ? "14" : "20";
-    h += field(ehLitro ? "Litros" : "Quantidade", "fQty", item ? item.qtde : "", { inputmode: "decimal", auto: !!item });
-    h += field("Valor total (R$)", "fValor", nota ? (nota.valorTotal || "") : "", { inputmode: "decimal", auto: !!(nota && nota.valorTotal) });
-    h += '</div>';
-    h += '<input type="hidden" id="fQtyQid" value="' + qtyQid + '">';
+    h += field("Nota fiscal (nº)", "fNumero", (nota && nota.numero) ? nota.numero : ch.numero, { inputmode: "numeric", auto: true });
 
-    // --- Completar ---
+    var count = itens.length || 1;
+    h += '<div class="seclbl">' + (itens.length > 1 ? "Itens (" + itens.length + ") — cada um vira um lançamento" : "Item") + '</div>';
+    if (!itens.length) {
+      h += itemCard(0, { descricao: "", qtde: "", unidade: "", vlTotal: "" }, hora, true);
+    } else {
+      for (var i=0;i<itens.length;i++) h += itemCard(i, itens[i], hora, itens.length === 1);
+    }
+    h += '<input type="hidden" id="itemCount" value="' + count + '">';
+
     h += '<div class="seclbl">Completar</div>';
     h += '<div class="grid2">';
     h += field("Nº da obra", "fObra", "", { inputmode: "numeric", req: true, ph: "Ex.: 4231" });
@@ -258,10 +295,9 @@
     h += '</div>';
     h += field("Descrição da obra", "fObraDesc", "", { ph: "Ex.: Nestlé Araras" });
 
-    // colaboradores
     h += '<div class="field"><label>Colaboradores envolvidos</label>';
     h += '<details class="colab"><summary><span>Selecionar</span><span class="cnt" id="colabCnt"></span></summary><div class="colab-list" id="colabList">';
-    for (var i=0;i<OPT.colaboradores.length;i++) { var c = OPT.colaboradores[i]; h += '<label><input type="checkbox" class="colabChk" value="' + esc(c) + '"><span>' + esc(c.replace(/\s+/g," ").trim()) + '</span></label>'; }
+    for (var k=0;k<OPT.colaboradores.length;k++) { var c = OPT.colaboradores[k]; h += '<label><input type="checkbox" class="colabChk" value="' + esc(c) + '"><span>' + esc(c.replace(/\s+/g," ").trim()) + '</span></label>'; }
     if (!OPT.colaboradores.length) h += '<div style="color:var(--muted);font-size:.85rem;padding:8px 0">Lista indisponível (servidor off).</div>';
     h += '</div></details></div>';
 
@@ -271,61 +307,80 @@
     if (urlNota) h += '<a class="link-inline" href="' + esc(urlNota) + '" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6"/><path d="M10 14 21 3"/></svg>Abrir nota no SEFAZ</a>';
     h += '</div>';
 
-    h += '<div class="btn-row">';
-    h += '<button class="btn" id="btnEnviar" type="button">Enviar lançamento</button>';
-    h += '<button class="btn sub" id="btnAgain" type="button">Ler outra nota</button>';
-    h += '</div>';
+    h += '<div class="btn-row"><button class="btn" id="btnEnviar" type="button">Enviar lançamento</button><button class="btn sub" id="btnAgain" type="button">Ler outra nota</button></div>';
     h += '<div class="status" id="st2" role="status" aria-live="polite"></div>';
 
     resultEl.innerHTML = h;
     resultEl.classList.add("on");
 
-    var det = document.getElementById("colabList");
-    function atualizaCnt() { var n = resultEl.querySelectorAll(".colabChk:checked").length; document.getElementById("colabCnt").textContent = n ? (n + " selecionado" + (n>1?"s":"")) : ""; }
-    if (det) det.addEventListener("change", atualizaCnt);
+    var colabList = document.getElementById("colabList");
+    if (colabList) colabList.addEventListener("change", function () {
+      var n = resultEl.querySelectorAll(".colabChk:checked").length;
+      document.getElementById("colabCnt").textContent = n ? (n + " selecionado" + (n>1?"s":"")) : "";
+    });
+    resultEl.querySelectorAll(".itemInc").forEach(function (chk) {
+      chk.addEventListener("change", function () {
+        var cardEl = document.getElementById("itemCard" + chk.getAttribute("data-i"));
+        if (cardEl) cardEl.classList.toggle("off", !chk.checked);
+      });
+    });
     document.getElementById("btnAgain").addEventListener("click", function () { resultEl.classList.remove("on"); startCamera(); });
     document.getElementById("btnEnviar").addEventListener("click", enviar);
     resultEl.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
   function enviar() {
-    var st2 = document.getElementById("st2");
-    var btn = document.getElementById("btnEnviar");
+    var st2 = document.getElementById("st2"); var btn = document.getElementById("btnEnviar");
     function msg(m, cls) { st2.textContent = m; st2.className = "status" + (cls ? " " + cls : ""); }
     var obra = (document.getElementById("fObra").value || "").trim();
     if (!obra) { msg("Informe o Nº da obra.", "err"); document.getElementById("fObra").focus(); return; }
     if (!SERVER_URL) { msg("Configure o servidor na engrenagem ⚙️ para enviar.", "err"); return; }
 
-    var fields = {};
+    var shared = {};
     var iso = document.getElementById("fData").value;
-    if (iso) { var p = iso.split("-"); fields["3_year"] = p[0]; fields["3_month"] = p[1]; fields["3_day"] = p[2]; }
-    fields["8"] = obra;
-    fields["10"] = (document.getElementById("fObraDesc").value || "").trim();
-    var tipo = document.getElementById("fTipo").value; if (tipo) fields["12"] = tipo;
-    var placa = document.getElementById("fPlaca").value; if (placa) fields["13"] = placa;
-    var qty = brNum(document.getElementById("fQty").value); if (qty) fields[document.getElementById("fQtyQid").value] = qty;
-    fields["15"] = (document.getElementById("fItem").value || "").trim();
-    var valor = brNum(document.getElementById("fValor").value); if (valor) fields["16"] = valor;
-    var obs = (document.getElementById("fObs").value || "").trim(); if (obs) fields["19"] = obs;
-    fields["21"] = (document.getElementById("fEstab").value || "").trim();
-    fields["24"] = (document.getElementById("fCnpj").value || "").trim();
+    if (iso) { var p = iso.split("-"); shared["3_year"] = p[0]; shared["3_month"] = p[1]; shared["3_day"] = p[2]; }
+    shared["8"] = obra;
+    shared["10"] = (document.getElementById("fObraDesc").value || "").trim();
+    var placa = document.getElementById("fPlaca").value; if (placa) shared["13"] = placa;
+    var obs = (document.getElementById("fObs").value || "").trim(); if (obs) shared["19"] = obs;
+    shared["21"] = (document.getElementById("fEstab").value || "").trim();
+    shared["24"] = (document.getElementById("fCnpj").value || "").trim();
+    shared["25"] = (document.getElementById("fNumero").value || "").trim();
     var colab = []; resultEl.querySelectorAll(".colabChk:checked").forEach(function (c) { colab.push(c.value); });
-    if (colab.length) fields["11"] = colab;
 
-    btn.disabled = true; msg("Enviando…");
-    fetch(SERVER_URL.replace(/\/+$/, "") + "/enviar", {
-      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ fields: fields })
-    }).then(function (r) { return r.json().catch(function(){ return {ok:false,erro:"resposta"}; }); })
-      .then(function (j) {
-        if (j && j.ok) { sucesso(obra); }
-        else { btn.disabled = false; msg("Não consegui enviar (" + (j && j.erro ? j.erro : "erro") + "). Tente de novo.", "err"); }
-      })
-      .catch(function () { btn.disabled = false; msg("Servidor não respondeu. Confira o link em ⚙️.", "err"); });
+    var count = parseInt(document.getElementById("itemCount").value, 10) || 0;
+    var payloads = [];
+    for (var i=0;i<count;i++) {
+      var inc = document.querySelector('.itemInc[data-i="' + i + '"]');
+      if (inc && !inc.checked) continue;
+      var descEl = document.getElementById("fDesc" + i); if (!descEl) continue;
+      var f = {}; for (var kk in shared) f[kk] = shared[kk];
+      if (colab.length) f["11"] = colab.slice();
+      var tipo = document.getElementById("fTipo" + i).value; if (tipo) f["12"] = tipo;
+      f["15"] = (descEl.value || "").trim();
+      var valor = brNum(document.getElementById("fValor" + i).value); if (valor) f["16"] = valor;
+      var qty = brNum(document.getElementById("fQty" + i).value); if (qty) f[document.getElementById("fQtyQid" + i).value] = qty;
+      payloads.push(f);
+    }
+    if (!payloads.length) { msg("Selecione ao menos um item.", "err"); return; }
+
+    btn.disabled = true; msg("Enviando " + payloads.length + " lançamento" + (payloads.length>1?"s":"") + "…");
+    var base = SERVER_URL.replace(/\/+$/, "");
+    Promise.all(payloads.map(function (f) {
+      return fetch(base + "/enviar", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ fields: f }) })
+        .then(function (r) { return r.json().catch(function () { return { ok: false }; }); })
+        .catch(function () { return { ok: false }; });
+    })).then(function (results) {
+      var ok = results.filter(function (x) { return x && x.ok; }).length;
+      if (ok === payloads.length) { sucesso(obra, ok); }
+      else { btn.disabled = false; msg("Enviados " + ok + " de " + payloads.length + ". Tente reenviar.", "err"); }
+    });
   }
 
-  function sucesso(obra) {
+  function sucesso(obra, n) {
     resultEl.innerHTML = '<div class="done"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>'
-      + '<h2>Despesa lançada! ✓</h2><p>Obra ' + esc(obra) + ' — enviado para o lançamento.</p>'
+      + '<h2>' + (n > 1 ? (n + " despesas lançadas!") : "Despesa lançada!") + ' ✓</h2>'
+      + '<p>Obra ' + esc(obra) + ' — enviado para o lançamento.</p>'
       + '<button class="btn" id="btnNova" type="button">Lançar outra nota</button></div>';
     document.getElementById("btnNova").addEventListener("click", function () { resultEl.classList.remove("on"); startCamera(); });
   }
@@ -342,7 +397,7 @@
       var ctrl = ("AbortController" in window) ? new AbortController() : null;
       var to = setTimeout(function () { if (ctrl) ctrl.abort(); }, 45000);
       fetch(SERVER_URL.replace(/\/+$/, "") + "/nota?u=" + encodeURIComponent(text), ctrl ? { signal: ctrl.signal } : undefined)
-        .then(function (r) { return r.json().catch(function(){ return {ok:false}; }); })
+        .then(function (r) { return r.json().catch(function () { return { ok: false }; }); })
         .then(function (j) { clearTimeout(to); if (j && j.ok && j.dados) render(ch, j.dados, false); else { render(ch, null, false); setStatus("QR lido. Detalhes da nota não vieram — preencha manualmente.", "err"); } })
         .catch(function () { clearTimeout(to); render(ch, null, false); setStatus("QR lido. Servidor não respondeu — confira ⚙️ ou preencha manualmente.", "err"); });
     }
