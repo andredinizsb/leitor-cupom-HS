@@ -405,9 +405,10 @@
   var resultEl = document.getElementById("result");
   var btnStart = document.getElementById("btnStart");
   var reader = null, scanning = false, sentItems = {};
-  var SERVER_URL = "";
+  var SERVIDOR_PADRAO = "https://nfce.hsgestao.app";
+  var SERVER_URL = SERVIDOR_PADRAO;
   var OPT = { tipo: [], placa: [], colaboradores: [] };
-  try { SERVER_URL = localStorage.getItem(LS_KEY) || ""; } catch (e) {}
+  try { SERVER_URL = localStorage.getItem(LS_KEY) || SERVIDOR_PADRAO; } catch (e) { SERVER_URL = SERVIDOR_PADRAO; }
 
   btnStart.innerHTML = ic("camera") + "<span>Ligar câmera</span>";
   document.getElementById("btnGear").innerHTML = ic("settings");
