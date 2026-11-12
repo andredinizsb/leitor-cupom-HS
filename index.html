@@ -103,6 +103,8 @@
   }
   .iconbtn:hover { background:var(--surface-muted); }
   .iconbtn .ic { width:24px; height:24px; }
+  .topbar .name { overflow:hidden; text-overflow:ellipsis; }
+  @media (max-width:379px) { .srv-chip #srvTxt { display:none; } }
 
   .wrap { width:100%; max-width:var(--content); margin:0 auto;
     padding-left:max(var(--s4), env(safe-area-inset-left)); padding-right:max(var(--s4), env(safe-area-inset-right));
@@ -143,6 +145,7 @@
   /* ===== Início: passos + câmera ===== */
   .intro h2 { margin:0 0 var(--s1); font-size:20px; line-height:28px; font-weight:600; letter-spacing:-.01em; }
   .intro p.lead { margin:0 0 var(--s4); color:var(--text-muted); font-size:14px; line-height:20px; }
+  .scanner.camon h2, .scanner.camon p.lead { display:none; }
   .steps { display:flex; flex-direction:column; gap:var(--s2); margin-bottom:var(--s4); }
   .step { display:flex; align-items:center; gap:var(--s3); padding:var(--s3); border-radius:var(--r-md); background:var(--surface-muted); }
   .step .n { width:28px; height:28px; border-radius:var(--r-full); background:var(--primary-subtle); color:var(--primary-text); display:grid; place-items:center; font-size:13px; font-weight:700; flex:0 0 auto; }
@@ -209,12 +212,16 @@
   /* ===== Cartão de item ===== */
   .itemcard { border:1px solid var(--border); border-radius:var(--r-md); background:var(--surface); padding:var(--s3); margin-bottom:var(--s3); }
   .itemcard.off { background:var(--surface-muted); }
+  .itemcard.enviado { border-color:color-mix(in srgb,var(--success) 45%,var(--border)); }
+  .sent-badge { display:inline-flex; align-items:center; gap:4px; height:24px; padding:0 9px; border-radius:var(--r-full); background:var(--success-subtle); color:var(--success-text); font-size:12px; font-weight:600; white-space:nowrap; flex:0 0 auto; }
+  .sent-badge .ic { width:14px; height:14px; }
   .item-head { display:flex; align-items:flex-start; gap:var(--s3); }
   .item-ic { width:36px; height:36px; border-radius:var(--r-sm); background:var(--primary-subtle); color:var(--primary-text); display:grid; place-items:center; flex:0 0 auto; }
   .item-ic .ic { width:20px; height:20px; }
   .item-main { flex:1 1 auto; min-width:0; }
   .item-name { font-size:16px; line-height:22px; font-weight:600; overflow-wrap:break-word; }
   .item-sub { font-size:14px; line-height:20px; color:var(--text-muted); }
+  .item-sub .val { color:var(--text); font-weight:600; }
   .item-val { font-size:16px; line-height:22px; font-weight:600; white-space:nowrap; }
   /* interruptor Incluir */
   .switch { position:relative; width:44px; height:26px; flex:0 0 auto; }
@@ -277,7 +284,7 @@
   .cfg.on { display:block; }
   .cfg .veil { position:absolute; inset:0; background:var(--overlay); }
   .cfg .sheet { position:absolute; left:0; right:0; bottom:0; background:var(--surface); border-radius:var(--r-xl) var(--r-xl) 0 0; box-shadow:var(--shadow-lg);
-    padding:var(--s5) max(var(--s4),env(safe-area-inset-right)) calc(var(--s6)+env(safe-area-inset-bottom)) max(var(--s4),env(safe-area-inset-left));
+    padding:var(--s5) max(var(--s4),env(safe-area-inset-right)) calc(var(--s6) + env(safe-area-inset-bottom)) max(var(--s4),env(safe-area-inset-left));
     max-width:var(--content); margin:0 auto; }
   .cfg .grip { width:40px; height:4px; border-radius:var(--r-full); background:var(--border); margin:0 auto var(--s4); }
   .cfg h3 { margin:0 0 var(--s1); font-size:20px; line-height:28px; font-weight:600; letter-spacing:-.01em; }
@@ -333,8 +340,6 @@
   </section>
 
   <section class="result" id="result"></section>
-
-  <footer>Escaneie o QR · os dados vêm preenchidos · cada item vira um lançamento.</footer>
 </main>
 
 <!-- Ajustes (folha inferior) -->
@@ -399,7 +404,7 @@
   var statusEl = document.getElementById("status");
   var resultEl = document.getElementById("result");
   var btnStart = document.getElementById("btnStart");
-  var reader = null, scanning = false;
+  var reader = null, scanning = false, sentItems = {};
   var SERVER_URL = "";
   var OPT = { tipo: [], placa: [], colaboradores: [] };
   try { SERVER_URL = localStorage.getItem(LS_KEY) || ""; } catch (e) {}
@@ -461,12 +466,47 @@
     for (var i=0;i<arr.length;i++) { var v = arr[i]; h += '<option value="' + esc(v) + '"' + (v === sel ? " selected" : "") + '>' + esc(v.replace(/\s+/g," ").trim()) + '</option>'; }
     return h;
   }
-  function loadOpcoes() {
+  function loadOpcoes(attempt) {
+    attempt = attempt || 0;
     updateServerChip();
     if (!SERVER_URL) return;
     fetch(SERVER_URL.replace(/\/+$/, "") + "/opcoes").then(function (r) { return r.json(); }).then(function (j) {
-      if (j && j.ok) { OPT.tipo = j.tipo || []; OPT.placa = j.placa || []; OPT.colaboradores = j.colaboradores || []; updateServerChip(true); }
-    }).catch(function () { updateServerChip(false); });
+      if (j && j.ok) {
+        var tinha = OPT.tipo.length;
+        OPT.tipo = j.tipo || []; OPT.placa = j.placa || []; OPT.colaboradores = j.colaboradores || [];
+        updateServerChip(true);
+        if (!tinha && OPT.tipo.length) refreshOpenConf(); // listas chegaram depois: reaplica na conferência aberta
+      } else if (attempt < 4) { setTimeout(function () { loadOpcoes(attempt + 1); }, 4000); }
+    }).catch(function () { updateServerChip(false); if (attempt < 4) setTimeout(function () { loadOpcoes(attempt + 1); }, 4000); });
+  }
+
+  // Preserva o que a pessoa digitou quando a tela é redesenhada (chegada da nota ou das listas).
+  function capturarEntrada() {
+    function v(id) { var e = document.getElementById(id); return e ? e.value : undefined; }
+    var colab = []; resultEl.querySelectorAll(".colabChk:checked").forEach(function (c) { colab.push(c.value); });
+    return { obra: v("fObra"), obraDesc: v("fObraDesc"), obs: v("fObs"), colab: colab };
+  }
+  function restaurarEntrada(c) {
+    if (!c) return;
+    function set(id, val) { var e = document.getElementById(id); if (e && val != null && val !== "") e.value = val; }
+    set("fObra", c.obra); set("fObraDesc", c.obraDesc); set("fObs", c.obs);
+    if (c.colab && c.colab.length) { resultEl.querySelectorAll(".colabChk").forEach(function (ch) { if (c.colab.indexOf(ch.value) >= 0) ch.checked = true; }); updateColabChips(); }
+  }
+  function refreshOpenConf() {
+    if (window.__loading) return;
+    if (!resultEl.classList.contains("on")) return;
+    if (document.getElementById("btnNova")) return; // tela de sucesso
+    if (!window.__lastCh) return;
+    var carry = capturarEntrada();
+    render(window.__lastCh, window.__lastNota || null, false);
+    restaurarEntrada(carry);
+  }
+  function marcarItemEnviado(i) {
+    var card = document.getElementById("itemCard" + i); if (!card) return;
+    card.classList.add("enviado");
+    var sw = card.querySelector(".itemInc"); if (sw) sw.disabled = true;
+    var head = card.querySelector(".item-head");
+    if (head && !card.querySelector(".sent-badge")) head.insertAdjacentHTML("beforeend", '<span class="sent-badge">' + ic("check", 14) + 'Lançado</span>');
   }
 
   function updateServerChip(connected) {
@@ -525,13 +565,13 @@
     var fuel = tipoFuelLitros(tipoSug);
     var qtyQid = fuel ? "14" : "20";
     var nome = item.descricao || "Item " + (i + 1);
-    var sub = []; if (item.qtde) sub.push(esc(item.qtde) + (item.unidade ? " " + esc(item.unidade) : ""));
-    var valTxt = item.vlTotal ? "R$ " + esc(item.vlTotal) : "";
+    var subParts = [];
+    if (item.qtde) subParts.push(esc(item.qtde) + (item.unidade ? " " + esc(item.unidade) : ""));
+    if (item.vlTotal) subParts.push('<span class="val hs-num">R$ ' + esc(item.vlTotal) + '</span>');
     var h = '<div class="itemcard" id="itemCard' + i + '">';
     h += '<div class="item-head">';
     h += '<div class="item-ic">' + ic(tipoIcon(tipoSug)) + '</div>';
-    h += '<div class="item-main"><div class="item-name">' + esc(nome) + '</div>' + (sub.length ? '<div class="item-sub">' + sub.join(" · ") + '</div>' : '') + '</div>';
-    if (valTxt) h += '<div class="item-val hs-num">' + valTxt + '</div>';
+    h += '<div class="item-main"><div class="item-name">' + esc(nome) + '</div>' + (subParts.length ? '<div class="item-sub">' + subParts.join(" · ") + '</div>' : '') + '</div>';
     h += '<label class="switch" title="Incluir no lançamento"><input type="checkbox" class="itemInc" data-i="' + i + '" checked' + (single ? ' hidden' : '') + '><span class="track"></span><span class="thumb"></span></label>';
     h += '</div>';
     h += '<div class="item-body">';
@@ -547,6 +587,7 @@
   }
 
   function render(ch, nota, loading) {
+    window.__lastCh = ch; window.__lastNota = nota || null; window.__loading = !!loading;
     var urlNota = window.__raw && /^https?:\/\//i.test(window.__raw) ? window.__raw : null;
     var itens = (nota && nota.itens && nota.itens.length) ? nota.itens : [];
     var hora = nota ? nota.horaEmissao : null;
@@ -700,10 +741,12 @@
     var colab = []; resultEl.querySelectorAll(".colabChk:checked").forEach(function (c) { colab.push(c.value); });
 
     var count = parseInt(document.getElementById("itemCount").value, 10) || 0;
-    var payloads = [];
+    var incluidos = 0, payloads = [];
     for (var i = 0; i < count; i++) {
       var inc = document.querySelector('.itemInc[data-i="' + i + '"]');
       if (inc && !inc.checked) continue;
+      incluidos++;
+      if (sentItems[i]) continue; // já lançado nesta nota: não reenvia (evita duplicar)
       var descEl = document.getElementById("fDesc" + i); if (!descEl) continue;
       var f = {}; for (var kk in shared) f[kk] = shared[kk];
       if (colab.length) f["11"] = colab.slice();
@@ -715,20 +758,28 @@
       var itemDesc = (descEl.value || "").trim();
       var obsParts = []; if (itemDesc) obsParts.push(itemDesc); if (notaObs) obsParts.push(notaObs);
       if (obsParts.length) f["19"] = obsParts.join(" · ");
-      payloads.push(f);
+      payloads.push({ i: i, f: f });
     }
-    if (!payloads.length) { msg("Selecione ao menos um item.", "err"); return; }
+    if (!incluidos) { msg("Selecione ao menos um item.", "err"); return; }
+    if (!payloads.length) { sucesso(obra, incluidos); return; } // tudo já enviado
 
     btn.disabled = true; msg("Enviando " + payloads.length + " lançamento" + (payloads.length>1?"s":"") + "…");
     var base = SERVER_URL.replace(/\/+$/, "");
-    Promise.all(payloads.map(function (f) {
-      return fetch(base + "/enviar", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ fields: f, foto: window.__foto || null }) })
+    Promise.all(payloads.map(function (pl) {
+      return fetch(base + "/enviar", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ fields: pl.f, foto: window.__foto || null }) })
         .then(function (r) { return r.json().catch(function () { return { ok: false }; }); })
-        .catch(function () { return { ok: false }; });
+        .then(function (j) { return { i: pl.i, ok: !!(j && j.ok) }; })
+        .catch(function () { return { i: pl.i, ok: false }; });
     })).then(function (results) {
-      var ok = results.filter(function (x) { return x && x.ok; }).length;
-      if (ok === payloads.length) { sucesso(obra, ok); }
-      else { btn.disabled = false; msg("Enviados " + ok + " de " + payloads.length + ". Tente reenviar.", "err"); }
+      results.forEach(function (r) { if (r.ok) { sentItems[r.i] = true; marcarItemEnviado(r.i); } });
+      var falhas = results.filter(function (r) { return !r.ok; });
+      var enviados = 0; for (var k in sentItems) if (sentItems.hasOwnProperty(k)) enviados++;
+      if (!falhas.length) { sucesso(obra, incluidos); }
+      else {
+        btn.disabled = false;
+        var nomes = falhas.map(function (r) { var el = document.querySelector("#itemCard" + r.i + " .item-name"); return el ? el.textContent.trim() : ("item " + (r.i + 1)); }).join(", ");
+        msg("Enviados " + enviados + " de " + incluidos + ". Falhou: " + nomes + ". Toque em Enviar para tentar de novo só " + (falhas.length > 1 ? "os que faltaram" : "o que faltou") + ".", "err");
+      }
     });
   }
 
@@ -764,15 +815,17 @@
     stopCamera();
     setStatus("Nota lida.", "ok");
     window.__raw = text;
+    sentItems = {};
     var ch = decodeChave(chv);
+    if (SERVER_URL && !OPT.tipo.length) loadOpcoes(); // listas vazias (túnel caiu antes)? tenta de novo
     render(ch, null, !!SERVER_URL);
     if (SERVER_URL) {
       var ctrl = ("AbortController" in window) ? new AbortController() : null;
       var to = setTimeout(function () { if (ctrl) ctrl.abort(); }, 45000);
       fetch(SERVER_URL.replace(/\/+$/, "") + "/nota?u=" + encodeURIComponent(text), ctrl ? { signal: ctrl.signal } : undefined)
         .then(function (r) { return r.json().catch(function () { return { ok: false }; }); })
-        .then(function (j) { clearTimeout(to); if (j && j.ok && j.dados) render(ch, j.dados, false); else { render(ch, null, false); setStatus("QR lido. Detalhes da nota não vieram — preencha manualmente.", "err"); } })
-        .catch(function () { clearTimeout(to); render(ch, null, false); setStatus("QR lido. Servidor não respondeu — confira os Ajustes ou preencha manualmente.", "err"); });
+        .then(function (j) { clearTimeout(to); var carry = capturarEntrada(); if (j && j.ok && j.dados) render(ch, j.dados, false); else { render(ch, null, false); setStatus("QR lido. Detalhes da nota não vieram — preencha manualmente.", "err"); } restaurarEntrada(carry); })
+        .catch(function () { clearTimeout(to); var carry = capturarEntrada(); render(ch, null, false); restaurarEntrada(carry); setStatus("QR lido. Servidor não respondeu — confira os Ajustes ou preencha manualmente.", "err"); });
     }
     return true;
   }
@@ -783,6 +836,7 @@
     if (!(window.ZXing && ZXing.BrowserQRCodeReader)) { setStatus("Leitor não carregou — recarregue a página.", "err"); return; }
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { setStatus("Este navegador não libera a câmera. Abra pelo Safari ou Chrome.", "err"); return; }
     viewport.classList.add("on"); viewport.classList.remove("flash");
+    document.getElementById("scanCard").classList.add("camon");
     btnStart.innerHTML = ic("refresh") + "<span>Reiniciar câmera</span>";
     setStatus("Abrindo câmera… aponte para o QR.");
     if (reader) { try { reader.reset(); } catch (e) {} }
@@ -799,7 +853,7 @@
       setStatus(m, "err");
     });
   }
-  function stopCamera() { scanning = false; viewport.classList.remove("on"); if (reader) { try { reader.reset(); } catch (e) {} } }
+  function stopCamera() { scanning = false; viewport.classList.remove("on"); var sc = document.getElementById("scanCard"); if (sc) sc.classList.remove("camon"); if (reader) { try { reader.reset(); } catch (e) {} } }
 
   document.getElementById("btnCloseCam").addEventListener("click", function () { stopCamera(); setStatus(""); btnStart.innerHTML = ic("camera") + "<span>Ligar câmera</span>"; document.getElementById("introSteps").hidden = false; });
 
