@@ -86,6 +86,7 @@
   .field textarea { resize: vertical; min-height: 54px; }
   .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   .pill-auto { font-size: .68rem; color: var(--ok); margin-left: 6px; }
+  [hidden] { display: none !important; }
 
   .itemcard { background: rgba(255,255,255,.025); border: 1px solid var(--line); border-radius: 12px; padding: 12px 12px 1px; margin-bottom: 10px; }
   .itemcard.off { opacity: .45; }
@@ -179,7 +180,7 @@
   function grpChave(c) { return (c.match(/.{1,4}/g) || []).join(" "); }
   function brNum(s) { if (s == null) return ""; s = String(s).trim(); if (!s) return ""; if (s.indexOf(",") >= 0) s = s.replace(/\./g, "").replace(",", "."); return s.replace(/[^0-9.]/g, ""); }
   function ddmmToISO(d) { var m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(d || ""); return m ? (m[3] + "-" + m[2] + "-" + m[1]) : ""; }
-  function noAcc(s) { return String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase(); }
+  function noAcc(s) { s = String(s || "").normalize("NFD"); var o = ""; for (var i = 0; i < s.length; i++) { var c = s.charCodeAt(i); if (c < 768 || c > 879) o += s.charAt(i); } return o.toLowerCase(); }
   function horaHour(h) { var m = /^(\d{1,2}):/.exec(h || ""); return m ? parseInt(m[1], 10) : null; }
 
   function extrairChave(txt) {
@@ -243,22 +244,48 @@
     if (opts.type === "select") inp = '<select id="' + id + '">' + optionsHtml(opts.options || [], value) + '</select>';
     else if (opts.type === "textarea") inp = '<textarea id="' + id + '" rows="2">' + esc(value) + '</textarea>';
     else inp = '<input id="' + id + '" type="' + (opts.inputType || "text") + '"' + (opts.inputmode ? ' inputmode="' + opts.inputmode + '"' : "") + ' value="' + esc(value) + '"' + (opts.ph ? ' placeholder="' + esc(opts.ph) + '"' : "") + '>';
-    return '<div class="field"><label for="' + id + '">' + esc(label) + req + (opts.auto ? '<span class="pill-auto">auto</span>' : "") + '</label>' + inp + '</div>';
+    return '<div class="field"' + (opts.wrapId ? ' id="' + opts.wrapId + '"' : "") + '><label for="' + id + '"' + (opts.labelId ? ' id="' + opts.labelId + '"' : "") + '>' + esc(label) + req + (opts.auto ? '<span class="pill-auto">auto</span>' : "") + '</label>' + inp + '</div>';
+  }
+
+  // --- Condicoes (espelham o Jotform) ---
+  function tipoFuelLitros(t) { var d = noAcc(t); return /gasolina|etanol|diesel/.test(d); }
+  function tipoNeedsPlaca(t) { var d = noAcc(t); return /gasolina|etanol|diesel|arla/.test(d) || /material aplicado/.test(d); }
+  function tipoNeedsDescItem(t) { return /material aplicado/.test(noAcc(t)); }
+  function applyItemCond(i) {
+    var sel = document.getElementById("fTipo" + i); if (!sel) return;
+    var t = sel.value, fuel = tipoFuelLitros(t);
+    var lbl = document.getElementById("qtyLbl" + i);
+    if (lbl && lbl.firstChild) lbl.firstChild.nodeValue = fuel ? "Litros" : "Quantidade";
+    var qq = document.getElementById("fQtyQid" + i); if (qq) qq.value = fuel ? "14" : "20";
+    var dw = document.getElementById("descWrap" + i); if (dw) dw.hidden = !tipoNeedsDescItem(t);
+  }
+  function applyPlaca() {
+    var ic = document.getElementById("itemCount"); var count = ic ? (parseInt(ic.value, 10) || 0) : 0, need = false;
+    for (var i = 0; i < count; i++) {
+      var inc = document.querySelector('.itemInc[data-i="' + i + '"]'); if (inc && !inc.checked) continue;
+      var sel = document.getElementById("fTipo" + i); if (sel && tipoNeedsPlaca(sel.value)) need = true;
+    }
+    var pw = document.getElementById("placaWrap"); if (pw) pw.hidden = !need;
+  }
+  function applyConditions() {
+    var ic = document.getElementById("itemCount"); var count = ic ? (parseInt(ic.value, 10) || 0) : 0;
+    for (var i = 0; i < count; i++) applyItemCond(i);
+    applyPlaca();
   }
 
   function itemCard(i, item, hora, single) {
-    var ehLitro = item.unidade && /^l/i.test(item.unidade);
-    var qtyQid = ehLitro ? "14" : "20";
     var tipoSug = sugestaoTipo(item.descricao, hora);
+    var fuel = tipoFuelLitros(tipoSug);
+    var qtyQid = fuel ? "14" : "20";
     var h = '<div class="itemcard" id="itemCard' + i + '">';
     if (single) h += '<input type="checkbox" class="itemInc" data-i="' + i + '" checked hidden>';
     else h += '<label class="iteminc"><input type="checkbox" class="itemInc" data-i="' + i + '" checked> Incluir este item no lançamento</label>';
-    h += field("Descrição do item", "fDesc" + i, item.descricao || "", { auto: !!item.descricao });
+    h += field("Descrição do item", "fDesc" + i, item.descricao || "", { auto: !!item.descricao, wrapId: "descWrap" + i });
     h += '<div class="grid2">';
     h += field("Tipo de despesa", "fTipo" + i, tipoSug, { type: "select", options: OPT.tipo, auto: !!tipoSug });
     h += field("Valor (R$)", "fValor" + i, item.vlTotal || "", { inputmode: "decimal", auto: !!item.vlTotal });
     h += '</div>';
-    h += field(ehLitro ? "Litros" : "Quantidade", "fQty" + i, item.qtde || "", { inputmode: "decimal", auto: !!item.qtde });
+    h += field(fuel ? "Litros" : "Quantidade", "fQty" + i, item.qtde || "", { inputmode: "decimal", auto: !!item.qtde, wrapId: "qtyWrap" + i, labelId: "qtyLbl" + i });
     h += '<input type="hidden" id="fQtyQid' + i + '" value="' + qtyQid + '">';
     h += '</div>';
     return h;
@@ -291,11 +318,9 @@
     h += '<input type="hidden" id="itemCount" value="' + count + '">';
 
     h += '<div class="seclbl">Completar</div>';
-    h += '<div class="grid2">';
     h += field("Nº da obra", "fObra", "", { inputmode: "numeric", req: true, ph: "Ex.: 4231" });
-    h += field("Placa da frota", "fPlaca", nota ? sugestaoPlaca(nota.placa) : "", { type: "select", options: OPT.placa, auto: !!(nota && sugestaoPlaca(nota.placa)) });
-    h += '</div>';
     h += field("Descrição da obra", "fObraDesc", "", { ph: "Ex.: Nestlé Araras" });
+    h += field("Placa da frota", "fPlaca", nota ? sugestaoPlaca(nota.placa) : "", { type: "select", options: OPT.placa, auto: !!(nota && sugestaoPlaca(nota.placa)), wrapId: "placaWrap" });
 
     h += '<div class="field"><label>Colaboradores envolvidos</label>';
     h += '<details class="colab"><summary><span>Selecionar</span><span class="cnt" id="colabCnt"></span></summary><div class="colab-list" id="colabList">';
@@ -324,8 +349,11 @@
       chk.addEventListener("change", function () {
         var cardEl = document.getElementById("itemCard" + chk.getAttribute("data-i"));
         if (cardEl) cardEl.classList.toggle("off", !chk.checked);
+        applyPlaca();
       });
     });
+    resultEl.querySelectorAll('select[id^="fTipo"]').forEach(function (sel) { sel.addEventListener("change", applyConditions); });
+    applyConditions();
     document.getElementById("btnAgain").addEventListener("click", function () { resultEl.classList.remove("on"); startCamera(); });
     document.getElementById("btnEnviar").addEventListener("click", enviar);
     resultEl.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -343,7 +371,8 @@
     if (iso) { var p = iso.split("-"); shared["3_year"] = p[0]; shared["3_month"] = p[1]; shared["3_day"] = p[2]; }
     shared["8"] = obra;
     shared["10"] = (document.getElementById("fObraDesc").value || "").trim();
-    var placa = document.getElementById("fPlaca").value; if (placa) shared["13"] = placa;
+    var placaWrap = document.getElementById("placaWrap");
+    if (placaWrap && !placaWrap.hidden) { var placa = document.getElementById("fPlaca").value; if (placa) shared["13"] = placa; }
     var obs = (document.getElementById("fObs").value || "").trim(); if (obs) shared["19"] = obs;
     shared["21"] = (document.getElementById("fEstab").value || "").trim();
     shared["24"] = (document.getElementById("fCnpj").value || "").trim();
@@ -359,7 +388,8 @@
       var f = {}; for (var kk in shared) f[kk] = shared[kk];
       if (colab.length) f["11"] = colab.slice();
       var tipo = document.getElementById("fTipo" + i).value; if (tipo) f["12"] = tipo;
-      f["15"] = (descEl.value || "").trim();
+      var descWrap = document.getElementById("descWrap" + i);
+      if (descWrap && !descWrap.hidden) { var dv = (descEl.value || "").trim(); if (dv) f["15"] = dv; }
       var valor = brNum(document.getElementById("fValor" + i).value); if (valor) f["16"] = valor;
       var qty = brNum(document.getElementById("fQty" + i).value); if (qty) f[document.getElementById("fQtyQid" + i).value] = qty;
       payloads.push(f);
