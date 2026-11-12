@@ -277,7 +277,9 @@
     h += field("Data da despesa", "fData", nota ? ddmmToISO(nota.dataEmissao) : "", { inputType: "date", auto: !!(nota && nota.dataEmissao) });
     h += field("Estabelecimento", "fEstab", nota ? (nota.estabelecimento || "") : "", { auto: !!(nota && nota.estabelecimento) });
     h += field("CNPJ", "fCnpj", nota && nota.cnpj ? nota.cnpj : ch.cnpj, { auto: true });
-    h += field("Nota fiscal (nº)", "fNumero", (nota && nota.numero) ? nota.numero : ch.numero, { inputmode: "numeric", auto: true });
+    var _nf = (nota && nota.numero) ? nota.numero : ch.numero;
+    var _sr = (nota && nota.serie) ? nota.serie : ch.serie;
+    h += field("Nota fiscal (nº-série)", "fNumero", _nf ? (_nf + (_sr ? "-" + _sr : "")) : "", { auto: true });
 
     var count = itens.length || 1;
     h += '<div class="seclbl">' + (itens.length > 1 ? "Itens (" + itens.length + ") — cada um vira um lançamento" : "Item") + '</div>';
