@@ -13,7 +13,6 @@
     --bg: #0d131d; --surface: #141d2a; --surface-2: #1b2535;
     --fg: #e8eef7; --muted: #9aa8bd; --line: #27344a;
     --accent: #5b8cff; --accent-ink: #0b1220; --ok: #41c58d;
-    --warn-bg: #2a2410; --warn-line: #5c4e1f; --warn-ink: #e7cf8f;
     --radius: 16px; --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 28px rgba(0,0,0,.45);
     --ff-head: "Space Grotesk", system-ui, sans-serif;
     --ff-body: "Inter", system-ui, sans-serif;
@@ -27,7 +26,7 @@
     line-height: 1.5; -webkit-font-smoothing: antialiased; min-height: 100vh;
     padding: calc(16px + env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) calc(32px + env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
   }
-  .wrap { width: 100%; max-width: 540px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+  .wrap { width: 100%; max-width: 560px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
   header { display: flex; align-items: center; gap: 12px; }
   .logo { width: 42px; height: 42px; border-radius: 12px; background: linear-gradient(135deg, var(--accent), #123a9e); display: grid; place-items: center; flex: 0 0 auto; box-shadow: var(--shadow); }
   .logo svg { width: 24px; height: 24px; }
@@ -48,8 +47,7 @@
 
   .scanner h2 { font-family: var(--ff-head); font-size: 1rem; margin: 0 0 4px; font-weight: 600; }
   .scanner .hint { color: var(--muted); font-size: .84rem; margin: 0 0 14px; }
-
-  .viewport { position: relative; width: 100%; aspect-ratio: 3/4; max-height: 60vh; background: #000; border-radius: 13px; overflow: hidden; display: none; }
+  .viewport { position: relative; width: 100%; aspect-ratio: 3/4; max-height: 56vh; background: #000; border-radius: 13px; overflow: hidden; display: none; }
   .viewport.on { display: block; }
   video { width: 100%; height: 100%; object-fit: cover; display: block; }
   .frame { position: absolute; inset: 0; pointer-events: none; }
@@ -61,6 +59,7 @@
 
   .btn { display: inline-flex; align-items: center; justify-content: center; gap: 9px; width: 100%; font-family: var(--ff-head); font-weight: 600; font-size: 1.02rem; padding: 15px 18px; border-radius: 13px; border: 0; cursor: pointer; background: var(--accent); color: var(--accent-ink); box-shadow: var(--shadow); transition: transform .06s ease; }
   .btn:active { transform: translateY(1px); }
+  .btn[disabled] { opacity: .55; cursor: default; }
   .btn svg { width: 20px; height: 20px; }
   .btn.sub { background: var(--surface-2); color: var(--fg); border: 1px solid var(--line); box-shadow: none; font-size: .92rem; padding: 12px 16px; }
   .btn-row { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
@@ -68,26 +67,46 @@
   .status.err { color: #ff7a70; }
   .status.ok { color: var(--ok); }
 
-  .result { display: none; flex-direction: column; }
-  .result.on { display: flex; }
-  .modelo-tag { align-self: flex-start; font-family: var(--ff-head); font-size: .72rem; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--accent); background: rgba(91,140,255,.14); border: 1px solid rgba(91,140,255,.4); padding: 4px 10px; border-radius: 999px; margin-bottom: 4px; }
-  .estab { font-family: var(--ff-head); font-size: 1.02rem; font-weight: 600; margin: 6px 0 2px; }
-  .loading { display: flex; align-items: center; gap: 9px; color: var(--muted); font-size: .85rem; padding: 8px 0 2px; }
+  /* Formulario */
+  .result { display: none; }
+  .result.on { display: block; }
+  .estab { font-family: var(--ff-head); font-size: 1.08rem; font-weight: 600; margin: 2px 0 2px; text-wrap: balance; }
+  .modelo-tag { display: inline-block; font-family: var(--ff-head); font-size: .7rem; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--accent); background: rgba(91,140,255,.14); border: 1px solid rgba(91,140,255,.4); padding: 3px 9px; border-radius: 999px; margin-bottom: 8px; }
+  .loading { display: flex; align-items: center; gap: 9px; color: var(--muted); font-size: .85rem; padding: 10px 0; }
   .spin { width: 16px; height: 16px; border: 2px solid var(--line); border-top-color: var(--accent); border-radius: 50%; animation: rot .7s linear infinite; }
   @keyframes rot { to { transform: rotate(360deg); } }
-  .row { display: grid; grid-template-columns: 1fr auto; gap: 10px; padding: 11px 0; border-top: 1px solid var(--line); align-items: baseline; }
-  .row .k { color: var(--muted); font-size: .82rem; }
-  .row .v { font-family: var(--ff-mono); font-size: .98rem; font-weight: 500; text-align: right; font-variant-numeric: tabular-nums; word-break: break-word; }
-  .row .v.big { font-size: 1.1rem; }
-  .row .v.accent { color: var(--accent); }
-  .sec { margin-top: 14px; padding-top: 6px; }
-  .chave { margin-top: 14px; padding-top: 14px; border-top: 1px dashed var(--line); }
+  .seclbl { font-family: var(--ff-head); font-size: .74rem; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); margin: 18px 0 8px; }
+  .field { margin-bottom: 12px; }
+  .field > label { display: block; font-size: .78rem; color: var(--muted); margin-bottom: 5px; }
+  .field > label .req { color: var(--accent); }
+  .field input, .field select, .field textarea {
+    width: 100%; background: var(--bg); border: 1px solid var(--line); color: var(--fg);
+    border-radius: 10px; padding: 12px 12px; font-family: var(--ff-body); font-size: 1rem;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus { outline: 2px solid color-mix(in srgb, var(--accent) 55%, transparent); outline-offset: 1px; border-color: var(--accent); }
+  .field .auto { border-color: #2a3b2f; }
+  .field textarea { resize: vertical; min-height: 54px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .pill-auto { font-size: .68rem; color: var(--ok); margin-left: 6px; }
+  details.colab { background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 0; }
+  details.colab summary { padding: 12px; cursor: pointer; font-size: .92rem; list-style: none; display: flex; justify-content: space-between; align-items: center; }
+  details.colab summary::-webkit-details-marker { display: none; }
+  details.colab summary .cnt { color: var(--muted); font-size: .8rem; }
+  .colab-list { max-height: 230px; overflow-y: auto; padding: 4px 12px 12px; display: flex; flex-direction: column; gap: 2px; }
+  .colab-list label { display: flex; gap: 10px; align-items: center; padding: 7px 0; font-size: .9rem; border-top: 1px solid var(--line); }
+  .colab-list label:first-child { border-top: 0; }
+  .colab-list input { width: 18px; height: 18px; accent-color: var(--accent); flex: 0 0 auto; }
+  .chave { margin-top: 16px; padding-top: 12px; border-top: 1px dashed var(--line); }
   .chave .k { color: var(--muted); font-size: .72rem; text-transform: uppercase; letter-spacing: .04em; }
-  .chave .v { font-family: var(--ff-mono); font-size: .82rem; word-break: break-all; margin-top: 4px; }
-  .actions { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
-  .link-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; font-family: var(--ff-head); font-weight: 600; font-size: .95rem; padding: 13px 16px; border-radius: 12px; background: var(--accent); color: var(--accent-ink); }
-  .link-btn.ghost { background: var(--surface-2); color: var(--fg); border: 1px solid var(--line); }
-  .link-btn svg { width: 17px; height: 17px; }
+  .chave .v { font-family: var(--ff-mono); font-size: .8rem; word-break: break-all; margin-top: 4px; }
+  .link-inline { display: inline-flex; align-items: center; gap: 6px; color: var(--accent); font-size: .82rem; text-decoration: none; margin-top: 10px; }
+  .link-inline svg { width: 14px; height: 14px; }
+
+  .done { text-align: center; padding: 10px 0; }
+  .done .ic { width: 64px; height: 64px; border-radius: 50%; background: rgba(65,197,141,.16); border: 1px solid rgba(65,197,141,.5); display: grid; place-items: center; margin: 6px auto 14px; }
+  .done .ic svg { width: 32px; height: 32px; stroke: var(--ok); }
+  .done h2 { font-family: var(--ff-head); margin: 0 0 6px; }
+  .done p { color: var(--muted); font-size: .9rem; margin: 0 0 18px; }
   footer { color: var(--muted); font-size: .76rem; text-align: center; line-height: 1.6; }
 </style>
 </head>
@@ -103,7 +122,7 @@
 
   <section class="card cfg" id="cfg">
     <h3>Endereço do servidor</h3>
-    <p>Cole o link do servidor NFC-e (o túnel). Deixe em branco para ler só o que vem do QR.</p>
+    <p>Cole o link do servidor NFC-e (o túnel). Sem ele, o app só lê o QR.</p>
     <div class="inrow">
       <input type="url" id="cfgUrl" placeholder="https://nfce.hseletricidade.com.br" autocapitalize="off" autocorrect="off" spellcheck="false">
       <button id="cfgSave" type="button">Salvar</button>
@@ -130,7 +149,7 @@
 
   <section class="card result" id="result"></section>
 
-  <footer>Lê o QR da NFC-e/NF-e. Com o servidor ligado, puxa valor, itens, litros, placa e data direto da nota.</footer>
+  <footer>Escaneie o QR · os dados da nota vêm preenchidos · complete a obra e envie.</footer>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js"></script>
@@ -138,33 +157,24 @@
 (function () {
   "use strict";
   var UF = {11:"RO",12:"AC",13:"AM",14:"RR",15:"PA",16:"AP",17:"TO",21:"MA",22:"PI",23:"CE",24:"RN",25:"PB",26:"PE",27:"AL",28:"SE",29:"BA",31:"MG",32:"ES",33:"RJ",35:"SP",41:"PR",42:"SC",43:"RS",50:"MS",51:"MT",52:"GO",53:"DF"};
-  var MES = {"01":"jan","02":"fev","03":"mar","04":"abr","05":"mai","06":"jun","07":"jul","08":"ago","09":"set","10":"out","11":"nov","12":"dez"};
   var LS_KEY = "hs_nfce_server";
-
-  // Mapa item -> codigo fixo (combustiveis sao automaticos; resto fica para o funcionario escolher)
-  var TIPOS = [
-    { re: /diesel.*s[\s-]?10|\bs[\s-]?10\b/i, cod: "2000002", nome: "Diesel S-10" },
-    { re: /diesel.*s[\s-]?500|\bs[\s-]?500\b/i, cod: "2000003", nome: "Diesel S-500" },
-    { re: /diesel/i, cod: "2000003", nome: "Diesel S-500" },
-    { re: /arla/i, cod: "2000004", nome: "Arla 32" },
-    { re: /gasolina/i, cod: "2000000", nome: "Gasolina comum" },
-    { re: /etanol|[áa]lcool/i, cod: "2000001", nome: "Etanol" }
-  ];
-  function mapTipo(desc) { if (!desc) return null; for (var i=0;i<TIPOS.length;i++) if (TIPOS[i].re.test(desc)) return TIPOS[i]; return null; }
 
   var video = document.getElementById("video");
   var viewport = document.getElementById("viewport");
   var statusEl = document.getElementById("status");
   var resultEl = document.getElementById("result");
   var btnStart = document.getElementById("btnStart");
-  var reader = null, scanning = false, lastPayload = null;
+  var reader = null, scanning = false;
   var SERVER_URL = "";
+  var OPT = { tipo: [], placa: [], colaboradores: [] };
   try { SERVER_URL = localStorage.getItem(LS_KEY) || ""; } catch (e) {}
 
   function setStatus(msg, cls) { statusEl.textContent = msg || ""; statusEl.className = "status" + (cls ? " " + cls : ""); }
   function esc(s) { return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
   function fmtCNPJ(c) { return c.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5"); }
   function grpChave(c) { return (c.match(/.{1,4}/g) || []).join(" "); }
+  function brNum(s) { if (s == null) return ""; s = String(s).trim(); if (!s) return ""; if (s.indexOf(",") >= 0) s = s.replace(/\./g, "").replace(",", "."); return s.replace(/[^0-9.]/g, ""); }
+  function ddmmToISO(d) { var m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(d || ""); return m ? (m[3] + "-" + m[2] + "-" + m[1]) : ""; }
 
   function extrairChave(txt) {
     try { var m = txt.match(/[?&]p=([^&#]+)/i); if (m) { var p = decodeURIComponent(m[1]).split("|")[0].replace(/\D/g, ""); if (p.length >= 44) return p.slice(0, 44); } } catch (e) {}
@@ -172,88 +182,176 @@
   }
   function decodeChave(ch) {
     var cUF = ch.slice(0,2), aamm = ch.slice(2,6), cnpj = ch.slice(6,20), mod = ch.slice(20,22), serie = ch.slice(22,25), nnf = ch.slice(25,34);
-    return { uf: UF[parseInt(cUF,10)] || cUF, cnpj: fmtCNPJ(cnpj), modelo: mod === "65" ? "NFC-e · cupom fiscal" : (mod === "55" ? "NF-e" : "Modelo " + mod), serie: String(parseInt(serie,10)), numero: String(parseInt(nnf,10)), mesAno: (MES[aamm.slice(2,4)] || aamm.slice(2,4)) + "/20" + aamm.slice(0,2), chave: ch };
+    return { uf: UF[parseInt(cUF,10)] || cUF, cnpj: fmtCNPJ(cnpj), modelo: mod === "65" ? "NFC-e · cupom" : (mod === "55" ? "NF-e" : "Modelo " + mod), serie: String(parseInt(serie,10)), numero: String(parseInt(nnf,10)), chave: ch };
   }
-  function row(k, v, cls) { return '<div class="row"><span class="k">' + esc(k) + '</span><span class="v ' + (cls||"") + '">' + esc(v) + '</span></div>'; }
 
-  function render(ch, nota) {
-    var urlNota = lastPayload && /^https?:\/\//i.test(lastPayload.raw) ? lastPayload.raw : null;
-    var h = '<span class="modelo-tag">' + esc(ch.modelo) + '</span>';
-    if (nota && nota.estabelecimento) h += '<div class="estab">' + esc(nota.estabelecimento) + '</div>';
+  function sugestaoTipo(desc) {
+    if (!desc || !OPT.tipo.length) return "";
+    var d = desc.toLowerCase();
+    function find(sub) { for (var i=0;i<OPT.tipo.length;i++) if (OPT.tipo[i].toLowerCase().indexOf(sub) >= 0) return OPT.tipo[i]; return ""; }
+    if (/diesel/.test(d) && /s\s?-?\s?10/.test(d)) return find("diesel s-10");
+    if (/diesel/.test(d)) return find("diesel s-500");
+    if (/arla/.test(d)) return find("arla");
+    if (/gasolina/.test(d)) return find("gasolina");
+    if (/etanol|[áa]lcool/.test(d)) return find("etanol");
+    return "";
+  }
+  function sugestaoPlaca(placa) {
+    if (!placa || !OPT.placa.length) return "";
+    var alvo = placa.replace(/[^a-z0-9]/gi, "").toLowerCase();
+    if (alvo.length < 6) return "";
+    for (var i=0;i<OPT.placa.length;i++) if (OPT.placa[i].replace(/[^a-z0-9]/gi, "").toLowerCase().indexOf(alvo) >= 0) return OPT.placa[i];
+    return "";
+  }
+  function optionsHtml(arr, sel) {
+    var h = '<option value=""></option>';
+    for (var i=0;i<arr.length;i++) { var v = arr[i]; h += '<option value="' + esc(v) + '"' + (v === sel ? " selected" : "") + '>' + esc(v.replace(/\s+/g," ").trim()) + '</option>'; }
+    return h;
+  }
 
-    if (lastPayload && lastPayload.loading) h += '<div class="loading"><span class="spin"></span>Buscando dados da nota…</div>';
+  function loadOpcoes() {
+    if (!SERVER_URL) return;
+    fetch(SERVER_URL.replace(/\/+$/, "") + "/opcoes").then(function (r) { return r.json(); }).then(function (j) {
+      if (j && j.ok) { OPT.tipo = j.tipo || []; OPT.placa = j.placa || []; OPT.colaboradores = j.colaboradores || []; }
+    }).catch(function () {});
+  }
 
+  function field(label, id, value, opts) {
+    opts = opts || {};
+    var auto = opts.auto ? " auto" : "";
+    var req = opts.req ? ' <span class="req">*</span>' : "";
+    var inp;
+    if (opts.type === "select") inp = '<select id="' + id + '" class="' + auto.trim() + '">' + optionsHtml(opts.options || [], value) + '</select>';
+    else if (opts.type === "textarea") inp = '<textarea id="' + id + '" class="' + auto.trim() + '" rows="2">' + esc(value) + '</textarea>';
+    else inp = '<input id="' + id + '" class="' + auto.trim() + '" type="' + (opts.inputType || "text") + '"' + (opts.inputmode ? ' inputmode="' + opts.inputmode + '"' : "") + ' value="' + esc(value) + '"' + (opts.ph ? ' placeholder="' + esc(opts.ph) + '"' : "") + '>';
+    return '<div class="field"><label for="' + id + '">' + esc(label) + req + (opts.auto ? '<span class="pill-auto">auto</span>' : "") + '</label>' + inp + '</div>';
+  }
+
+  function render(ch, nota, loading) {
+    var urlNota = window.__raw && /^https?:\/\//i.test(window.__raw) ? window.__raw : null;
     var item = nota && nota.itens && nota.itens[0];
-    var tipo = item ? mapTipo(item.descricao) : null;
+    var ehLitro = item && item.unidade && /^l/i.test(item.unidade);
 
-    h += '<div class="sec">';
-    if (nota && nota.dataEmissao) h += row("Data da despesa", nota.dataEmissao, "");
-    else h += row("Emissão", ch.mesAno + " · " + ch.uf, "");
-    h += row("CNPJ", ch.cnpj, "");
-    if (item) {
-      h += row("Item", item.descricao, "");
-      if (tipo) h += row("Tipo de despesa", tipo.nome + " · " + tipo.cod, "accent");
-      else h += row("Tipo de despesa", "escolher no formulário", "");
-      var ehLitro = item.unidade && /^l/i.test(item.unidade);
-      if (item.qtde) h += row(ehLitro ? "Litros" : "Quantidade", item.qtde + (item.unidade ? " " + item.unidade : ""), "");
-    }
-    if (nota && nota.placa) h += row("Placa da frota", nota.placa, "");
-    if (nota && nota.km) h += row("KM", nota.km, "");
-    if (nota && nota.valorTotal) h += row("Valor total", "R$ " + nota.valorTotal, "big accent");
-    else h += row("Nº da nota", ch.numero, "");
-    if (nota && nota.formaPagamento) h += row("Pagamento", nota.formaPagamento, "");
+    var h = '<span class="modelo-tag">' + esc(ch.modelo) + '</span>';
+    h += '<div class="estab">' + esc(nota && nota.estabelecimento ? nota.estabelecimento : "Cupom lido") + '</div>';
+    if (loading) { h += '<div class="loading"><span class="spin"></span>Buscando os dados da nota…</div>'; }
+
+    // --- Dados da nota (auto, editaveis) ---
+    h += '<div class="seclbl">Dados da nota</div>';
+    h += field("Data da despesa", "fData", nota ? ddmmToISO(nota.dataEmissao) : "", { inputType: "date", auto: !!(nota && nota.dataEmissao) });
+    h += field("Estabelecimento", "fEstab", nota ? (nota.estabelecimento || "") : "", { auto: !!(nota && nota.estabelecimento) });
+    h += field("CNPJ", "fCnpj", nota && nota.cnpj ? nota.cnpj : ch.cnpj, { auto: true });
+    h += field("Descrição do item", "fItem", item ? item.descricao : "", { auto: !!item });
+    h += field("Tipo de despesa", "fTipo", item ? sugestaoTipo(item.descricao) : "", { type: "select", options: OPT.tipo, auto: !!(item && sugestaoTipo(item.descricao)) });
+    h += '<div class="grid2">';
+    var qtyQid = ehLitro ? "14" : "20";
+    h += field(ehLitro ? "Litros" : "Quantidade", "fQty", item ? item.qtde : "", { inputmode: "decimal", auto: !!item });
+    h += field("Valor total (R$)", "fValor", nota ? (nota.valorTotal || "") : "", { inputmode: "decimal", auto: !!(nota && nota.valorTotal) });
+    h += '</div>';
+    h += '<input type="hidden" id="fQtyQid" value="' + qtyQid + '">';
+
+    // --- Completar ---
+    h += '<div class="seclbl">Completar</div>';
+    h += '<div class="grid2">';
+    h += field("Nº da obra", "fObra", "", { inputmode: "numeric", req: true, ph: "Ex.: 4231" });
+    h += field("Placa da frota", "fPlaca", nota ? sugestaoPlaca(nota.placa) : "", { type: "select", options: OPT.placa, auto: !!(nota && sugestaoPlaca(nota.placa)) });
+    h += '</div>';
+    h += field("Descrição da obra", "fObraDesc", "", { ph: "Ex.: Nestlé Araras" });
+
+    // colaboradores
+    h += '<div class="field"><label>Colaboradores envolvidos</label>';
+    h += '<details class="colab"><summary><span>Selecionar</span><span class="cnt" id="colabCnt"></span></summary><div class="colab-list" id="colabList">';
+    for (var i=0;i<OPT.colaboradores.length;i++) { var c = OPT.colaboradores[i]; h += '<label><input type="checkbox" class="colabChk" value="' + esc(c) + '"><span>' + esc(c.replace(/\s+/g," ").trim()) + '</span></label>'; }
+    if (!OPT.colaboradores.length) h += '<div style="color:var(--muted);font-size:.85rem;padding:8px 0">Lista indisponível (servidor off).</div>';
+    h += '</div></details></div>';
+
+    h += field("Observação", "fObs", "", { type: "textarea", ph: "Opcional" });
+
+    h += '<div class="chave"><div class="k">Chave de acesso</div><div class="v">' + grpChave(ch.chave) + '</div>';
+    if (urlNota) h += '<a class="link-inline" href="' + esc(urlNota) + '" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6"/><path d="M10 14 21 3"/></svg>Abrir nota no SEFAZ</a>';
     h += '</div>';
 
-    h += '<div class="chave"><div class="k">Chave de acesso</div><div class="v">' + grpChave(ch.chave) + '</div></div>';
-
-    h += '<div class="actions">';
-    if (urlNota) h += '<a class="link-btn ghost" href="' + esc(urlNota) + '" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6"/><path d="M10 14 21 3"/></svg>Abrir nota no SEFAZ</a>';
+    h += '<div class="btn-row">';
+    h += '<button class="btn" id="btnEnviar" type="button">Enviar lançamento</button>';
     h += '<button class="btn sub" id="btnAgain" type="button">Ler outra nota</button>';
     h += '</div>';
+    h += '<div class="status" id="st2" role="status" aria-live="polite"></div>';
 
     resultEl.innerHTML = h;
     resultEl.classList.add("on");
-    var ba = document.getElementById("btnAgain");
-    if (ba) ba.addEventListener("click", function () { resultEl.classList.remove("on"); startCamera(); });
-    resultEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
+
+    var det = document.getElementById("colabList");
+    function atualizaCnt() { var n = resultEl.querySelectorAll(".colabChk:checked").length; document.getElementById("colabCnt").textContent = n ? (n + " selecionado" + (n>1?"s":"")) : ""; }
+    if (det) det.addEventListener("change", atualizaCnt);
+    document.getElementById("btnAgain").addEventListener("click", function () { resultEl.classList.remove("on"); startCamera(); });
+    document.getElementById("btnEnviar").addEventListener("click", enviar);
+    resultEl.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function enviar() {
+    var st2 = document.getElementById("st2");
+    var btn = document.getElementById("btnEnviar");
+    function msg(m, cls) { st2.textContent = m; st2.className = "status" + (cls ? " " + cls : ""); }
+    var obra = (document.getElementById("fObra").value || "").trim();
+    if (!obra) { msg("Informe o Nº da obra.", "err"); document.getElementById("fObra").focus(); return; }
+    if (!SERVER_URL) { msg("Configure o servidor na engrenagem ⚙️ para enviar.", "err"); return; }
+
+    var fields = {};
+    var iso = document.getElementById("fData").value;
+    if (iso) { var p = iso.split("-"); fields["3_year"] = p[0]; fields["3_month"] = p[1]; fields["3_day"] = p[2]; }
+    fields["8"] = obra;
+    fields["10"] = (document.getElementById("fObraDesc").value || "").trim();
+    var tipo = document.getElementById("fTipo").value; if (tipo) fields["12"] = tipo;
+    var placa = document.getElementById("fPlaca").value; if (placa) fields["13"] = placa;
+    var qty = brNum(document.getElementById("fQty").value); if (qty) fields[document.getElementById("fQtyQid").value] = qty;
+    fields["15"] = (document.getElementById("fItem").value || "").trim();
+    var valor = brNum(document.getElementById("fValor").value); if (valor) fields["16"] = valor;
+    var obs = (document.getElementById("fObs").value || "").trim(); if (obs) fields["19"] = obs;
+    fields["21"] = (document.getElementById("fEstab").value || "").trim();
+    fields["24"] = (document.getElementById("fCnpj").value || "").trim();
+    var colab = []; resultEl.querySelectorAll(".colabChk:checked").forEach(function (c) { colab.push(c.value); });
+    if (colab.length) fields["11"] = colab;
+
+    btn.disabled = true; msg("Enviando…");
+    fetch(SERVER_URL.replace(/\/+$/, "") + "/enviar", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ fields: fields })
+    }).then(function (r) { return r.json().catch(function(){ return {ok:false,erro:"resposta"}; }); })
+      .then(function (j) {
+        if (j && j.ok) { sucesso(obra); }
+        else { btn.disabled = false; msg("Não consegui enviar (" + (j && j.erro ? j.erro : "erro") + "). Tente de novo.", "err"); }
+      })
+      .catch(function () { btn.disabled = false; msg("Servidor não respondeu. Confira o link em ⚙️.", "err"); });
+  }
+
+  function sucesso(obra) {
+    resultEl.innerHTML = '<div class="done"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>'
+      + '<h2>Despesa lançada! ✓</h2><p>Obra ' + esc(obra) + ' — enviado para o lançamento.</p>'
+      + '<button class="btn" id="btnNova" type="button">Lançar outra nota</button></div>';
+    document.getElementById("btnNova").addEventListener("click", function () { resultEl.classList.remove("on"); startCamera(); });
   }
 
   function handleText(text) {
     var chv = extrairChave(text);
-    if (!chv) { setStatus("Li o QR, mas não é uma nota fiscal (sem chave de 44 dígitos). Continuo tentando…", "err"); return false; }
+    if (!chv) { setStatus("Li o QR, mas não é uma nota fiscal. Continuo tentando…", "err"); return false; }
     stopCamera();
     setStatus("Nota lida! ✓", "ok");
+    window.__raw = text;
     var ch = decodeChave(chv);
-    lastPayload = { raw: text, loading: !!SERVER_URL };
-    render(ch, null);
-    if (SERVER_URL) buscarNota(text, ch);
+    render(ch, null, !!SERVER_URL);
+    if (SERVER_URL) {
+      var ctrl = ("AbortController" in window) ? new AbortController() : null;
+      var to = setTimeout(function () { if (ctrl) ctrl.abort(); }, 45000);
+      fetch(SERVER_URL.replace(/\/+$/, "") + "/nota?u=" + encodeURIComponent(text), ctrl ? { signal: ctrl.signal } : undefined)
+        .then(function (r) { return r.json().catch(function(){ return {ok:false}; }); })
+        .then(function (j) { clearTimeout(to); if (j && j.ok && j.dados) render(ch, j.dados, false); else { render(ch, null, false); setStatus("QR lido. Detalhes da nota não vieram — preencha manualmente.", "err"); } })
+        .catch(function () { clearTimeout(to); render(ch, null, false); setStatus("QR lido. Servidor não respondeu — confira ⚙️ ou preencha manualmente.", "err"); });
+    }
     return true;
-  }
-
-  function buscarNota(text, ch) {
-    var base = SERVER_URL.replace(/\/+$/, "");
-    var url = base + "/nota?u=" + encodeURIComponent(text);
-    var ctrl = ("AbortController" in window) ? new AbortController() : null;
-    var to = setTimeout(function () { if (ctrl) ctrl.abort(); }, 45000);
-    fetch(url, ctrl ? { signal: ctrl.signal } : undefined)
-      .then(function (r) { return r.json().catch(function(){ return { ok:false, erro:"resposta_invalida" }; }); })
-      .then(function (j) {
-        clearTimeout(to);
-        if (lastPayload) lastPayload.loading = false;
-        if (j && j.ok && j.dados) { render(ch, j.dados); }
-        else { render(ch, null); var e = j && j.erro ? j.erro : "falha"; setStatus("Dados do QR OK. Detalhes da nota não vieram (" + e + ").", "err"); }
-      })
-      .catch(function () {
-        clearTimeout(to);
-        if (lastPayload) lastPayload.loading = false;
-        render(ch, null);
-        setStatus("Dados do QR OK. Servidor não respondeu — confira o link em ⚙️.", "err");
-      });
   }
 
   function startCamera() {
     resultEl.classList.remove("on");
-    if (!(window.ZXing && ZXing.BrowserQRCodeReader)) { setStatus("Leitor não carregou — confira a internet e recarregue.", "err"); return; }
+    if (!(window.ZXing && ZXing.BrowserQRCodeReader)) { setStatus("Leitor não carregou — recarregue a página.", "err"); return; }
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { setStatus("Este navegador não libera a câmera. Abra pelo Safari ou Chrome.", "err"); return; }
     viewport.classList.add("on");
     btnStart.textContent = "Reiniciar câmera";
@@ -263,11 +361,11 @@
     scanning = true;
     reader.decodeFromConstraints({ video: { facingMode: { ideal: "environment" } } }, video, function (result) {
       if (!scanning) return;
-      if (result) { handleText(result.getText()); }
+      if (result) handleText(result.getText());
     }).catch(function (e) {
       viewport.classList.remove("on");
       var msg = "Não consegui abrir a câmera.";
-      if (e && (e.name === "NotAllowedError" || e.name === "SecurityError")) msg = "Permissão da câmera negada. Libere o acesso à câmera e toque em Ligar câmera.";
+      if (e && (e.name === "NotAllowedError" || e.name === "SecurityError")) msg = "Permissão da câmera negada. Libere o acesso e toque em Ligar câmera.";
       else if (e && e.name === "NotFoundError") msg = "Nenhuma câmera encontrada neste aparelho.";
       setStatus(msg, "err");
     });
@@ -284,10 +382,12 @@
     if (v && !/^https?:\/\//i.test(v)) v = "https://" + v;
     SERVER_URL = v;
     try { localStorage.setItem(LS_KEY, v); } catch (e) {}
-    cfgSt.textContent = v ? ("Salvo: " + v) : "Servidor removido — lendo só o QR.";
+    cfgSt.textContent = v ? ("Salvo: " + v) : "Servidor removido.";
+    loadOpcoes();
   });
 
   btnStart.addEventListener("click", startCamera);
+  loadOpcoes();
 })();
 </script>
 </body>
