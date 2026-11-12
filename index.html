@@ -33,7 +33,18 @@
   .logo svg { width: 24px; height: 24px; }
   h1 { font-family: var(--ff-head); font-size: 1.28rem; font-weight: 600; margin: 0; letter-spacing: -.01em; }
   header p { margin: 2px 0 0; color: var(--muted); font-size: .82rem; }
+  .gear { margin-left: auto; background: var(--surface-2); border: 1px solid var(--line); color: var(--muted); width: 38px; height: 38px; border-radius: 10px; cursor: pointer; display: grid; place-items: center; flex: 0 0 auto; }
+  .gear svg { width: 18px; height: 18px; }
   .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 16px; }
+
+  .cfg { display: none; }
+  .cfg.on { display: block; }
+  .cfg h3 { font-family: var(--ff-head); font-size: .92rem; margin: 0 0 8px; }
+  .cfg p { color: var(--muted); font-size: .8rem; margin: 0 0 10px; }
+  .cfg .inrow { display: flex; gap: 8px; }
+  .cfg input { flex: 1; min-width: 0; background: var(--bg); border: 1px solid var(--line); color: var(--fg); border-radius: 10px; padding: 11px 12px; font-family: var(--ff-mono); font-size: .86rem; }
+  .cfg button { background: var(--accent); color: var(--accent-ink); border: 0; border-radius: 10px; padding: 0 16px; font-family: var(--ff-head); font-weight: 600; cursor: pointer; }
+  .cfg .st { font-size: .78rem; margin-top: 8px; color: var(--muted); min-height: 1em; }
 
   .scanner h2 { font-family: var(--ff-head); font-size: 1rem; margin: 0 0 4px; font-weight: 600; }
   .scanner .hint { color: var(--muted); font-size: .84rem; margin: 0 0 14px; }
@@ -59,21 +70,24 @@
 
   .result { display: none; flex-direction: column; }
   .result.on { display: flex; }
-  .modelo-tag { align-self: flex-start; font-family: var(--ff-head); font-size: .72rem; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--accent); background: rgba(91,140,255,.14); border: 1px solid rgba(91,140,255,.4); padding: 4px 10px; border-radius: 999px; margin-bottom: 12px; }
+  .modelo-tag { align-self: flex-start; font-family: var(--ff-head); font-size: .72rem; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--accent); background: rgba(91,140,255,.14); border: 1px solid rgba(91,140,255,.4); padding: 4px 10px; border-radius: 999px; margin-bottom: 4px; }
+  .estab { font-family: var(--ff-head); font-size: 1.02rem; font-weight: 600; margin: 6px 0 2px; }
+  .loading { display: flex; align-items: center; gap: 9px; color: var(--muted); font-size: .85rem; padding: 8px 0 2px; }
+  .spin { width: 16px; height: 16px; border: 2px solid var(--line); border-top-color: var(--accent); border-radius: 50%; animation: rot .7s linear infinite; }
+  @keyframes rot { to { transform: rotate(360deg); } }
   .row { display: grid; grid-template-columns: 1fr auto; gap: 10px; padding: 11px 0; border-top: 1px solid var(--line); align-items: baseline; }
-  .row:first-of-type { border-top: 0; }
   .row .k { color: var(--muted); font-size: .82rem; }
   .row .v { font-family: var(--ff-mono); font-size: .98rem; font-weight: 500; text-align: right; font-variant-numeric: tabular-nums; word-break: break-word; }
-  .row .v.big { font-size: 1.08rem; }
+  .row .v.big { font-size: 1.1rem; }
+  .row .v.accent { color: var(--accent); }
+  .sec { margin-top: 14px; padding-top: 6px; }
   .chave { margin-top: 14px; padding-top: 14px; border-top: 1px dashed var(--line); }
   .chave .k { color: var(--muted); font-size: .72rem; text-transform: uppercase; letter-spacing: .04em; }
   .chave .v { font-family: var(--ff-mono); font-size: .82rem; word-break: break-all; margin-top: 4px; }
   .actions { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
   .link-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; font-family: var(--ff-head); font-weight: 600; font-size: .95rem; padding: 13px 16px; border-radius: 12px; background: var(--accent); color: var(--accent-ink); }
+  .link-btn.ghost { background: var(--surface-2); color: var(--fg); border: 1px solid var(--line); }
   .link-btn svg { width: 17px; height: 17px; }
-  .copy-btn { font-family: var(--ff-head); font-weight: 600; font-size: .9rem; padding: 11px 16px; border-radius: 12px; cursor: pointer; background: var(--surface-2); color: var(--fg); border: 1px solid var(--line); }
-  .note { background: var(--warn-bg); border: 1px solid var(--warn-line); color: var(--warn-ink); border-radius: 13px; padding: 13px 15px; font-size: .84rem; display: flex; gap: 10px; align-items: flex-start; }
-  .note svg { width: 18px; height: 18px; flex: 0 0 auto; margin-top: 1px; }
   footer { color: var(--muted); font-size: .76rem; text-align: center; line-height: 1.6; }
 </style>
 </head>
@@ -82,7 +96,20 @@
   <header>
     <div class="logo" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg></div>
     <div><h1>Leitor de Cupom</h1><p>HS Eletricidade — lançamento de despesa</p></div>
+    <button class="gear" id="btnGear" type="button" title="Configurar servidor" aria-label="Configurar servidor">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    </button>
   </header>
+
+  <section class="card cfg" id="cfg">
+    <h3>Endereço do servidor</h3>
+    <p>Cole o link do servidor NFC-e (o túnel). Deixe em branco para ler só o que vem do QR.</p>
+    <div class="inrow">
+      <input type="url" id="cfgUrl" placeholder="https://nfce.hseletricidade.com.br" autocapitalize="off" autocorrect="off" spellcheck="false">
+      <button id="cfgSave" type="button">Salvar</button>
+    </div>
+    <div class="st" id="cfgSt"></div>
+  </section>
 
   <section class="card scanner" id="scanCard">
     <h2>Ler o QR do cupom</h2>
@@ -103,12 +130,7 @@
 
   <section class="card result" id="result"></section>
 
-  <div class="note" id="note" style="display:none">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
-    <div><b>Valor, itens e estabelecimento</b> ficam na página do SEFAZ. Toque em <b>“Abrir nota no SEFAZ”</b> pra ver tudo. Próxima fase: puxar esses dados e já preencher o formulário.</div>
-  </div>
-
-  <footer>Lê NFC-e e NF-e de qualquer estado. Decodifica a chave de acesso (CNPJ, número, série, mês/ano).</footer>
+  <footer>Lê o QR da NFC-e/NF-e. Com o servidor ligado, puxa valor, itens, litros, placa e data direto da nota.</footer>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js"></script>
@@ -117,16 +139,30 @@
   "use strict";
   var UF = {11:"RO",12:"AC",13:"AM",14:"RR",15:"PA",16:"AP",17:"TO",21:"MA",22:"PI",23:"CE",24:"RN",25:"PB",26:"PE",27:"AL",28:"SE",29:"BA",31:"MG",32:"ES",33:"RJ",35:"SP",41:"PR",42:"SC",43:"RS",50:"MS",51:"MT",52:"GO",53:"DF"};
   var MES = {"01":"jan","02":"fev","03":"mar","04":"abr","05":"mai","06":"jun","07":"jul","08":"ago","09":"set","10":"out","11":"nov","12":"dez"};
+  var LS_KEY = "hs_nfce_server";
+
+  // Mapa item -> codigo fixo (combustiveis sao automaticos; resto fica para o funcionario escolher)
+  var TIPOS = [
+    { re: /diesel.*s[\s-]?10|\bs[\s-]?10\b/i, cod: "2000002", nome: "Diesel S-10" },
+    { re: /diesel.*s[\s-]?500|\bs[\s-]?500\b/i, cod: "2000003", nome: "Diesel S-500" },
+    { re: /diesel/i, cod: "2000003", nome: "Diesel S-500" },
+    { re: /arla/i, cod: "2000004", nome: "Arla 32" },
+    { re: /gasolina/i, cod: "2000000", nome: "Gasolina comum" },
+    { re: /etanol|[áa]lcool/i, cod: "2000001", nome: "Etanol" }
+  ];
+  function mapTipo(desc) { if (!desc) return null; for (var i=0;i<TIPOS.length;i++) if (TIPOS[i].re.test(desc)) return TIPOS[i]; return null; }
 
   var video = document.getElementById("video");
   var viewport = document.getElementById("viewport");
   var statusEl = document.getElementById("status");
   var resultEl = document.getElementById("result");
-  var noteEl = document.getElementById("note");
   var btnStart = document.getElementById("btnStart");
-  var reader = null, scanning = false, lastData = null;
+  var reader = null, scanning = false, lastPayload = null;
+  var SERVER_URL = "";
+  try { SERVER_URL = localStorage.getItem(LS_KEY) || ""; } catch (e) {}
 
   function setStatus(msg, cls) { statusEl.textContent = msg || ""; statusEl.className = "status" + (cls ? " " + cls : ""); }
+  function esc(s) { return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
   function fmtCNPJ(c) { return c.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5"); }
   function grpChave(c) { return (c.match(/.{1,4}/g) || []).join(" "); }
 
@@ -138,49 +174,85 @@
     var cUF = ch.slice(0,2), aamm = ch.slice(2,6), cnpj = ch.slice(6,20), mod = ch.slice(20,22), serie = ch.slice(22,25), nnf = ch.slice(25,34);
     return { uf: UF[parseInt(cUF,10)] || cUF, cnpj: fmtCNPJ(cnpj), modelo: mod === "65" ? "NFC-e · cupom fiscal" : (mod === "55" ? "NF-e" : "Modelo " + mod), serie: String(parseInt(serie,10)), numero: String(parseInt(nnf,10)), mesAno: (MES[aamm.slice(2,4)] || aamm.slice(2,4)) + "/20" + aamm.slice(0,2), chave: ch };
   }
-  function row(k, v, big) { return '<div class="row"><span class="k">' + k + '</span><span class="v' + (big ? " big" : "") + '">' + v + '</span></div>'; }
+  function row(k, v, cls) { return '<div class="row"><span class="k">' + esc(k) + '</span><span class="v ' + (cls||"") + '">' + esc(v) + '</span></div>'; }
 
-  function render(d, rawText) {
-    lastData = d;
-    var urlNota = /^https?:\/\//i.test(rawText) ? rawText : null;
-    var html = '<span class="modelo-tag">' + d.modelo + '</span>';
-    html += row("CNPJ do estabelecimento", d.cnpj, true);
-    html += row("Número da nota", d.numero, true);
-    html += row("Série", d.serie, false);
-    html += row("Emissão", d.mesAno + " · " + d.uf, false);
-    html += '<div class="chave"><div class="k">Chave de acesso</div><div class="v">' + grpChave(d.chave) + '</div></div>';
-    html += '<div class="actions">';
-    if (urlNota) html += '<a class="link-btn" href="' + urlNota.replace(/"/g,"&quot;") + '" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6"/><path d="M10 14 21 3"/></svg>Abrir nota no SEFAZ</a>';
-    html += '<button class="copy-btn" id="btnCopy" type="button">Copiar dados</button>';
-    html += '<button class="btn sub" id="btnAgain" type="button">Ler outra nota</button>';
-    html += '</div>';
-    resultEl.innerHTML = html;
+  function render(ch, nota) {
+    var urlNota = lastPayload && /^https?:\/\//i.test(lastPayload.raw) ? lastPayload.raw : null;
+    var h = '<span class="modelo-tag">' + esc(ch.modelo) + '</span>';
+    if (nota && nota.estabelecimento) h += '<div class="estab">' + esc(nota.estabelecimento) + '</div>';
+
+    if (lastPayload && lastPayload.loading) h += '<div class="loading"><span class="spin"></span>Buscando dados da nota…</div>';
+
+    var item = nota && nota.itens && nota.itens[0];
+    var tipo = item ? mapTipo(item.descricao) : null;
+
+    h += '<div class="sec">';
+    if (nota && nota.dataEmissao) h += row("Data da despesa", nota.dataEmissao, "");
+    else h += row("Emissão", ch.mesAno + " · " + ch.uf, "");
+    h += row("CNPJ", ch.cnpj, "");
+    if (item) {
+      h += row("Item", item.descricao, "");
+      if (tipo) h += row("Tipo de despesa", tipo.nome + " · " + tipo.cod, "accent");
+      else h += row("Tipo de despesa", "escolher no formulário", "");
+      var ehLitro = item.unidade && /^l/i.test(item.unidade);
+      if (item.qtde) h += row(ehLitro ? "Litros" : "Quantidade", item.qtde + (item.unidade ? " " + item.unidade : ""), "");
+    }
+    if (nota && nota.placa) h += row("Placa da frota", nota.placa, "");
+    if (nota && nota.km) h += row("KM", nota.km, "");
+    if (nota && nota.valorTotal) h += row("Valor total", "R$ " + nota.valorTotal, "big accent");
+    else h += row("Nº da nota", ch.numero, "");
+    if (nota && nota.formaPagamento) h += row("Pagamento", nota.formaPagamento, "");
+    h += '</div>';
+
+    h += '<div class="chave"><div class="k">Chave de acesso</div><div class="v">' + grpChave(ch.chave) + '</div></div>';
+
+    h += '<div class="actions">';
+    if (urlNota) h += '<a class="link-btn ghost" href="' + esc(urlNota) + '" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6"/><path d="M10 14 21 3"/></svg>Abrir nota no SEFAZ</a>';
+    h += '<button class="btn sub" id="btnAgain" type="button">Ler outra nota</button>';
+    h += '</div>';
+
+    resultEl.innerHTML = h;
     resultEl.classList.add("on");
-    noteEl.style.display = "flex";
-    document.getElementById("btnCopy").addEventListener("click", copiar);
-    document.getElementById("btnAgain").addEventListener("click", function () { resultEl.classList.remove("on"); noteEl.style.display = "none"; startCamera(); });
+    var ba = document.getElementById("btnAgain");
+    if (ba) ba.addEventListener("click", function () { resultEl.classList.remove("on"); startCamera(); });
     resultEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
-  }
-  function copiar() {
-    if (!lastData) return; var d = lastData;
-    var txt = "CNPJ: " + d.cnpj + "\nNúmero: " + d.numero + "\nSérie: " + d.serie + "\nEmissão: " + d.mesAno + " (" + d.uf + ")\nModelo: " + d.modelo + "\nChave: " + d.chave;
-    var btn = document.getElementById("btnCopy");
-    function ok() { btn.textContent = "Copiado ✓"; setTimeout(function(){ btn.textContent = "Copiar dados"; }, 1600); }
-    try { if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(txt).then(ok).catch(fb); } else fb(); } catch (e) { fb(); }
-    function fb() { var ta = document.createElement("textarea"); ta.value = txt; ta.style.position="fixed"; ta.style.opacity="0"; document.body.appendChild(ta); ta.select(); try { document.execCommand("copy"); ok(); } catch(e2){} document.body.removeChild(ta); }
   }
 
   function handleText(text) {
-    var ch = extrairChave(text);
-    if (!ch) { setStatus("Li o QR, mas não é uma nota fiscal (sem chave de 44 dígitos). Continuo tentando…", "err"); return false; }
+    var chv = extrairChave(text);
+    if (!chv) { setStatus("Li o QR, mas não é uma nota fiscal (sem chave de 44 dígitos). Continuo tentando…", "err"); return false; }
     stopCamera();
     setStatus("Nota lida! ✓", "ok");
-    render(decodeChave(ch), text);
+    var ch = decodeChave(chv);
+    lastPayload = { raw: text, loading: !!SERVER_URL };
+    render(ch, null);
+    if (SERVER_URL) buscarNota(text, ch);
     return true;
   }
 
+  function buscarNota(text, ch) {
+    var base = SERVER_URL.replace(/\/+$/, "");
+    var url = base + "/nota?u=" + encodeURIComponent(text);
+    var ctrl = ("AbortController" in window) ? new AbortController() : null;
+    var to = setTimeout(function () { if (ctrl) ctrl.abort(); }, 45000);
+    fetch(url, ctrl ? { signal: ctrl.signal } : undefined)
+      .then(function (r) { return r.json().catch(function(){ return { ok:false, erro:"resposta_invalida" }; }); })
+      .then(function (j) {
+        clearTimeout(to);
+        if (lastPayload) lastPayload.loading = false;
+        if (j && j.ok && j.dados) { render(ch, j.dados); }
+        else { render(ch, null); var e = j && j.erro ? j.erro : "falha"; setStatus("Dados do QR OK. Detalhes da nota não vieram (" + e + ").", "err"); }
+      })
+      .catch(function () {
+        clearTimeout(to);
+        if (lastPayload) lastPayload.loading = false;
+        render(ch, null);
+        setStatus("Dados do QR OK. Servidor não respondeu — confira o link em ⚙️.", "err");
+      });
+  }
+
   function startCamera() {
-    resultEl.classList.remove("on"); noteEl.style.display = "none";
+    resultEl.classList.remove("on");
     if (!(window.ZXing && ZXing.BrowserQRCodeReader)) { setStatus("Leitor não carregou — confira a internet e recarregue.", "err"); return; }
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { setStatus("Este navegador não libera a câmera. Abra pelo Safari ou Chrome.", "err"); return; }
     viewport.classList.add("on");
@@ -189,7 +261,7 @@
     if (reader) { try { reader.reset(); } catch (e) {} }
     reader = new ZXing.BrowserQRCodeReader();
     scanning = true;
-    reader.decodeFromConstraints({ video: { facingMode: { ideal: "environment" } } }, video, function (result, err) {
+    reader.decodeFromConstraints({ video: { facingMode: { ideal: "environment" } } }, video, function (result) {
       if (!scanning) return;
       if (result) { handleText(result.getText()); }
     }).catch(function (e) {
@@ -201,6 +273,19 @@
     });
   }
   function stopCamera() { scanning = false; viewport.classList.remove("on"); if (reader) { try { reader.reset(); } catch (e) {} } }
+
+  var cfg = document.getElementById("cfg"), cfgUrl = document.getElementById("cfgUrl"), cfgSt = document.getElementById("cfgSt");
+  document.getElementById("btnGear").addEventListener("click", function () {
+    cfg.classList.toggle("on");
+    if (cfg.classList.contains("on")) { cfgUrl.value = SERVER_URL; cfgSt.textContent = SERVER_URL ? "Servidor configurado." : "Sem servidor — lendo só o QR."; }
+  });
+  document.getElementById("cfgSave").addEventListener("click", function () {
+    var v = cfgUrl.value.trim().replace(/\/+$/, "");
+    if (v && !/^https?:\/\//i.test(v)) v = "https://" + v;
+    SERVER_URL = v;
+    try { localStorage.setItem(LS_KEY, v); } catch (e) {}
+    cfgSt.textContent = v ? ("Salvo: " + v) : "Servidor removido — lendo só o QR.";
+  });
 
   btnStart.addEventListener("click", startCamera);
 })();
