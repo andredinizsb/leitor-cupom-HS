@@ -532,9 +532,33 @@
     for (var i=0;i<OPT.placa.length;i++) if (OPT.placa[i].replace(/[^a-z0-9]/gi, "").toLowerCase().indexOf(alvo) >= 0) return OPT.placa[i];
     return "";
   }
+  // Categorias dos tipos (planilha "Base de Dados FX - HS", aba DeParaDespesas, coluna D).
+  // A lista de tipos vem do Jotform; aqui só se agrupa. Tipo novo sem categoria cai em "Outros".
+  var CAT_ORDEM = ["Combustíveis", "Alimentação", "Serviço", "Manutenção", "Material Aplicado", "Locação"];
+  var CAT_TIPO = {
+    "combustivel - gasolina": "Combustíveis", "combustivel - etanol": "Combustíveis", "combustivel - diesel s-10": "Combustíveis",
+    "combustivel - diesel s-500": "Combustíveis", "arla": "Combustíveis",
+    "refeicao - almoco": "Alimentação", "refeicao - janta": "Alimentação", "refeicao - cafe da manha": "Alimentação",
+    "agua 500ml": "Alimentação", "agua 510ml": "Alimentação", "agua 20l (galao)": "Alimentação", "lanche (amendoim)": "Alimentação",
+    "mercado / alimenticio geral": "Alimentação", "confraternizacao": "Alimentação",
+    "servico de conserto": "Serviço", "servicos administrativos": "Serviço", "exames ocupacionais": "Serviço",
+    "m.o. ajudante (diaria)": "Serviço", "m.o. eletrico terceirizado": "Serviço", "lavagem de caminhao": "Serviço",
+    "lavagem de carro": "Serviço", "farmacia": "Serviço",
+    "fluido de freio": "Manutenção", "material aplicado": "Material Aplicado", "locacao de equipamentos": "Locação"
+  };
+  function catTipo(t) { return CAT_TIPO[noAcc(String(t || "").replace(/\s+/g, " ").trim())] || "Outros"; }
+  function optHtml(v, sel) { return '<option value="' + esc(v) + '"' + (v === sel ? " selected" : "") + '>' + esc(v.replace(/\s+/g," ").trim()) + '</option>'; }
   function optionsHtml(arr, sel) {
-    var h = '<option value=""></option>';
-    for (var i=0;i<arr.length;i++) { var v = arr[i]; h += '<option value="' + esc(v) + '"' + (v === sel ? " selected" : "") + '>' + esc(v.replace(/\s+/g," ").trim()) + '</option>'; }
+    var h = '<option value=""></option>', i;
+    if (arr !== OPT.tipo) { for (i=0;i<arr.length;i++) h += optHtml(arr[i], sel); return h; }
+    var grupos = {}, ordem = CAT_ORDEM.concat(["Outros"]);
+    for (i=0;i<arr.length;i++) { var c = catTipo(arr[i]); (grupos[c] = grupos[c] || []).push(arr[i]); if (ordem.indexOf(c) < 0) ordem.push(c); }
+    for (var g=0; g<ordem.length; g++) {
+      var lista = grupos[ordem[g]]; if (!lista) continue;
+      h += '<optgroup label="' + esc(ordem[g]) + '">';
+      for (i=0;i<lista.length;i++) h += optHtml(lista[i], sel);
+      h += '</optgroup>';
+    }
     return h;
   }
   function aplicarOpcoes(j) {
