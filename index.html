@@ -5,6 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0E1217">
 <title>Leitor de Cupom — HS</title>
+<link rel="icon" href="/icons/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/icons/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="alternate icon" href="/favicon.ico">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Despesas HS">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
@@ -336,6 +345,7 @@
       <div class="cam-hint" id="camHint">Mantenha o QR dentro da moldura</div>
     </div>
     <button class="btn" id="btnStart" type="button"></button>
+    <button class="btn sub" id="btnManual" type="button" style="margin-top:var(--s2)"></button>
     <div class="status" id="status" role="status" aria-live="polite"></div>
   </section>
 
@@ -394,6 +404,8 @@
     "alert":'<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
     sparkles:'<path d="M12 3v4"/><path d="M12 17v4"/><path d="M3 12h4"/><path d="M17 12h4"/><path d="m6.3 6.3 2.1 2.1"/><path d="m15.6 15.6 2.1 2.1"/><path d="m17.7 6.3-2.1 2.1"/><path d="m8.4 15.6-2.1 2.1"/>',
     "file-text":'<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/>',
+    keyboard:'<path d="M10 8h.01"/><path d="M12 12h.01"/><path d="M14 8h.01"/><path d="M16 12h.01"/><path d="M18 8h.01"/><path d="M6 8h.01"/><path d="M7 16h10"/><path d="M8 12h.01"/><rect width="20" height="16" x="2" y="4" rx="2"/>',
+    plus:'<path d="M5 12h14"/><path d="M12 5v14"/>',
     refresh:'<path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/>'
   };
   function ic(n, px) { var p = ICONS[n] || ""; return '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"' + (px ? ' style="width:' + px + 'px;height:' + px + 'px"' : '') + '>' + p + '</svg>'; }
@@ -408,9 +420,17 @@
   var SERVIDOR_PADRAO = "https://nfce.hsgestao.app";
   var SERVER_URL = SERVIDOR_PADRAO;
   var OPT = { tipo: [], placa: [], colaboradores: [] };
+  // Token que o servidor NFC-e exige no header X-HS-Token (barra uso de fora do app).
+  var HS_TOKEN = "8d5c9fe3668fd08f303ba8f2eeb71996b21374117c93b93b";
+  var HDR = { "X-HS-Token": HS_TOKEN };
+  // Caminho de reserva (mesmo site, Cloudflare Pages): grava no formulário público do Jotform
+  // quando o servidor NFC-e está fora do ar. Não usa chave nenhuma.
+  var API_RESERVA = "/api";
+  var srvOnline = null, reservaOk = false, MANUAL = false;
   try { SERVER_URL = localStorage.getItem(LS_KEY) || SERVIDOR_PADRAO; } catch (e) { SERVER_URL = SERVIDOR_PADRAO; }
 
   btnStart.innerHTML = ic("camera") + "<span>Ligar câmera</span>";
+  document.getElementById("btnManual").innerHTML = ic("keyboard") + "<span>Digitar sem QR</span>";
   document.getElementById("btnGear").innerHTML = ic("settings");
   document.getElementById("btnCloseCam").innerHTML = ic("x");
 
@@ -467,18 +487,36 @@
     for (var i=0;i<arr.length;i++) { var v = arr[i]; h += '<option value="' + esc(v) + '"' + (v === sel ? " selected" : "") + '>' + esc(v.replace(/\s+/g," ").trim()) + '</option>'; }
     return h;
   }
+  function aplicarOpcoes(j) {
+    var tinha = OPT.tipo.length;
+    OPT.tipo = j.tipo || []; OPT.placa = j.placa || []; OPT.colaboradores = j.colaboradores || [];
+    if (!tinha && OPT.tipo.length) refreshOpenConf(); // listas chegaram depois: reaplica na conferência aberta
+  }
+  // Listas pelo formulário público (reserva), usadas quando o servidor não responde.
+  function loadOpcoesReserva() {
+    return fetch(API_RESERVA + "/opcoes").then(function (r) { return r.json(); }).then(function (j) {
+      if (j && j.ok) { reservaOk = true; if (!OPT.tipo.length) aplicarOpcoes(j); }
+      updateServerChip();
+    }).catch(function () { updateServerChip(); });
+  }
   function loadOpcoes(attempt) {
     attempt = attempt || 0;
     updateServerChip();
-    if (!SERVER_URL) return;
-    fetch(SERVER_URL.replace(/\/+$/, "") + "/opcoes").then(function (r) { return r.json(); }).then(function (j) {
+    if (!SERVER_URL) { loadOpcoesReserva(); return; }
+    fetch(SERVER_URL.replace(/\/+$/, "") + "/opcoes", { headers: HDR }).then(function (r) { return r.json(); }).then(function (j) {
       if (j && j.ok) {
-        var tinha = OPT.tipo.length;
-        OPT.tipo = j.tipo || []; OPT.placa = j.placa || []; OPT.colaboradores = j.colaboradores || [];
+        aplicarOpcoes(j);
         updateServerChip(true);
-        if (!tinha && OPT.tipo.length) refreshOpenConf(); // listas chegaram depois: reaplica na conferência aberta
-      } else if (attempt < 4) { setTimeout(function () { loadOpcoes(attempt + 1); }, 4000); }
-    }).catch(function () { updateServerChip(false); if (attempt < 4) setTimeout(function () { loadOpcoes(attempt + 1); }, 4000); });
+      } else {
+        updateServerChip(false);
+        if (attempt === 0) loadOpcoesReserva();
+        if (attempt < 4) setTimeout(function () { loadOpcoes(attempt + 1); }, 4000);
+      }
+    }).catch(function () {
+      updateServerChip(false);
+      if (attempt === 0) loadOpcoesReserva();
+      if (attempt < 4) setTimeout(function () { loadOpcoes(attempt + 1); }, 4000);
+    });
   }
 
   // Preserva o que a pessoa digitou quando a tela é redesenhada (chegada da nota ou das listas).
@@ -498,6 +536,13 @@
     if (!resultEl.classList.contains("on")) return;
     if (document.getElementById("btnNova")) return; // tela de sucesso
     if (!window.__lastCh) return;
+    if (MANUAL) { // digitado: só atualiza as listas, sem redesenhar (não perde o que foi digitado)
+      resultEl.querySelectorAll('select[id^="fTipo"]').forEach(function (s) { s.innerHTML = optionsHtml(OPT.tipo, s.value); });
+      var fp = document.getElementById("fPlaca"); if (fp) fp.innerHTML = optionsHtml(OPT.placa, fp.value);
+      var cl = document.getElementById("colabList");
+      if (cl && !cl.querySelector(".colabChk")) { var hh = ""; for (var k = 0; k < OPT.colaboradores.length; k++) { var c = OPT.colaboradores[k]; hh += '<label><input type="checkbox" class="colabChk" value="' + esc(c) + '"><span>' + esc(c.replace(/\s+/g," ").trim()) + '</span></label>'; } cl.innerHTML = hh; }
+      return;
+    }
     var carry = capturarEntrada();
     render(window.__lastCh, window.__lastNota || null, false);
     restaurarEntrada(carry);
@@ -514,9 +559,13 @@
     var chip = document.getElementById("srvChip"), txt = document.getElementById("srvTxt");
     if (!chip) return;
     chip.classList.remove("ok", "warn");
+    if (connected === true || connected === false) srvOnline = connected;
+    // Servidor fora, mas o envio de reserva (formulário) responde: o app segue funcionando, só sem ler a nota.
+    var semServidor = !SERVER_URL || srvOnline === false;
+    if (semServidor && reservaOk) { chip.classList.add("warn"); txt.textContent = "Modo manual"; chip.title = "Servidor NFC-e fora do ar: digite os dados; o envio ao Jotform funciona."; setChipIcon(chip, "wifi-off"); return; }
     if (!SERVER_URL) { chip.classList.add("warn"); txt.textContent = "Só QR"; setChipIcon(chip, "wifi-off"); return; }
-    if (connected === false) { chip.classList.add("warn"); txt.textContent = "Sem resposta"; setChipIcon(chip, "wifi-off"); return; }
-    if (connected === true || OPT.tipo.length) { chip.classList.add("ok"); txt.textContent = "Conectado"; setChipIcon(chip, "wifi"); return; }
+    if (srvOnline === false) { chip.classList.add("warn"); txt.textContent = "Sem resposta"; setChipIcon(chip, "wifi-off"); return; }
+    if (srvOnline === true) { chip.classList.add("ok"); txt.textContent = "Conectado"; chip.title = "Servidor NFC-e no ar"; setChipIcon(chip, "wifi"); return; }
     txt.textContent = "Servidor"; setChipIcon(chip, "wifi");
   }
   function setChipIcon(chip, name) {
@@ -545,7 +594,8 @@
     var lbl = document.getElementById("qtyLbl" + i);
     if (lbl && lbl.firstChild) lbl.firstChild.nodeValue = fuel ? "Litros" : "Quantidade";
     var qq = document.getElementById("fQtyQid" + i); if (qq) qq.value = fuel ? "14" : "20";
-    var dw = document.getElementById("descWrap" + i); if (dw) dw.hidden = !tipoNeedsDescItem(t);
+    // no modo digitado a descrição fica sempre visível (é o "nome" do item); no QR, só p/ Material aplicado
+    var dw = document.getElementById("descWrap" + i); if (dw) dw.hidden = !tipoNeedsDescItem(t) && !MANUAL;
   }
   function applyPlaca() {
     var ic2 = document.getElementById("itemCount"); var count = ic2 ? (parseInt(ic2.value, 10) || 0) : 0, need = false;
@@ -587,7 +637,39 @@
     return h;
   }
 
+  function bindItem(i) {
+    var chk = document.querySelector('.itemInc[data-i="' + i + '"]');
+    if (chk) chk.addEventListener("change", function () {
+      var cardEl = document.getElementById("itemCard" + i);
+      if (cardEl) cardEl.classList.toggle("off", !chk.checked);
+      applyPlaca(); updateTotal();
+    });
+    var sel = document.getElementById("fTipo" + i); if (sel) sel.addEventListener("change", applyConditions);
+    var val = document.getElementById("fValor" + i); if (val) val.addEventListener("input", function () { val.closest(".field").classList.remove("invalid"); updateTotal(); });
+    var desc = document.getElementById("fDesc" + i);
+    if (desc && MANUAL) desc.addEventListener("input", function () { var nm = document.querySelector("#itemCard" + i + " .item-name"); if (nm) nm.textContent = desc.value.trim() || ("Item " + (i + 1)); });
+  }
+  // Modo digitado: acrescenta mais um item (cada item vira um lançamento, igual à nota com vários itens).
+  function addItemManual() {
+    var cnt = document.getElementById("itemCount"); var n = parseInt(cnt.value, 10) || 0;
+    var first = document.querySelector('.itemInc[data-i="0"]'); if (first) first.hidden = false;
+    document.getElementById("itemsList").insertAdjacentHTML("beforeend", itemCard(n, { descricao: "", qtde: "", unidade: "", vlTotal: "" }, null, false));
+    cnt.value = n + 1;
+    var ov = document.getElementById("itemsOver"); if (ov) ov.textContent = "Itens · " + (n + 1) + " lançamentos";
+    bindItem(n); applyConditions();
+    var d = document.getElementById("fDesc" + n); if (d) d.focus();
+  }
+  function hojeISO() { var d = new Date(); function p(x) { return (x < 10 ? "0" : "") + x; } return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()); }
+  function startManual() {
+    stopCamera(); setStatus("");
+    document.getElementById("introSteps").hidden = false;
+    btnStart.innerHTML = ic("camera") + "<span>Ligar câmera</span>";
+    window.__raw = null; window.__foto = null; sentItems = {};
+    render({ manual: true, modelo: "Digitado", cnpj: "", chave: "", numero: "", serie: "" }, null, false);
+  }
+
   function render(ch, nota, loading) {
+    MANUAL = !!(ch && ch.manual);
     window.__lastCh = ch; window.__lastNota = nota || null; window.__loading = !!loading;
     var urlNota = window.__raw && /^https?:\/\//i.test(window.__raw) ? window.__raw : null;
     var itens = (nota && nota.itens && nota.itens.length) ? nota.itens : [];
@@ -599,7 +681,10 @@
     h += '<div class="card">';
     h += '<div class="nota-sum">';
     h += '<span class="selo-doc" style="align-self:flex-start">' + esc(ch.modelo) + '</span>';
-    if (loading) {
+    if (MANUAL) {
+      h += '<div class="estab">Lançamento digitado</div>';
+      h += '<div class="t-small">Preencha os dados do cupom. O envio vai direto para o formulário de despesas' + (srvOnline === false ? ' (servidor NFC-e fora do ar — tudo bem, não precisa dele).' : '.') + '</div>';
+    } else if (loading) {
       h += '<div class="estab skel" style="height:24px;width:70%">&nbsp;</div>';
       h += '<div class="loadrow"><span class="spin"></span>Consultando a SEFAZ, pode levar até 45 s…</div>';
     } else {
@@ -613,13 +698,25 @@
 
     // Nº da obra (único obrigatório, logo após o resumo)
     h += field("Nº da obra", "fObra", "", { inputmode: "numeric", req: true, ph: "Ex.: 4231", msg: "Informe o número da obra para enviar." });
+    if (MANUAL) {
+      // No modo digitado os dados da nota vêm logo no topo (no QR eles vêm preenchidos e ficam recolhidos).
+      h += '<div class="grid2">';
+      h += field("Data da despesa", "fData", hojeISO(), { inputType: "date", req: true, msg: "Informe a data." });
+      h += field("Nota fiscal (nº-série)", "fNumero", "", { inputmode: "numeric", ph: "Ex.: 187562-1" });
+      h += '</div>';
+      h += field("Estabelecimento / fornecedor", "fEstab", "", { ph: "Nome no cupom" });
+      h += field("CNPJ", "fCnpj", "", { inputmode: "numeric", ph: "00.000.000/0000-00" });
+    }
     h += '</div>'; // fecha card do topo
 
     // Itens
     h += '<div class="card">';
-    h += '<div class="overline seclbl" style="margin-top:0">' + (itens.length > 1 ? "Itens · " + itens.length + " lançamentos" : "Item") + '</div>';
+    h += '<div class="overline seclbl" id="itemsOver" style="margin-top:0">' + (itens.length > 1 ? "Itens · " + itens.length + " lançamentos" : "Item") + '</div>';
+    h += '<div id="itemsList">';
     if (!itens.length) h += itemCard(0, { descricao: "", qtde: "", unidade: "", vlTotal: "" }, hora, true);
     else for (var i = 0; i < itens.length; i++) h += itemCard(i, itens[i], hora, itens.length === 1);
+    h += '</div>';
+    if (MANUAL) h += '<button class="btn ghost" id="btnAddItem" type="button">' + ic("plus") + '<span>Adicionar outro item</span></button>';
     h += '<input type="hidden" id="itemCount" value="' + count + '">';
     h += '</div>';
 
@@ -640,7 +737,9 @@
     h += '</div>';
 
     // Dados da nota (correção) + Detalhes técnicos
-    h += '<details class="block"><summary>' + ic("file-text") + 'Dados da nota (corrigir)<span class="chev">' + ic("chevron-down") + '</span></summary><div class="inner">';
+    if (!MANUAL) {
+    // sem dados do servidor, a data não veio: deixa o bloco aberto para a pessoa conferir/preencher
+    h += '<details class="block"' + (!nota && !loading ? " open" : "") + '><summary>' + ic("file-text") + 'Dados da nota (corrigir)<span class="chev">' + ic("chevron-down") + '</span></summary><div class="inner">';
     h += field("Data da despesa", "fData", nota ? ddmmToISO(nota.dataEmissao) : "", { inputType: "date", auto: !!(nota && nota.dataEmissao) });
     h += field("Estabelecimento", "fEstab", nota ? (nota.estabelecimento || "") : "", { auto: !!(nota && nota.estabelecimento) });
     h += field("CNPJ", "fCnpj", nota && nota.cnpj ? nota.cnpj : ch.cnpj, { auto: true });
@@ -653,9 +752,10 @@
     h += '<div class="k">Chave de acesso</div><div class="v">' + grpChave(ch.chave) + '</div>';
     if (urlNota) h += '<a class="link-inline" href="' + esc(urlNota) + '" target="_blank" rel="noopener">' + ic("external-link", 16) + 'Abrir nota no SEFAZ</a>';
     h += '</div></details>';
+    }
 
     // Ler outra (ghost) + status
-    h += '<button class="btn ghost" id="btnAgain" type="button">Ler outra nota</button>';
+    h += '<button class="btn ghost" id="btnAgain" type="button">' + (MANUAL ? "Voltar e ler pelo QR" : "Ler outra nota") + '</button>';
     h += '<div class="status" id="st2" role="status" aria-live="polite"></div>';
 
     // Barra fixa de envio
@@ -674,16 +774,10 @@
       var q = noAcc(busca.value);
       resultEl.querySelectorAll("#colabList label").forEach(function (lb) { lb.classList.toggle("ocult", q && noAcc(lb.textContent).indexOf(q) < 0); });
     });
-    resultEl.querySelectorAll(".itemInc").forEach(function (chk) {
-      chk.addEventListener("change", function () {
-        var cardEl = document.getElementById("itemCard" + chk.getAttribute("data-i"));
-        if (cardEl) cardEl.classList.toggle("off", !chk.checked);
-        applyPlaca(); updateTotal();
-      });
-    });
-    resultEl.querySelectorAll('select[id^="fTipo"]').forEach(function (sel) { sel.addEventListener("change", applyConditions); });
-    resultEl.querySelectorAll('input[id^="fValor"]').forEach(function (inp) { inp.addEventListener("input", updateTotal); });
+    for (var bi = 0; bi < count; bi++) bindItem(bi);
     var fo = document.getElementById("fObra"); if (fo) fo.addEventListener("input", function () { fo.closest(".field").classList.remove("invalid"); });
+    var fd0 = document.getElementById("fData"); if (fd0) fd0.addEventListener("input", function () { fd0.closest(".field").classList.remove("invalid"); });
+    var bAdd = document.getElementById("btnAddItem"); if (bAdd) bAdd.addEventListener("click", addItemManual);
     applyConditions();
     document.getElementById("btnAgain").addEventListener("click", function () { resultEl.classList.remove("on"); startCamera(); });
     document.getElementById("btnEnviar").addEventListener("click", enviar);
@@ -726,7 +820,16 @@
     var obraEl = document.getElementById("fObra");
     var obra = (obraEl.value || "").trim();
     if (!obra) { obraEl.closest(".field").classList.add("invalid"); msg("Informe o número da obra para enviar.", "err"); obraEl.focus(); return; }
-    if (!SERVER_URL) { msg("Configure o servidor nos Ajustes para enviar.", "err"); return; }
+    if (MANUAL) { // digitado: sem data e valor o lançamento não serve para o custo da obra
+      var dEl = document.getElementById("fData");
+      if (!dEl.value) { dEl.closest(".field").classList.add("invalid"); msg("Informe a data da despesa.", "err"); dEl.focus(); return; }
+      var nItens = parseInt(document.getElementById("itemCount").value, 10) || 0;
+      for (var vi = 0; vi < nItens; vi++) {
+        var incV = document.querySelector('.itemInc[data-i="' + vi + '"]'); if (incV && !incV.checked) continue;
+        var vEl = document.getElementById("fValor" + vi);
+        if (!(parseFloat(brNum(vEl.value)) > 0)) { var fw = vEl.closest(".field"); fw.classList.add("invalid"); if (!fw.querySelector(".fieldmsg")) fw.insertAdjacentHTML("beforeend", '<div class="fieldmsg">' + ic("alert", 16) + '<span>Informe o valor.</span></div>'); msg("Informe o valor de cada item.", "err"); vEl.focus(); return; }
+      }
+    }
 
     var shared = {};
     var iso = document.getElementById("fData").value;
@@ -752,8 +855,7 @@
       var f = {}; for (var kk in shared) f[kk] = shared[kk];
       if (colab.length) f["11"] = colab.slice();
       var tipo = document.getElementById("fTipo" + i).value; if (tipo) f["12"] = tipo;
-      var descWrap = document.getElementById("descWrap" + i);
-      if (descWrap && !descWrap.hidden) { var dv = (descEl.value || "").trim(); if (dv) f["15"] = dv; }
+      if (tipoNeedsDescItem(tipo)) { var dv = (descEl.value || "").trim(); if (dv) f["15"] = dv; }
       var valor = brNum(document.getElementById("fValor" + i).value); if (valor) f["16"] = valor;
       var qty = brNum(document.getElementById("fQty" + i).value); if (qty) f[document.getElementById("fQtyQid" + i).value] = qty;
       var itemDesc = (descEl.value || "").trim();
@@ -765,35 +867,51 @@
     if (!payloads.length) { sucesso(obra, incluidos); return; } // tudo já enviado
 
     btn.disabled = true; msg("Enviando " + payloads.length + " lançamento" + (payloads.length>1?"s":"") + "…");
-    var base = SERVER_URL.replace(/\/+$/, "");
-    Promise.all(payloads.map(function (pl) {
-      return fetch(base + "/enviar", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ fields: pl.f, foto: window.__foto || null }) })
+    var base = SERVER_URL ? SERVER_URL.replace(/\/+$/, "") : "";
+    function postJson(url, body, headers) {
+      var h = { "Content-Type": "application/json" }; for (var hk in (headers || {})) h[hk] = headers[hk];
+      return fetch(url, { method: "POST", headers: h, body: body })
         .then(function (r) { return r.json().catch(function () { return { ok: false }; }); })
-        .then(function (j) { return { i: pl.i, ok: !!(j && j.ok) }; })
-        .catch(function () { return { i: pl.i, ok: false }; });
-    })).then(function (results) {
+        .catch(function () { return { ok: false, rede: true }; });
+    }
+    // 1º tenta o servidor NFC-e; se ele não responder ou recusar, grava pelo formulário público (rota de reserva).
+    function enviarUm(pl) {
+      var body = JSON.stringify({ fields: pl.f, foto: window.__foto || null });
+      var viaServidor = (base && srvOnline !== false) ? postJson(base + "/enviar", body, HDR) : Promise.resolve({ ok: false, pulou: true });
+      return viaServidor.then(function (j) {
+        if (j && j.ok) return { i: pl.i, ok: true, via: "servidor" };
+        return postJson(API_RESERVA + "/enviar", body).then(function (j2) {
+          return { i: pl.i, ok: !!(j2 && j2.ok), via: "reserva", erro: j2 && j2.erro };
+        });
+      });
+    }
+    Promise.all(payloads.map(enviarUm)).then(function (results) {
       results.forEach(function (r) { if (r.ok) { sentItems[r.i] = true; marcarItemEnviado(r.i); } });
       var falhas = results.filter(function (r) { return !r.ok; });
       var enviados = 0; for (var k in sentItems) if (sentItems.hasOwnProperty(k)) enviados++;
-      if (!falhas.length) { sucesso(obra, incluidos); }
+      var viaReserva = results.some(function (r) { return r.ok && r.via === "reserva"; });
+      if (!falhas.length) { sucesso(obra, incluidos, viaReserva); }
       else {
         btn.disabled = false;
+        if (!enviados) { msg("NÃO ENVIADO — nada foi gravado no formulário. Confira a internet e toque em Enviar de novo. Se continuar, anote os dados e avise o setor de compras.", "err"); return; }
         var nomes = falhas.map(function (r) { var el = document.querySelector("#itemCard" + r.i + " .item-name"); return el ? el.textContent.trim() : ("item " + (r.i + 1)); }).join(", ");
         msg("Enviados " + enviados + " de " + incluidos + ". Falhou: " + nomes + ". Toque em Enviar para tentar de novo só " + (falhas.length > 1 ? "os que faltaram" : "o que faltou") + ".", "err");
       }
     });
   }
 
-  function sucesso(obra, n) {
+  function sucesso(obra, n, viaReserva) {
     var total = document.getElementById("barTotal") ? document.getElementById("barTotal").textContent : "";
     var h = '<div class="card done"><div class="ic-ok">' + ic("circle-check", 38) + '</div>';
     h += '<h2>' + (n > 1 ? (n + " despesas lançadas") : "Despesa lançada") + '</h2>';
     if (total) h += '<div class="big hs-num">' + esc(total) + '</div>';
-    h += '<p>Enviada' + (n > 1 ? "s" : "") + ' para o lançamento da obra ' + esc(obra) + '.</p>';
-    h += '<button class="btn" id="btnNova" type="button">' + ic("camera") + '<span>Ler próxima nota</span></button></div>';
+    h += '<p>Enviada' + (n > 1 ? "s" : "") + ' com sucesso para o formulário de despesas, obra ' + esc(obra) + '.' + (viaReserva ? ' <br><span class="t-small">(Gravado pelo envio direto, sem o servidor NFC-e.)</span>' : '') + '</p>';
+    h += '<button class="btn" id="btnNova" type="button">' + ic("camera") + '<span>Ler próxima nota</span></button>';
+    h += '<button class="btn sub" id="btnNovaManual" type="button" style="margin-top:var(--s2)">' + ic("keyboard") + '<span>Digitar outra</span></button></div>';
     resultEl.innerHTML = h;
     resultEl.classList.remove("loading");
     document.getElementById("btnNova").addEventListener("click", function () { resultEl.classList.remove("on"); startCamera(); });
+    document.getElementById("btnNovaManual").addEventListener("click", startManual);
   }
 
   function captureFrame() {
@@ -823,7 +941,7 @@
     if (SERVER_URL) {
       var ctrl = ("AbortController" in window) ? new AbortController() : null;
       var to = setTimeout(function () { if (ctrl) ctrl.abort(); }, 45000);
-      fetch(SERVER_URL.replace(/\/+$/, "") + "/nota?u=" + encodeURIComponent(text), ctrl ? { signal: ctrl.signal } : undefined)
+      fetch(SERVER_URL.replace(/\/+$/, "") + "/nota?u=" + encodeURIComponent(text), { headers: HDR, signal: ctrl ? ctrl.signal : undefined })
         .then(function (r) { return r.json().catch(function () { return { ok: false }; }); })
         .then(function (j) { clearTimeout(to); var carry = capturarEntrada(); if (j && j.ok && j.dados) render(ch, j.dados, false); else { render(ch, null, false); setStatus("QR lido. Detalhes da nota não vieram — preencha manualmente.", "err"); } restaurarEntrada(carry); })
         .catch(function () { clearTimeout(to); var carry = capturarEntrada(); render(ch, null, false); restaurarEntrada(carry); setStatus("QR lido. Servidor não respondeu — confira os Ajustes ou preencha manualmente.", "err"); });
@@ -851,7 +969,7 @@
       var m = "Não consegui abrir a câmera.";
       if (e && (e.name === "NotAllowedError" || e.name === "SecurityError")) m = "Permissão da câmera negada. Libere o acesso e toque em Ligar câmera.";
       else if (e && e.name === "NotFoundError") m = "Nenhuma câmera encontrada neste aparelho.";
-      setStatus(m, "err");
+      setStatus(m + " Se preferir, toque em Digitar sem QR.", "err");
     });
   }
   function stopCamera() { scanning = false; viewport.classList.remove("on"); var sc = document.getElementById("scanCard"); if (sc) sc.classList.remove("camon"); if (reader) { try { reader.reset(); } catch (e) {} } }
@@ -889,6 +1007,7 @@
   document.querySelectorAll("#themeSeg button").forEach(function (b) { b.addEventListener("click", function () { applyTheme(b.getAttribute("data-theme")); }); });
 
   btnStart.addEventListener("click", startCamera);
+  document.getElementById("btnManual").addEventListener("click", startManual);
   updateServerChip();
   loadOpcoes();
 })();
