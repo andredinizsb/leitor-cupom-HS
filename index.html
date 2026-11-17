@@ -316,10 +316,40 @@
   .done .big { font-size:32px; line-height:40px; font-weight:700; letter-spacing:-.02em; margin:var(--s2) 0; }
   .done p { color:var(--text-muted); font-size:16px; margin:0 0 var(--s6); }
 
+  /* ===== Tela inicial (apresentação) ===== */
+  .welcome { position:fixed; inset:0; z-index:60; background:var(--bg); overflow-y:auto;
+    display:flex; flex-direction:column; align-items:center;
+    padding:calc(env(safe-area-inset-top) + var(--s10)) max(var(--s4),env(safe-area-inset-right)) calc(env(safe-area-inset-bottom) + var(--s6)) max(var(--s4),env(safe-area-inset-left)); }
+  .welcome::before { content:""; position:absolute; left:0; right:0; top:0; height:4px; background:linear-gradient(90deg,var(--brand-blue) 0 70%,var(--brand-red) 70% 85%,var(--brand-yellow) 85%); }
+  .welcome .w-in { width:100%; max-width:420px; margin:auto 0; display:flex; flex-direction:column; align-items:center; text-align:center; }
+  .welcome .w-icon { width:96px; height:96px; border-radius:22px; box-shadow:var(--shadow-md); margin-bottom:var(--s5); }
+  .welcome .w-brand { font-size:12px; line-height:16px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--primary-text); }
+  .welcome h1 { margin:var(--s1) 0 var(--s2); font-size:28px; line-height:36px; font-weight:700; letter-spacing:-.02em; }
+  .welcome .w-lead { margin:0 0 var(--s6); color:var(--text-muted); font-size:16px; line-height:24px; text-wrap:balance; }
+  .welcome .w-list { width:100%; display:flex; flex-direction:column; gap:var(--s2); margin-bottom:var(--s6); text-align:left; }
+  .welcome .w-item { display:flex; align-items:center; gap:var(--s3); padding:var(--s3); border-radius:var(--r-md); background:var(--surface); border:1px solid var(--border); }
+  .welcome .w-item .w-ic { width:40px; height:40px; border-radius:var(--r-md); background:var(--primary-subtle); color:var(--primary-text); display:grid; place-items:center; flex:0 0 auto; }
+  .welcome .w-item b { display:block; font-size:15px; line-height:20px; font-weight:600; }
+  .welcome .w-item span { font-size:14px; line-height:20px; color:var(--text-muted); }
+  .welcome .btn { min-height:52px; font-size:17px; }
+  .welcome .w-foot { margin-top:var(--s5); font-size:12px; line-height:16px; color:var(--text-muted); }
+
   footer { color:var(--text-muted); font-size:12px; line-height:16px; text-align:center; }
 </style>
 </head>
 <body>
+<!-- Tela inicial: aparece sempre que o app é aberto; some ao tocar em Começar (vale até fechar o app). -->
+<section class="welcome" id="welcome" role="dialog" aria-label="Bem-vindo">
+  <div class="w-in">
+    <img class="w-icon" id="wIcon" alt="">
+    <div class="w-brand">HS Eletricidade</div>
+    <h1>HS Despesas</h1>
+    <p class="w-lead">Lance as despesas da obra a partir do cupom fiscal, sem papel e sem digitar tudo de novo.</p>
+    <div class="w-list" id="wList"></div>
+    <button class="btn" id="btnWelcome" type="button">Começar</button>
+    <div class="w-foot">Leitor de Cupom · Lançamento de Despesa de Obra</div>
+  </div>
+</section>
 <header class="topbar">
   <img class="appicon" id="appIcon" alt="HS Despesas" src="data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='116' fill='%2300A0E7'/%3E%3Cpath d='M156 88H340L376 124V424L356 404L336 424L316 404L296 424L276 404L256 424L236 404L216 424L196 404L176 424L156 404L136 424V108Q136 88 156 88Z' fill='%23fff'/%3E%3Cpath d='M312 150H236A36 36 0 0 0 200 186V188A36 36 0 0 0 236 224H276A36 36 0 0 1 312 260V262A36 36 0 0 1 276 298H200' fill='none' stroke='%23FE0000' stroke-width='34'/%3E%3Cpath d='M206 342H329' stroke='%23FE0000' stroke-width='10'/%3E%3Ccircle cx='200' cy='342' r='13' fill='%23FE0000'/%3E%3Cpath d='M186 370H329' stroke='%2300A0E7' stroke-width='10'/%3E%3Ccircle cx='180' cy='370' r='13' fill='%2300A0E7'/%3E%3C/svg%3E">
   <span class="name">Leitor de Cupom</span>
@@ -440,6 +470,26 @@
   }
   function esc(s) { return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
   function fmtCNPJ(c) { return c.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5"); }
+  // CNPJ (14 díg.) ou CPF (11 díg.) digitado só com números → formato com pontuação, como o Jotform recebe.
+  function fmtDoc(v) {
+    var d = String(v || "").replace(/\D/g, "");
+    if (d.length === 14) return fmtCNPJ(d);
+    if (d.length === 11) return d.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, "$1.$2.$3-$4");
+    return String(v || "").trim();
+  }
+  // Máscara enquanto digita (CNPJ): 12345678000190 → 12.345.678/0001-90
+  function maskCnpj(v) {
+    var d = String(v || "").replace(/\D/g, "").slice(0, 14), o = "";
+    for (var i = 0; i < d.length; i++) { if (i === 2 || i === 5) o += "."; if (i === 8) o += "/"; if (i === 12) o += "-"; o += d.charAt(i); }
+    return o;
+  }
+  // Nota fiscal no formato "número-série" (sem zeros à esquerda, igual ao que vem do QR).
+  function fmtNF(num, serie) {
+    var n = String(num || "").replace(/\D/g, ""), s = String(serie || "").replace(/\D/g, "");
+    if (!n) return "";
+    n = String(parseInt(n, 10)); if (s) s = String(parseInt(s, 10));
+    return s ? n + "-" + s : n;
+  }
   function grpChave(c) { return (c.match(/.{1,4}/g) || []).join(" "); }
   function brNum(s) { if (s == null) return ""; s = String(s).trim(); if (!s) return ""; if (s.indexOf(",") >= 0) s = s.replace(/\./g, "").replace(",", "."); return s.replace(/[^0-9.]/g, ""); }
   function fmtBRL(n) { try { return "R$ " + n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }); } catch (e) { return "R$ " + n.toFixed(2); } }
@@ -700,12 +750,15 @@
     h += field("Nº da obra", "fObra", "", { inputmode: "numeric", req: true, ph: "Ex.: 4231", msg: "Informe o número da obra para enviar." });
     if (MANUAL) {
       // No modo digitado os dados da nota vêm logo no topo (no QR eles vêm preenchidos e ficam recolhidos).
-      h += '<div class="grid2">';
       h += field("Data da despesa", "fData", hojeISO(), { inputType: "date", req: true, msg: "Informe a data." });
-      h += field("Nota fiscal (nº-série)", "fNumero", "", { inputmode: "numeric", ph: "Ex.: 187562-1" });
+      // Nº e série separados: o teclado numérico do iPhone não tem "-"; o app junta como "número-série".
+      h += '<div class="grid2">';
+      h += field("Nº da nota", "fNfNum", "", { inputmode: "numeric", ph: "Ex.: 187562" });
+      h += field("Série", "fNfSerie", "", { inputmode: "numeric", ph: "Ex.: 1" });
       h += '</div>';
+      h += '<input type="hidden" id="fNumero" value="">';
       h += field("Estabelecimento / fornecedor", "fEstab", "", { ph: "Nome no cupom" });
-      h += field("CNPJ", "fCnpj", "", { inputmode: "numeric", ph: "00.000.000/0000-00" });
+      h += field("CNPJ", "fCnpj", "", { inputmode: "numeric", ph: "Só os números" });
     }
     h += '</div>'; // fecha card do topo
 
@@ -776,6 +829,11 @@
     });
     for (var bi = 0; bi < count; bi++) bindItem(bi);
     var fo = document.getElementById("fObra"); if (fo) fo.addEventListener("input", function () { fo.closest(".field").classList.remove("invalid"); });
+    var fcn = document.getElementById("fCnpj");
+    if (fcn) fcn.addEventListener("input", function () {
+      var d = fcn.value.replace(/\D/g, "");
+      if (d.length <= 14 && !/[a-z]/i.test(fcn.value)) fcn.value = maskCnpj(d);
+    });
     var fd0 = document.getElementById("fData"); if (fd0) fd0.addEventListener("input", function () { fd0.closest(".field").classList.remove("invalid"); });
     var bAdd = document.getElementById("btnAddItem"); if (bAdd) bAdd.addEventListener("click", addItemManual);
     applyConditions();
@@ -839,8 +897,10 @@
     var placaWrap = document.getElementById("placaWrap");
     if (placaWrap && !placaWrap.hidden) { var placa = document.getElementById("fPlaca").value; if (placa) shared["13"] = placa; }
     shared["21"] = (document.getElementById("fEstab").value || "").trim();
-    shared["24"] = (document.getElementById("fCnpj").value || "").trim();
-    shared["26"] = (document.getElementById("fNumero").value || "").trim();
+    shared["24"] = fmtDoc(document.getElementById("fCnpj").value);
+    var nfNum = document.getElementById("fNfNum");
+    if (nfNum) shared["26"] = fmtNF(nfNum.value, document.getElementById("fNfSerie").value); // digitado: junta nº + série
+    else shared["26"] = (document.getElementById("fNumero").value || "").trim();
     var notaObs = (document.getElementById("fObs").value || "").trim();
     var colab = []; resultEl.querySelectorAll(".colabChk:checked").forEach(function (c) { colab.push(c.value); });
 
@@ -1005,6 +1065,27 @@
     applyTheme(m);
   })();
   document.querySelectorAll("#themeSeg button").forEach(function (b) { b.addEventListener("click", function () { applyTheme(b.getAttribute("data-theme")); }); });
+
+  // ===== Tela inicial =====
+  (function initWelcome() {
+    var w = document.getElementById("welcome"), SS = "hs_welcome_ok";
+    var visto = false; try { visto = sessionStorage.getItem(SS) === "1"; } catch (e) {}
+    if (visto) { w.hidden = true; return; }
+    document.getElementById("wIcon").src = document.getElementById("appIcon").src;
+    var itens = [
+      ["camera", "Leia o QR do cupom", "Os dados da nota vêm preenchidos"],
+      ["keyboard", "Sem QR? Digite", "Número, série e CNPJ só com números"],
+      ["send", "Informe a obra e envie", "Vai direto para o formulário de despesas"]
+    ];
+    document.getElementById("wList").innerHTML = itens.map(function (it) {
+      return '<div class="w-item"><span class="w-ic">' + ic(it[0], 22) + '</span><span><b>' + esc(it[1]) + '</b><span>' + esc(it[2]) + '</span></span></div>';
+    }).join("");
+    document.getElementById("btnWelcome").innerHTML = '<span>Começar</span>' + ic("chevron-down").replace('class="ic"', 'class="ic" style="transform:rotate(-90deg)"');
+    document.getElementById("btnWelcome").addEventListener("click", function () {
+      try { sessionStorage.setItem(SS, "1"); } catch (e) {}
+      w.hidden = true; window.scrollTo(0, 0);
+    });
+  })();
 
   btnStart.addEventListener("click", startCamera);
   document.getElementById("btnManual").addEventListener("click", startManual);
