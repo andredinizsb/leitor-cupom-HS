@@ -636,7 +636,9 @@
   }
 
   function tipoFuelLitros(t) { var d = noAcc(t); return /gasolina|etanol|diesel/.test(d); }
-  function tipoNeedsPlaca(t) { var d = noAcc(t); return /gasolina|etanol|diesel|arla/.test(d) || /material aplicado/.test(d); }
+  // Mesma regra do Jotform (condição "Show 13"): combustíveis, Arla, Serviço de conserto,
+  // Lavagem de carro/caminhão, Fluido de freio e Material aplicado pedem a placa da frota.
+  function tipoNeedsPlaca(t) { var d = noAcc(t); return /gasolina|etanol|diesel|arla|servico de conserto|lavagem de carro|lavagem de caminhao|fluido de freio|material aplicado/.test(d); }
   function tipoNeedsDescItem(t) { return /material aplicado/.test(noAcc(t)); }
   function applyItemCond(i) {
     var sel = document.getElementById("fTipo" + i); if (!sel) return;
