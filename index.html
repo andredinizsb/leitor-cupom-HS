@@ -777,14 +777,20 @@
     if (MANUAL) {
       // No modo digitado os dados da nota vêm logo no topo (no QR eles vêm preenchidos e ficam recolhidos).
       h += field("Data da despesa", "fData", hojeISO(), { inputType: "date", req: true, msg: "Informe a data." });
+      // Documento: nota fiscal ou só o comprovante da maquininha (sem NF). No recibo não se inventa nº de nota:
+      // o campo NF do Jotform recebe "RECIBO" (+ nº do comprovante, se houver).
+      h += '<div class="field"><label>Documento recebido</label><div class="seg" id="docSeg" style="margin-top:0">';
+      h += '<button type="button" data-doc="nf" class="sel">Nota fiscal</button><button type="button" data-doc="recibo">Recibo de cartão</button></div></div>';
+      h += '<input type="hidden" id="fDocTipo" value="nf">';
       // Nº e série separados: o teclado numérico do iPhone não tem "-"; o app junta como "número-série".
-      h += '<div class="grid2">';
-      h += field("Nº da nota", "fNfNum", "", { inputmode: "numeric", ph: "Ex.: 187562" });
+      h += '<div class="grid2" id="nfWrap">';
+      h += field("Nº da nota", "fNfNum", "", { inputmode: "numeric", req: true, ph: "Ex.: 187562", msg: "Informe o nº da nota ou escolha Recibo de cartão." });
       h += field("Série", "fNfSerie", "", { inputmode: "numeric", ph: "Ex.: 1" });
       h += '</div>';
+      h += '<div id="reciboWrap" hidden>' + field("Nº do comprovante (DOC/NSU)", "fNsu", "", { inputmode: "numeric", ph: "Opcional · está impresso no recibo" }) + '</div>';
       h += '<input type="hidden" id="fNumero" value="">';
       h += field("Estabelecimento / fornecedor", "fEstab", "", { ph: "Nome no cupom" });
-      h += field("CNPJ", "fCnpj", "", { inputmode: "numeric", ph: "Só os números" });
+      h += field("CNPJ", "fCnpj", "", { inputmode: "numeric", ph: "Só os números", labelId: "fCnpjLbl" });
     }
     h += '</div>'; // fecha card do topo
 
@@ -861,6 +867,18 @@
       if (d.length <= 14 && !/[a-z]/i.test(fcn.value)) fcn.value = maskCnpj(d);
     });
     var fd0 = document.getElementById("fData"); if (fd0) fd0.addEventListener("input", function () { fd0.closest(".field").classList.remove("invalid"); });
+    var docSeg = document.getElementById("docSeg");
+    if (docSeg) docSeg.addEventListener("click", function (ev) {
+      var b = ev.target.closest("button[data-doc]"); if (!b) return;
+      var rec = b.getAttribute("data-doc") === "recibo";
+      docSeg.querySelectorAll("button").forEach(function (x) { x.classList.toggle("sel", x === b); });
+      document.getElementById("fDocTipo").value = rec ? "recibo" : "nf";
+      document.getElementById("nfWrap").hidden = rec;
+      document.getElementById("reciboWrap").hidden = !rec;
+      document.getElementById("fNfNum").closest(".field").classList.remove("invalid");
+      document.getElementById("fCnpjLbl").textContent = rec ? "CNPJ (se aparecer no recibo)" : "CNPJ";
+    });
+    var fnn = document.getElementById("fNfNum"); if (fnn) fnn.addEventListener("input", function () { fnn.closest(".field").classList.remove("invalid"); });
     var bAdd = document.getElementById("btnAddItem"); if (bAdd) bAdd.addEventListener("click", addItemManual);
     applyConditions();
     document.getElementById("btnAgain").addEventListener("click", function () { resultEl.classList.remove("on"); startCamera(); });
@@ -907,6 +925,11 @@
     if (MANUAL) { // digitado: sem data e valor o lançamento não serve para o custo da obra
       var dEl = document.getElementById("fData");
       if (!dEl.value) { dEl.closest(".field").classList.add("invalid"); msg("Informe a data da despesa.", "err"); dEl.focus(); return; }
+      var ehRecibo = document.getElementById("fDocTipo").value === "recibo";
+      var nfEl = document.getElementById("fNfNum");
+      if (!ehRecibo && !/[1-9]/.test(nfEl.value)) { // vazio ou "0000": não é nº de nota
+        nfEl.closest(".field").classList.add("invalid"); msg("Informe o nº da nota. Se for só o comprovante da maquininha, escolha Recibo de cartão.", "err"); nfEl.focus(); return;
+      }
       var nItens = parseInt(document.getElementById("itemCount").value, 10) || 0;
       for (var vi = 0; vi < nItens; vi++) {
         var incV = document.querySelector('.itemInc[data-i="' + vi + '"]'); if (incV && !incV.checked) continue;
@@ -925,9 +948,13 @@
     shared["21"] = (document.getElementById("fEstab").value || "").trim();
     shared["24"] = fmtDoc(document.getElementById("fCnpj").value);
     var nfNum = document.getElementById("fNfNum");
-    if (nfNum) shared["26"] = fmtNF(nfNum.value, document.getElementById("fNfSerie").value); // digitado: junta nº + série
+    var docTipo = document.getElementById("fDocTipo");
+    var recibo = !!(docTipo && docTipo.value === "recibo");
+    if (recibo) { var nsu = (document.getElementById("fNsu").value || "").replace(/\D/g, ""); shared["26"] = "RECIBO" + (nsu ? " " + nsu : ""); }
+    else if (nfNum) shared["26"] = fmtNF(nfNum.value, document.getElementById("fNfSerie").value); // digitado: junta nº + série
     else shared["26"] = (document.getElementById("fNumero").value || "").trim();
     var notaObs = (document.getElementById("fObs").value || "").trim();
+    if (recibo) notaObs = "Recibo de cartão (sem NF)" + (notaObs ? " · " + notaObs : "");
     var colab = []; resultEl.querySelectorAll(".colabChk:checked").forEach(function (c) { colab.push(c.value); });
 
     var count = parseInt(document.getElementById("itemCount").value, 10) || 0;
