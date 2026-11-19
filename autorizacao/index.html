@@ -159,7 +159,7 @@ video{width:100%;border-radius:10px;background:#000;max-height:46vh;object-fit:c
   fetch(API + "/opcoes").then(function (r) { return r.json(); }).then(function (j) {
     if (!j || !j.ok || !(j.colaboradores || []).length) throw new Error("sem_lista");
     preencherLista("colab", j.colaboradores, "Selecione o colaborador…", colabSalvo());
-    if ((j.placa || []).length) preencherLista("veic", j.placa, "Selecione o veículo…"); else virarTexto("veic", "Frota ou placa");
+    if ((j.placa || []).length) preencherLista("veic", j.placa.map(function (p) { return String(p).replace(/\s+/g, " ").trim(); }), "Selecione o veículo…"); else virarTexto("veic", "Frota ou placa");
   }).catch(function () { virarTexto("colab", "Seu nome"); virarTexto("veic", "Frota ou placa"); try { $("colab").value = colabSalvo(); } catch (e) {} });
 
   document.querySelectorAll("[data-emp]").forEach(function (b) {
