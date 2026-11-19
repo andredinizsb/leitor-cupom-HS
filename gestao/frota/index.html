@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Frota · Gestão HS</title>
+<link rel="icon" href="/icons/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#F3F5F8;--card:#FFFFFF;--tx:#14171C;--mut:#5C6577;--bd:#DFE3EA;--pri:#0071A3;--pri-tx:#FFFFFF;--ok:#1B7F3A;--warn:#B26B00;--err:#E3262B;--in:#FFFFFF}
+@media (prefers-color-scheme:dark){:root{--bg:#0F1216;--card:#181C22;--tx:#EEF1F5;--mut:#9AA3B2;--bd:#2A303A;--pri:#33C0FF;--pri-tx:#06212E;--ok:#3DBE6B;--warn:#F0A43A;--err:#FF5A5F;--in:#11151A}}
+*{box-sizing:border-box}html,body{margin:0}body{background:var(--bg);color:var(--tx);font:15px/1.45 Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header{position:sticky;top:0;z-index:5;background:var(--card);border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:10px;padding:10px 16px;flex-wrap:wrap}
+header .logo{width:32px;height:32px;border-radius:8px;background:#00A0E7;display:grid;place-items:center;color:#fff;font-weight:800}
+header .nm{font-weight:700}header .sp{flex:1}.quem{color:var(--mut);font-size:13px}
+.faixa{display:flex;height:4px}.faixa i{flex:1}main{max-width:1100px;margin:0 auto;padding:16px}
+.barra{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-bottom:12px}.barra label,.form label{display:grid;gap:4px;font-size:13px;color:var(--mut);font-weight:600}
+input,select,textarea{min-height:40px;font:inherit;color:var(--tx);background:var(--in);border:1px solid var(--bd);border-radius:10px;padding:8px 10px;width:100%}
+.barra input,.barra select{width:auto}textarea{min-height:64px;resize:vertical}
+.busca{flex:1;min-width:200px}.btn{min-height:40px;border-radius:10px;border:0;background:var(--pri);color:var(--pri-tx);font:inherit;font-weight:700;padding:8px 14px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center}
+.btn.ghost{background:transparent;color:var(--pri);border:1px solid var(--bd)}.btn.peq{min-height:32px;padding:4px 10px;font-size:13px}.btn:disabled{opacity:.6;cursor:wait}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:12px}.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:14px}
+.topo{display:flex;justify-content:space-between;gap:8px;align-items:center}.num{font-weight:800;font-size:16px}
+.badge{display:inline-block;border-radius:999px;padding:3px 10px;font-size:12px;font-weight:700;color:#fff;background:var(--ok)}.badge.pb{background:var(--err)}.badge.at{background:var(--warn)}.badge.cz{background:var(--mut)}
+dl{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;margin:10px 0;font-size:14px}dt{color:var(--mut)}dd{margin:0;font-weight:600;word-break:break-word;white-space:pre-line}
+.meta{color:var(--mut);font-size:13px}.msg{border-radius:10px;padding:10px 12px;margin:12px 0;background:color-mix(in srgb,var(--err) 14%,transparent);color:var(--err)}
+.msg.ok{background:color-mix(in srgb,var(--ok) 14%,transparent);color:var(--ok)}.msg.at{background:color-mix(in srgb,var(--warn) 16%,transparent);color:var(--warn)}.msg a{color:inherit;font-weight:700}
+.resumo{display:flex;gap:16px;flex-wrap:wrap;margin:0 0 12px;color:var(--mut);font-size:14px}.resumo b{color:var(--tx)}.vazio{color:var(--mut);text-align:center;padding:24px 8px}
+h2{font-size:18px;margin:22px 0 10px}.abas{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px}.abas .btn.on{background:var(--pri);color:var(--pri-tx)}
+.form{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}.form .larga{grid-column:1/-1}.acoes{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;align-items:center}
+.arq{font-size:13px;color:var(--mut)}.pend-ed{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}.pend-ed .larga{grid-column:1/-1}
+</style>
+</head>
+<body>
+<header><div class="logo">HS</div><span class="nm">Frota · oficina</span><span class="sp"></span><span class="quem" id="quem"></span>
+  <a class="btn ghost" href="/gestao/">Autorizações</a><a class="btn ghost" href="/gestao/rdo/">RDOs</a><a class="btn ghost" href="/gestao/checklist/">Checklists</a><a class="btn ghost" href="/gestao/frota/documentos/">Documentos</a></header>
+<div class="faixa"><i style="background:#00A0E7"></i><i style="background:#FE0000"></i><i style="background:#FFE500"></i></div>
+<main>
+  <div id="alertaDocs"></div>
+  <div class="abas"><button class="btn ghost on" type="button" data-aba="man">Manutenções</button><button class="btn ghost" type="button" data-aba="pend">Pendências da oficina <span id="qtdPend"></span></button></div>
+
+  <section id="aba-man">
+    <h2>Registrar manutenção</h2>
+    <form class="card" id="fm" autocomplete="off">
+      <div class="form">
+        <label>Data<input type="date" name="data" required></label>
+        <label>Veículo<select name="veiculo" id="veiculo" required><option value="">Carregando…</option></select></label>
+        <label>Km<input name="km" inputmode="numeric" placeholder="ex.: 187893"></label>
+        <label>Tipo<select name="tipo" required><option>Preventiva</option><option>Corretiva</option></select></label>
+        <label>Item<input name="item" list="itens" required placeholder="Troca de Óleo, Freios…"><datalist id="itens"></datalist></label>
+        <label>Oficina / fornecedor<input name="oficina"></label>
+        <label class="larga">Serviço realizado<textarea name="servico"></textarea></label>
+        <label>Nº da NF<input name="nf"></label>
+        <label>Valor peças (R$)<input name="valor_pecas" inputmode="decimal" placeholder="0,00"></label>
+        <label>Valor serviço (R$)<input name="valor_servico" inputmode="decimal" placeholder="0,00"></label>
+        <label>Valor total (R$)<input name="valor_total" inputmode="decimal" placeholder="soma automática"></label>
+        <label class="larga">Observação<textarea name="obs"></textarea></label>
+        <label class="larga">Nota fiscal (foto ou PDF)<input type="file" id="arq" accept="image/*,application/pdf"></label>
+      </div>
+      <div class="acoes"><button class="btn" type="submit" id="btnSalvar">Salvar lançamento</button><span class="arq" id="arqInfo"></span></div>
+      <div id="avisoForm"></div>
+    </form>
+    <h2>Manutenções lançadas no app</h2>
+    <div class="barra"><label>De<input type="date" id="de"></label><label>Até<input type="date" id="ate"></label>
+      <input class="busca" id="q" placeholder="Buscar por placa, item, oficina, NF…"><button class="btn" type="button" id="btnBuscar">Buscar</button>
+      <a class="btn ghost" id="csv" href="/api/gestao/frota?formato=csv">Exportar CSV</a></div>
+    <div class="resumo" id="resumo"></div><div id="aviso"></div><div class="grid" id="lista"></div>
+  </section>
+
+  <section id="aba-pend" hidden>
+    <h2>Pendências da oficina</h2>
+    <p class="meta">Nascem dos problemas marcados no checklist do veículo. Ao mudar o status aqui, a planilha recebe no próximo "Atualizar tudo".</p>
+    <div class="barra"><label>Mostrar<select id="fPend"><option value="abertas">Em aberto</option><option value="todas">Todas</option><option value="Resolvida">Resolvidas</option></select></label>
+      <input class="busca" id="qPend" placeholder="Buscar por frota, veículo, pendência…"></div>
+    <div class="resumo" id="resumoPend"></div><div id="avisoPend"></div><div class="grid" id="listaPend"></div>
+  </section>
+</main>
+<script>
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+  function esc(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
+  function brd(iso) { var m = /^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}):(\d{2}))?/.exec(iso || ""); return m ? m[3] + "/" + m[2] + "/" + m[1] + (m[4] ? " " + m[4] + ":" + m[5] : "") : ""; }
+  function hojeLocal() { var d = new Date(Date.now() - new Date().getTimezoneOffset() * 6e4); return d.toISOString().slice(0, 10); }
+  function rs(v) { return v == null || v === "" ? "" : Number(v).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }); }
+  function num(v) { var s = String(v || "").trim(); if (!s) return null; if (s.indexOf(",") >= 0) s = s.replace(/\./g, "").replace(",", "."); var n = Number(s.replace(/[^0-9.\-]/g, "")); return isFinite(n) ? n : null; }
+  function api(url, corpo) {
+    return fetch(url, corpo ? { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(corpo) } : {})
+      .then(function (r) { return r.json().catch(function () { throw new Error("Resposta inválida do servidor (" + r.status + ")"); }); })
+      .then(function (j) { if (!j.ok) throw new Error(j.msg || j.erro || "erro"); if (j.quem) $("quem").textContent = j.quem; return j; });
+  }
+
+  // abas
+  document.querySelectorAll("[data-aba]").forEach(function (b) { b.addEventListener("click", function () { abrirAba(b.getAttribute("data-aba")); }); });
+  function abrirAba(a) {
+    document.querySelectorAll("[data-aba]").forEach(function (b) { b.classList.toggle("on", b.getAttribute("data-aba") === a); });
+    $("aba-man").hidden = a !== "man"; $("aba-pend").hidden = a !== "pend";
+    if (location.hash !== "#" + a) history.replaceState(null, "", "#" + a);
+  }
+
+  // veículos (mesma lista do RDO/checklist)
+  fetch("/api/opcoes").then(function (r) { return r.json(); }).then(function (j) {
+    var L = (j && j.placa) || [];
+    $("veiculo").innerHTML = '<option value="">Escolha…</option>' + L.map(function (p) { return '<option>' + esc(p) + '</option>'; }).join("");
+  }).catch(function () { $("veiculo").outerHTML = '<input name="veiculo" id="veiculo" required placeholder="81000 BNK8D82">'; });
+
+  // formulário
+  var fm = $("fm"), arquivo = null;
+  fm.data.value = hojeLocal();
+  function somar() { var p = num(fm.valor_pecas.value), s = num(fm.valor_servico.value); fm.valor_total.placeholder = (p != null || s != null) ? rs((p || 0) + (s || 0)) : "soma automática"; }
+  fm.valor_pecas.addEventListener("input", somar); fm.valor_servico.addEventListener("input", somar);
+  function reduzir(file) {
+    return new Promise(function (ok, falha) {
+      var url = URL.createObjectURL(file), img = new Image();
+      img.onload = function () {
+        var M = 1800, f = Math.min(1, M / Math.max(img.naturalWidth, img.naturalHeight)), c = document.createElement("canvas");
+        c.width = Math.round(img.naturalWidth * f); c.height = Math.round(img.naturalHeight * f);
+        c.getContext("2d").drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(url);
+        var q = 0.8, d = c.toDataURL("image/jpeg", q);
+        while (d.length > 900000 && q > 0.35) { q -= 0.1; d = c.toDataURL("image/jpeg", q); }
+        ok(d);
+      };
+      img.onerror = function () { URL.revokeObjectURL(url); falha(new Error("Não consegui abrir a imagem.")); };
+      img.src = url;
+    });
+  }
+  function lerArquivo(file) {
+    if (/^image\//.test(file.type)) return reduzir(file);
+    return new Promise(function (ok, falha) { var r = new FileReader(); r.onload = function () { ok(r.result); }; r.onerror = function () { falha(new Error("Não consegui ler o arquivo.")); }; r.readAsDataURL(file); });
+  }
+  $("arq").addEventListener("change", function () {
+    var f = this.files && this.files[0]; arquivo = null; $("arqInfo").textContent = "";
+    if (!f) return;
+    if (!/^image\//.test(f.type) && f.type !== "application/pdf") { $("arqInfo").textContent = "Use foto ou PDF."; this.value = ""; return; }
+    $("arqInfo").textContent = "Preparando…";
+    lerArquivo(f).then(function (d) {
+      if (d.length > 1400000) { $("arqInfo").textContent = "Arquivo grande demais (máx. ~1 MB). Mande uma foto da NF ou um PDF menor."; $("arq").value = ""; return; }
+      arquivo = { nome: f.name, dados: d }; $("arqInfo").textContent = f.name + " · " + Math.round(d.length * 0.75 / 1024) + " KB";
+    }).catch(function (e) { $("arqInfo").textContent = e.message; });
+  });
+  fm.addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    var d = {}; ["data", "veiculo", "km", "tipo", "item", "oficina", "servico", "nf", "valor_pecas", "valor_servico", "valor_total", "obs"].forEach(function (k) { d[k] = fm.elements.namedItem(k).value; });
+    if (arquivo) d.arquivo = arquivo;
+    $("btnSalvar").disabled = true; $("avisoForm").innerHTML = "";
+    api("/api/gestao/frota", d).then(function (j) {
+      $("avisoForm").innerHTML = '<div class="msg ok">Lançamento ' + esc(j.numero) + ' salvo' + (j.arquivo ? " com a NF" : "") + '.</div>';
+      var manter = { data: fm.data.value }; fm.reset(); fm.data.value = manter.data; arquivo = null; $("arqInfo").textContent = ""; somar(); buscar();
+    }).catch(function (e) { $("avisoForm").innerHTML = '<div class="msg">' + esc(e.message) + '</div>'; })
+      .then(function () { $("btnSalvar").disabled = false; });
+  });
+
+  // lista de manutenções
+  $("de").value = new Date(Date.now() - 90 * 864e5).toISOString().slice(0, 10); $("ate").value = hojeLocal();
+  function buscar() {
+    var p = "de=" + $("de").value + "&ate=" + $("ate").value + "&q=" + encodeURIComponent($("q").value.trim());
+    $("csv").href = "/api/gestao/frota?formato=csv&" + p; $("aviso").innerHTML = ""; $("lista").innerHTML = '<div class="vazio">Carregando…</div>';
+    api("/api/gestao/frota?" + p).then(function (j) {
+      if (!$("itens").options.length) $("itens").innerHTML = (j.itens || []).map(function (i) { return '<option value="' + esc(i) + '">'; }).join("");
+      var L = j.manutencoes || [], tot = 0, vs = {};
+      L.forEach(function (m) { tot += Number(m.valor_total) || 0; vs[m.frota] = 1; });
+      $("resumo").innerHTML = "<span><b>" + L.length + "</b> lançamentos</span><span><b>" + Object.keys(vs).length + "</b> veículos</span><span><b>" + rs(tot) + "</b> no período</span>";
+      $("lista").innerHTML = L.length ? L.map(cartao).join("") : '<div class="vazio">Nenhuma manutenção no período.</div>';
+    }).catch(function (e) { $("lista").innerHTML = ""; $("aviso").innerHTML = '<div class="msg">' + esc(e.message) + '</div>'; });
+  }
+  function cartao(m) {
+    var h = '<div class="card"><div class="topo"><span class="num">' + esc(m.numero) + '</span><span class="badge' + (m.tipo === "Corretiva" ? " at" : "") + '">' + esc(m.tipo) + '</span></div>';
+    h += '<div class="meta">' + esc(brd(m.data)) + ' · lançado por ' + esc(m.criado_por || "—") + '</div><dl><dt>Veículo</dt><dd>' + esc(m.veiculo || m.frota) + '</dd><dt>Item</dt><dd>' + esc(m.item) + '</dd>';
+    if (m.km != null) h += '<dt>Km</dt><dd>' + esc(Number(m.km).toLocaleString("pt-BR")) + '</dd>';
+    if (m.servico) h += '<dt>Serviço</dt><dd>' + esc(m.servico) + '</dd>';
+    if (m.oficina) h += '<dt>Oficina</dt><dd>' + esc(m.oficina) + '</dd>';
+    if (m.nf) h += '<dt>Nº NF</dt><dd>' + esc(m.nf) + '</dd>';
+    if (m.valor_pecas != null) h += '<dt>Peças</dt><dd>' + rs(m.valor_pecas) + '</dd>';
+    if (m.valor_servico != null) h += '<dt>Serviço (R$)</dt><dd>' + rs(m.valor_servico) + '</dd>';
+    if (m.valor_total != null) h += '<dt>Total</dt><dd>' + rs(m.valor_total) + '</dd>';
+    if (m.obs) h += '<dt>Obs.</dt><dd>' + esc(m.obs) + '</dd>';
+    h += '</dl><div class="acoes">' + (m.arquivo ? '<a class="btn ghost peq" target="_blank" rel="noopener" href="/api/gestao/frota-arquivo?id=' + m.arquivo.id + '">Ver NF</a>' : '<span class="arq">Sem NF anexada</span>');
+    return h + '<button class="btn ghost peq" type="button" data-excluir="' + esc(m.numero) + '">Excluir</button></div></div>';
+  }
+  $("lista").addEventListener("click", function (ev) {
+    var n = ev.target.getAttribute && ev.target.getAttribute("data-excluir"); if (!n) return;
+    if (!confirm("Excluir o lançamento " + n + "? Ele sai da lista e da planilha.")) return;
+    api("/api/gestao/frota", { acao: "excluir", numero: n }).then(buscar).catch(function (e) { alert(e.message); });
+  });
+  $("btnBuscar").addEventListener("click", buscar); $("q").addEventListener("keydown", function (e) { if (e.key === "Enter") buscar(); });
+
+  // pendências
+  var PEND = [], STATUS = ["Aberta", "Em andamento", "Aguardando peça", "Resolvida", "Ciente - não corrigir"];
+  function carregarPend() {
+    $("listaPend").innerHTML = '<div class="vazio">Carregando…</div>';
+    api("/api/gestao/frota-pend").then(function (j) { PEND = j.pendencias || []; STATUS = j.status || STATUS; desenharPend(); })
+      .catch(function (e) { $("listaPend").innerHTML = ""; $("avisoPend").innerHTML = '<div class="msg">' + esc(e.message) + '</div>'; });
+  }
+  function aberta(p) { return p.status !== "Resolvida" && p.status !== "Ciente - não corrigir"; }
+  function desenharPend() {
+    var f = $("fPend").value, q = $("qPend").value.trim().toLowerCase(), hoje = Date.now();
+    var L = PEND.filter(function (p) { return f === "todas" ? true : f === "abertas" ? aberta(p) : p.status === f; })
+      .filter(function (p) { return !q || [p.frota, p.veiculo, p.pendencia, p.condutor, p.os_obs].join(" ").toLowerCase().indexOf(q) >= 0; });
+    var ab = PEND.filter(aberta), alta = ab.filter(function (p) { return p.prioridade === "Alta"; }).length;
+    $("qtdPend").textContent = ab.length ? "(" + ab.length + ")" : "";
+    $("resumoPend").innerHTML = "<span><b>" + ab.length + "</b> em aberto</span><span><b>" + alta + "</b> de prioridade alta</span><span><b>" + PEND.filter(function (p) { return p.status === "Resolvida"; }).length + "</b> resolvidas</span>";
+    $("listaPend").innerHTML = L.length ? L.map(function (p) {
+      var dias = p.aberta_em ? Math.floor((hoje - Date.parse(p.aberta_em.slice(0, 10))) / 864e5) : null;
+      var cls = p.status === "Resolvida" ? "" : p.status === "Ciente - não corrigir" ? " cz" : p.prioridade === "Alta" ? " pb" : " at";
+      var h = '<div class="card"><div class="topo"><span class="num">' + esc(p.frota) + '</span><span class="badge' + cls + '">' + esc(p.status) + '</span></div>';
+      h += '<div class="meta">' + esc(brd(p.aberta_em)) + (aberta(p) && dias != null ? ' · ' + dias + ' dia(s) em aberto' : '') + ' · prioridade ' + esc(p.prioridade || "—") + '</div>';
+      h += '<dl><dt>Pendência</dt><dd>' + esc(p.pendencia) + '</dd><dt>Veículo</dt><dd>' + esc(p.veiculo) + '</dd>' + (p.condutor ? '<dt>Condutor</dt><dd>' + esc(p.condutor) + '</dd>' : '');
+      if (p.resolvida_em) h += '<dt>Resolvida em</dt><dd>' + esc(brd(p.resolvida_em)) + '</dd>';
+      if (p.os_obs) h += '<dt>OS / obs.</dt><dd>' + esc(p.os_obs) + '</dd>';
+      h += '</dl><div class="pend-ed"><select data-st="' + p.id + '">' + STATUS.map(function (s) { return '<option' + (s === p.status ? " selected" : "") + '>' + esc(s) + '</option>'; }).join("") + '</select>';
+      h += '<input type="date" data-res="' + p.id + '" value="' + esc(p.resolvida_em || "") + '" title="Resolvida em"><input class="larga" data-os="' + p.id + '" value="' + esc(p.os_obs || "") + '" placeholder="OS / observação da oficina">';
+      return h + '<button class="btn peq larga" type="button" data-salvar="' + p.id + '">Salvar status</button></div></div>';
+    }).join("") : '<div class="vazio">Nenhuma pendência.</div>';
+  }
+  $("listaPend").addEventListener("change", function (ev) {
+    var id = ev.target.getAttribute("data-st"); if (!id) return;
+    var r = document.querySelector('[data-res="' + id + '"]'); if (ev.target.value === "Resolvida" && !r.value) r.value = hojeLocal();
+  });
+  $("listaPend").addEventListener("click", function (ev) {
+    var id = ev.target.getAttribute && ev.target.getAttribute("data-salvar"); if (!id) return;
+    var b = ev.target; b.disabled = true; $("avisoPend").innerHTML = "";
+    api("/api/gestao/frota-pend", { id: id, status: document.querySelector('[data-st="' + id + '"]').value, resolvida_em: document.querySelector('[data-res="' + id + '"]').value, os_obs: document.querySelector('[data-os="' + id + '"]').value })
+      .then(function (j) { PEND = PEND.map(function (p) { return String(p.id) === String(id) ? j.pendencia : p; }); desenharPend(); })
+      .catch(function (e) { b.disabled = false; $("avisoPend").innerHTML = '<div class="msg">' + esc(e.message) + '</div>'; });
+  });
+  $("fPend").addEventListener("change", desenharPend); $("qPend").addEventListener("input", desenharPend);
+
+  // alerta de documentos vencidos / a vencer
+  api("/api/gestao/frota-docs").then(function (j) {
+    var hoje = j.hoje, lim = new Date(Date.parse(hoje) + 30 * 864e5).toISOString().slice(0, 10), v = 0, p = 0;
+    (j.documentos || []).forEach(function (d) { if (d.vencimento && d.vencimento < hoje) v++; else if (d.vencimento && d.vencimento <= lim) p++; });
+    if (v || p) $("alertaDocs").innerHTML = '<div class="msg' + (v ? "" : " at") + '">Documentos da frota: ' + (v ? "<b>" + v + "</b> vencido(s)" : "") + (v && p ? " e " : "") + (p ? "<b>" + p + "</b> vencem em 30 dias" : "") + '. <a href="/gestao/frota/documentos/">Ver documentos</a></div>';
+  }).catch(function () {});
+
+  abrirAba(location.hash === "#pend" ? "pend" : "man");
+  buscar(); carregarPend();
+})();
+</script>
+</body>
+</html>

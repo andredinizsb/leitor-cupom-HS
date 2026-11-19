@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Documentos da frota · Gestão HS</title>
+<link rel="icon" href="/icons/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#F3F5F8;--card:#FFFFFF;--tx:#14171C;--mut:#5C6577;--bd:#DFE3EA;--pri:#0071A3;--pri-tx:#FFFFFF;--ok:#1B7F3A;--warn:#B26B00;--err:#E3262B;--in:#FFFFFF}
+@media (prefers-color-scheme:dark){:root{--bg:#0F1216;--card:#181C22;--tx:#EEF1F5;--mut:#9AA3B2;--bd:#2A303A;--pri:#33C0FF;--pri-tx:#06212E;--ok:#3DBE6B;--warn:#F0A43A;--err:#FF5A5F;--in:#11151A}}
+*{box-sizing:border-box}html,body{margin:0}body{background:var(--bg);color:var(--tx);font:15px/1.45 Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header{position:sticky;top:0;z-index:5;background:var(--card);border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:10px;padding:10px 16px;flex-wrap:wrap}
+header .logo{width:32px;height:32px;border-radius:8px;background:#00A0E7;display:grid;place-items:center;color:#fff;font-weight:800}
+header .nm{font-weight:700}header .sp{flex:1}.quem{color:var(--mut);font-size:13px}
+.faixa{display:flex;height:4px}.faixa i{flex:1}main{max-width:1100px;margin:0 auto;padding:16px}
+.barra{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-bottom:12px}.barra label,.form label{display:grid;gap:4px;font-size:13px;color:var(--mut);font-weight:600}
+input,select,textarea{min-height:40px;font:inherit;color:var(--tx);background:var(--in);border:1px solid var(--bd);border-radius:10px;padding:8px 10px;width:100%}
+.barra input,.barra select{width:auto}textarea{min-height:56px;resize:vertical}
+.busca{flex:1;min-width:200px}.btn{min-height:40px;border-radius:10px;border:0;background:var(--pri);color:var(--pri-tx);font:inherit;font-weight:700;padding:8px 14px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center}
+.btn.ghost{background:transparent;color:var(--pri);border:1px solid var(--bd)}.btn.peq{min-height:32px;padding:4px 10px;font-size:13px}.btn:disabled{opacity:.6;cursor:wait}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px}.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:14px}
+.topo{display:flex;justify-content:space-between;gap:8px;align-items:center}.num{font-weight:800;font-size:16px}
+.badge{display:inline-block;border-radius:999px;padding:3px 10px;font-size:12px;font-weight:700;color:#fff;background:var(--ok);white-space:nowrap}.badge.pb{background:var(--err)}.badge.at{background:var(--warn)}.badge.cz{background:var(--mut)}
+dl{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;margin:10px 0;font-size:14px}dt{color:var(--mut)}dd{margin:0;font-weight:600;word-break:break-word;white-space:pre-line}
+.meta{color:var(--mut);font-size:13px}.msg{border-radius:10px;padding:10px 12px;margin:12px 0;background:color-mix(in srgb,var(--err) 14%,transparent);color:var(--err)}
+.msg.ok{background:color-mix(in srgb,var(--ok) 14%,transparent);color:var(--ok)}.msg.at{background:color-mix(in srgb,var(--warn) 16%,transparent);color:var(--warn)}
+.resumo{display:flex;gap:16px;flex-wrap:wrap;margin:0 0 12px;color:var(--mut);font-size:14px}.resumo b{color:var(--tx)}.vazio{color:var(--mut);text-align:center;padding:24px 8px}
+h2{font-size:18px;margin:0 0 10px}.form{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}.form .larga{grid-column:1/-1}
+.acoes{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;align-items:center}.arq{font-size:13px;color:var(--mut)}
+</style>
+</head>
+<body>
+<header><div class="logo">HS</div><span class="nm">Documentos da frota</span><span class="sp"></span><span class="quem" id="quem"></span>
+  <a class="btn ghost" href="/gestao/">Autorizações</a><a class="btn ghost" href="/gestao/checklist/">Checklists</a><a class="btn ghost" href="/gestao/frota/">Manutenções</a><button class="btn" type="button" id="btnNovo">Novo documento</button></header>
+<div class="faixa"><i style="background:#00A0E7"></i><i style="background:#FE0000"></i><i style="background:#FFE500"></i></div>
+<main>
+  <div id="alerta"></div>
+  <form class="card" id="fd" autocomplete="off" hidden style="margin-bottom:14px">
+    <h2 id="tituloForm">Novo documento</h2>
+    <div class="form">
+      <label>Veículo<input name="veiculo" id="veiculo" list="placas" placeholder="81000 BNK8D82 ou nome do equipamento" required><datalist id="placas"></datalist></label>
+      <label>Documento<input name="documento" list="tiposDoc" required placeholder="CRLV / Licenciamento, Seguro…"><datalist id="tiposDoc"></datalist></label>
+      <label>Número / apólice<input name="numero"></label>
+      <label>Emissão<input type="date" name="emissao"></label>
+      <label>Vencimento<input type="date" name="vencimento"></label>
+      <label>Responsável<input name="responsavel"></label>
+      <label class="larga">Observação<textarea name="obs"></textarea></label>
+      <label class="larga">Arquivo do documento (foto ou PDF)<input type="file" id="arq" accept="image/*,application/pdf"></label>
+    </div>
+    <div class="acoes"><button class="btn" type="submit" id="btnSalvar">Salvar</button><button class="btn ghost" type="button" id="btnCancelar">Cancelar</button>
+      <button class="btn ghost" type="button" id="btnExcluir" hidden>Excluir documento</button><span class="arq" id="arqInfo"></span></div>
+    <div id="avisoForm"></div>
+  </form>
+  <div class="barra"><label>Situação<select id="fSit"><option value="">Todas</option><option>VENCIDO</option><option>VENCE EM 30 DIAS</option><option>Em dia</option><option>Sem data</option></select></label>
+    <input class="busca" id="q" placeholder="Buscar por frota, placa, documento…"></div>
+  <div class="resumo" id="resumo"></div><div id="aviso"></div><div class="grid" id="lista"></div>
+</main>
+<script>
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+  function esc(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
+  function brd(iso) { var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || ""); return m ? m[3] + "/" + m[2] + "/" + m[1] : ""; }
+  function api(url, corpo) {
+    return fetch(url, corpo ? { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(corpo) } : {})
+      .then(function (r) { return r.json().catch(function () { throw new Error("Resposta inválida do servidor (" + r.status + ")"); }); })
+      .then(function (j) { if (!j.ok) throw new Error(j.msg || j.erro || "erro"); if (j.quem) $("quem").textContent = j.quem; return j; });
+  }
+  var DOCS = [], HOJE = "", fd = $("fd"), editando = null, arquivo = null;
+  // mesma regra da tDocFrota: VENCIDO / VENCE EM 30 DIAS / Em dia / Sem data
+  function diasPara(d) { return d.vencimento ? Math.round((Date.parse(d.vencimento) - Date.parse(HOJE)) / 864e5) : null; }
+  function situacao(d) { var n = diasPara(d); return n == null ? "Sem data" : n < 0 ? "VENCIDO" : n <= 30 ? "VENCE EM 30 DIAS" : "Em dia"; }
+  var ORDEM = { "VENCIDO": 1, "VENCE EM 30 DIAS": 2, "Sem data": 3, "Em dia": 4 };
+
+  fetch("/api/opcoes").then(function (r) { return r.json(); }).then(function (j) {
+    $("placas").innerHTML = ((j && j.placa) || []).map(function (p) { return '<option value="' + esc(p) + '">'; }).join("");
+  }).catch(function () {});
+
+  function carregar() {
+    $("lista").innerHTML = '<div class="vazio">Carregando…</div>';
+    api("/api/gestao/frota-docs").then(function (j) {
+      DOCS = j.documentos || []; HOJE = j.hoje;
+      var tipos = {}; DOCS.forEach(function (d) { tipos[d.documento] = 1; });
+      $("tiposDoc").innerHTML = Object.keys(tipos).sort().map(function (t) { return '<option value="' + esc(t) + '">'; }).join("");
+      desenhar();
+    }).catch(function (e) { $("lista").innerHTML = ""; $("aviso").innerHTML = '<div class="msg">' + esc(e.message) + '</div>'; });
+  }
+  function desenhar() {
+    var f = $("fSit").value, q = $("q").value.trim().toLowerCase(), cont = { "VENCIDO": 0, "VENCE EM 30 DIAS": 0, "Em dia": 0, "Sem data": 0 };
+    DOCS.forEach(function (d) { cont[situacao(d)]++; });
+    $("alerta").innerHTML = cont["VENCIDO"] || cont["VENCE EM 30 DIAS"] ? '<div class="msg' + (cont["VENCIDO"] ? "" : " at") + '"><b>Atenção:</b> ' +
+      [cont["VENCIDO"] ? cont["VENCIDO"] + " documento(s) vencido(s)" : "", cont["VENCE EM 30 DIAS"] ? cont["VENCE EM 30 DIAS"] + " vencem nos próximos 30 dias" : ""].filter(Boolean).join(" e ") + '.</div>' : "";
+    $("resumo").innerHTML = "<span><b>" + DOCS.length + "</b> documentos</span><span><b>" + cont["VENCIDO"] + "</b> vencidos</span><span><b>" + cont["VENCE EM 30 DIAS"] + "</b> vencem em 30 dias</span><span><b>" + cont["Em dia"] + "</b> em dia</span><span><b>" + cont["Sem data"] + "</b> sem data</span>";
+    var L = DOCS.filter(function (d) { return !f || situacao(d) === f; })
+      .filter(function (d) { return !q || [d.frota, d.veiculo, d.documento, d.numero, d.responsavel, d.obs].join(" ").toLowerCase().indexOf(q) >= 0; })
+      .sort(function (a, b) { return (ORDEM[situacao(a)] - ORDEM[situacao(b)]) || String(a.vencimento || "").localeCompare(String(b.vencimento || "")); });
+    $("lista").innerHTML = L.length ? L.map(function (d) {
+      var s = situacao(d), n = diasPara(d), cls = s === "VENCIDO" ? " pb" : s === "VENCE EM 30 DIAS" ? " at" : s === "Sem data" ? " cz" : "";
+      var h = '<div class="card"><div class="topo"><span class="num">' + esc(d.frota || "Equipamento") + '</span><span class="badge' + cls + '">' + esc(s) + '</span></div>';
+      h += '<div class="meta">' + esc(d.veiculo || "") + '</div><dl><dt>Documento</dt><dd>' + esc(d.documento) + '</dd>';
+      if (d.numero) h += '<dt>Número</dt><dd>' + esc(d.numero) + '</dd>';
+      if (d.emissao) h += '<dt>Emissão</dt><dd>' + esc(brd(d.emissao)) + '</dd>';
+      h += '<dt>Vencimento</dt><dd>' + (d.vencimento ? esc(brd(d.vencimento)) + (n != null ? ' (' + (n < 0 ? "venceu há " + (-n) + " dia(s)" : n === 0 ? "vence hoje" : "faltam " + n + " dia(s)") + ')' : "") : "—") + '</dd>';
+      if (d.responsavel) h += '<dt>Responsável</dt><dd>' + esc(d.responsavel) + '</dd>';
+      var acao = s === "VENCIDO" ? "RENOVAR JÁ" : s === "VENCE EM 30 DIAS" ? "Agendar renovação" : s === "Sem data" ? "Localizar o documento e lançar as datas" : "";
+      if (acao) h += '<dt>Próxima ação</dt><dd>' + esc(acao) + '</dd>';
+      if (d.obs) h += '<dt>Obs.</dt><dd>' + esc(d.obs) + '</dd>';
+      h += '</dl><div class="acoes">' + (d.arquivo ? '<a class="btn ghost peq" target="_blank" rel="noopener" href="/api/gestao/frota-arquivo?id=' + d.arquivo.id + '">Ver arquivo</a>' : "");
+      return h + '<button class="btn ghost peq" type="button" data-editar="' + d.id + '">Editar / renovar</button></div></div>';
+    }).join("") : '<div class="vazio">Nenhum documento.</div>';
+  }
+  function abrirForm(d) {
+    editando = d || null; arquivo = null; fd.reset(); $("arqInfo").textContent = ""; $("avisoForm").innerHTML = "";
+    $("tituloForm").textContent = d ? "Editar documento" : "Novo documento"; $("btnExcluir").hidden = !d;
+    if (d) ["documento", "numero", "emissao", "vencimento", "responsavel", "obs"].forEach(function (k) { fd.elements.namedItem(k).value = d[k] || ""; });
+    if (d) fd.veiculo.value = d.veiculo || d.frota || "";
+    fd.hidden = false; fd.scrollIntoView({ behavior: "smooth" }); fd.veiculo.focus();
+  }
+  $("btnNovo").addEventListener("click", function () { abrirForm(null); });
+  $("btnCancelar").addEventListener("click", function () { fd.hidden = true; });
+  $("lista").addEventListener("click", function (ev) {
+    var id = ev.target.getAttribute && ev.target.getAttribute("data-editar"); if (!id) return;
+    abrirForm(DOCS.filter(function (d) { return String(d.id) === id; })[0]);
+  });
+  $("arq").addEventListener("change", function () {
+    var f = this.files && this.files[0]; arquivo = null; $("arqInfo").textContent = "";
+    if (!f) return;
+    if (!/^image\//.test(f.type) && f.type !== "application/pdf") { $("arqInfo").textContent = "Use foto ou PDF."; this.value = ""; return; }
+    var r = new FileReader();
+    r.onload = function () {
+      if (!/^image\//.test(f.type)) return fim(r.result);
+      var img = new Image(); img.onload = function () {
+        var M = 1800, k = Math.min(1, M / Math.max(img.naturalWidth, img.naturalHeight)), c = document.createElement("canvas");
+        c.width = Math.round(img.naturalWidth * k); c.height = Math.round(img.naturalHeight * k); c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+        var q = 0.8, d = c.toDataURL("image/jpeg", q); while (d.length > 900000 && q > 0.35) { q -= 0.1; d = c.toDataURL("image/jpeg", q); } fim(d);
+      }; img.src = r.result;
+    };
+    function fim(d) {
+      if (d.length > 1400000) { $("arqInfo").textContent = "Arquivo grande demais (máx. ~1 MB)."; $("arq").value = ""; return; }
+      arquivo = { nome: f.name, dados: d }; $("arqInfo").textContent = f.name + " · " + Math.round(d.length * 0.75 / 1024) + " KB";
+    }
+    r.readAsDataURL(f);
+  });
+  fd.addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    var d = { id: editando ? editando.id : null };
+    ["veiculo", "documento", "numero", "emissao", "vencimento", "responsavel", "obs"].forEach(function (k) { d[k] = fd.elements.namedItem(k).value; });
+    var m = /^(8\d{4})\b/.exec(d.veiculo.trim()); d.frota = editando && d.veiculo === editando.veiculo ? (editando.frota || "") : m ? m[1] : "";
+    if (arquivo) d.arquivo = arquivo;
+    $("btnSalvar").disabled = true;
+    api("/api/gestao/frota-docs", d).then(function () { fd.hidden = true; carregar(); })
+      .catch(function (e) { $("avisoForm").innerHTML = '<div class="msg">' + esc(e.message) + '</div>'; })
+      .then(function () { $("btnSalvar").disabled = false; });
+  });
+  $("btnExcluir").addEventListener("click", function () {
+    if (!editando || !confirm("Excluir o documento " + editando.documento + " de " + (editando.frota || editando.veiculo) + "?")) return;
+    api("/api/gestao/frota-docs", { acao: "excluir", id: editando.id }).then(function () { fd.hidden = true; carregar(); }).catch(function (e) { alert(e.message); });
+  });
+  $("fSit").addEventListener("change", desenhar); $("q").addEventListener("input", desenhar);
+  carregar();
+})();
+</script>
+</body>
+</html>
