@@ -8,6 +8,7 @@ export async function onRequestGet({ request, env }) {
   if (!id) return resp({ ok: false, erro: "sem_id" }, 400);
   const f = await env.DB.prepare("SELECT tipo, r2_key, dados FROM checklist_fotos WHERE id = ?1").bind(id).first();
   if (!f) return resp({ ok: false, erro: "nao_encontrada" }, 404);
+  if (!f.dados && !f.r2_key) return resp({ ok: false, erro: "arquivada", msg: "Foto arquivada no servidor da empresa (pasta HS GESTAO APP)." }, 410);
   const h = { "Content-Type": f.tipo || "image/jpeg", "Cache-Control": "private, max-age=86400" };
   if (f.r2_key) {
     if (!env.FOTOS) return resp({ ok: false, erro: "r2_desligado" }, 503);

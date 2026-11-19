@@ -1,0 +1,39 @@
+{
+  "id": "/gestao/frota/",
+  "name": "HS Frota",
+  "short_name": "Frota HS",
+  "description": "Manutenções, pendências e documentos da frota.",
+  "lang": "pt-BR",
+  "start_url": "/gestao/frota/",
+  "scope": "/gestao/frota/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0E1217",
+  "theme_color": "#0E1217",
+  "icons": [
+    {
+      "src": "/icons/frota-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/frota-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/frota-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/frota.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

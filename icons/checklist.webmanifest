@@ -1,0 +1,39 @@
+{
+  "id": "/checklist/",
+  "name": "HS Checklist do veículo",
+  "short_name": "Checklist HS",
+  "description": "Checklist do veículo antes de sair.",
+  "lang": "pt-BR",
+  "start_url": "/checklist/",
+  "scope": "/checklist/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0E1217",
+  "theme_color": "#0E1217",
+  "icons": [
+    {
+      "src": "/icons/checklist-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/checklist-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/checklist-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/checklist.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

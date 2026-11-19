@@ -1,0 +1,39 @@
+{
+  "id": "/rdo/",
+  "name": "HS RDO — Diário de Obra",
+  "short_name": "RDO HS",
+  "description": "Lança o relatório diário da obra com fotos.",
+  "lang": "pt-BR",
+  "start_url": "/rdo/",
+  "scope": "/rdo/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0E1217",
+  "theme_color": "#0E1217",
+  "icons": [
+    {
+      "src": "/icons/rdo-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/rdo-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/rdo-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/rdo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "id": "/gestao/",
+  "name": "HS Gestão — Escritório",
+  "short_name": "Gestão HS",
+  "description": "Autorizações, RDOs, checklists e frota (Suprimentos).",
+  "lang": "pt-BR",
+  "start_url": "/gestao/",
+  "scope": "/gestao/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0E1217",
+  "theme_color": "#0E1217",
+  "icons": [
+    {
+      "src": "/icons/gestao-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/gestao-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/gestao-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/gestao.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "id": "/autorizacao/",
+  "name": "HS Autorização",
+  "short_name": "Autorização",
+  "description": "Pede autorização de abastecimento ou material.",
+  "lang": "pt-BR",
+  "start_url": "/autorizacao/",
+  "scope": "/autorizacao/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0E1217",
+  "theme_color": "#0E1217",
+  "icons": [
+    {
+      "src": "/icons/autorizacao-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/autorizacao-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/autorizacao-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/autorizacao.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

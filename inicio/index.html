@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>HS Gestão</title>
+<link rel="icon" href="/icons/hub.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/icons/hub-apple.png">
+<link rel="manifest" href="/icons/hub.webmanifest">
+<meta name="theme-color" content="#0E1217">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="HS Gestão">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#F4F6F8;--card:#FFFFFF;--txt:#0E1217;--sub:#5A6472;--linha:#E2E6EB;--primary:#0071A3;--brand:#00A0E7;--red:#FE0000;--yellow:#FFE500}
+@media (prefers-color-scheme:dark){:root{--bg:#0E1217;--card:#171D25;--txt:#EEF2F6;--sub:#9AA5B3;--linha:#263040;--primary:#33C0FF}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--txt);font:16px/1.45 Inter,system-ui,sans-serif;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+.faixa{height:6px;background:linear-gradient(90deg,var(--brand) 0 50%,var(--red) 50% 75%,var(--yellow) 75%)}
+main{max-width:760px;margin:0 auto;padding:20px 16px 40px}
+header{display:flex;align-items:center;gap:12px;margin:8px 0 22px}
+header img{width:48px;height:48px}
+h1{font-size:24px;line-height:1.1;margin:0;font-weight:800;letter-spacing:-.01em}
+header p{margin:2px 0 0;color:var(--sub);font-size:14px}
+h2{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--sub);margin:22px 0 10px;font-weight:700}
+.grade{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px}
+a.app{display:flex;flex-direction:column;gap:10px;padding:16px;min-height:44px;border-radius:14px;background:var(--card);border:1px solid var(--linha);color:inherit;text-decoration:none;transition:transform .12s,border-color .12s}
+a.app:hover,a.app:focus-visible{border-color:var(--primary);transform:translateY(-1px);outline:none}
+a.app img{width:56px;height:56px}
+a.app b{font-size:16px;font-weight:700}
+a.app span{font-size:13px;color:var(--sub)}
+a.gestao{flex-direction:row;align-items:center;gap:14px;background:var(--txt);color:var(--bg);border-color:var(--txt)}
+a.gestao span{color:inherit;opacity:.75}
+a.gestao .seta{margin-left:auto;font-size:24px;font-weight:700}
+.cadeado{font-size:12px;opacity:.75}
+footer{margin-top:28px;color:var(--sub);font-size:12px;text-align:center}
+</style>
+</head>
+<body>
+<div class="faixa"></div>
+<main>
+  <header>
+    <img src="/icons/hub.svg" alt="">
+    <div><h1>HS Gestão</h1><p>HS Eletricidade · MC Manutenções — escolha o app</p></div>
+  </header>
+
+  <h2>Campo</h2>
+  <div class="grade">
+    <a class="app" id="lnkDespesas" href="https://despesas.hsgestao.app/"><img src="/icons/favicon.svg" alt=""><b>Despesas</b><span>Lê o cupom e lança a despesa da obra.</span></a>
+    <a class="app" href="/autorizacao/"><img src="/icons/autorizacao.svg" alt=""><b>Autorização</b><span>Pede autorização de abastecimento ou material.</span></a>
+    <a class="app" href="/rdo/"><img src="/icons/rdo.svg" alt=""><b>RDO</b><span>Relatório diário da obra, com fotos.</span></a>
+    <a class="app" href="/checklist/"><img src="/icons/checklist.svg" alt=""><b>Checklist</b><span>Checklist do veículo antes de sair.</span></a>
+  </div>
+
+  <h2>Escritório</h2>
+  <a class="app gestao" href="/gestao/"><img src="/icons/gestao.svg" alt=""><div><b>Área de gestão</b><br><span>Autorizações, RDOs, checklists e frota · <span class="cadeado">login Suprimentos</span></span></div><span class="seta">›</span></a>
+  <div class="grade" style="margin-top:12px">
+    <a class="app" href="/gestao/rdo/"><img src="/icons/rdo.svg" alt=""><b>RDOs</b><span>RDOs recebidos e fotos.</span></a>
+    <a class="app" href="/gestao/checklist/"><img src="/icons/checklist.svg" alt=""><b>Checklists</b><span>Checklists dos veículos.</span></a>
+    <a class="app" href="/gestao/frota/"><img src="/icons/frota.svg" alt=""><b>Frota</b><span>Manutenções, pendências e documentos.</span></a>
+  </div>
+
+  <footer>Dica: no celular, abra o app que você usa e toque em “Adicionar à tela inicial”.</footer>
+</main>
+<script>
+  // testando no PC (localhost), o app de despesas está na raiz deste mesmo servidor
+  if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) document.getElementById("lnkDespesas").href = "/";
+</script>
+</body>
+</html>

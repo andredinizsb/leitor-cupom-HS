@@ -2,6 +2,7 @@
 import { resp, origemOk, semBanco, ERRO_BANCO, txt, num, agora } from "../../../lib/aut.js";
 import { MAX_FOTOS, MAX_FOTO_B64, inteiro, dataHora, separarFoto, b64ParaBytes } from "../../../lib/rdo.js";
 import { AVARIAS, SECOES, ITENS, avarias, proximoNumeroChk } from "../../../lib/checklist.js";
+import { guardarNoR2, bytesB64 } from "../../../lib/fotos.js";
 
 function erro(cod, msg) { return resp({ ok: false, erro: cod, msg: msg }, 400); }
 
@@ -42,12 +43,13 @@ export async function onRequestPost({ request, env }) {
     } catch (e) { if (!/UNIQUE|constraint/i.test(String(e && e.message))) throw e; }
   }
   if (!numero) return resp({ ok: false, erro: "numero_ocupado", msg: "Tente enviar de novo." }, 503);
+  const usarR2 = fotos.length ? await guardarNoR2(env) : false;   // R2 só depois de ~1.500 fotos no D1 (lib/fotos.js)
   for (let i = 0; i < fotos.length; i++) {
     const f = fotos[i], ext = f.tipo === "image/png" ? "png" : f.tipo === "image/webp" ? "webp" : "jpg";
     let r2 = null, dados = f.b64;
-    if (env.FOTOS) { r2 = "checklist/" + ano + "/" + numero + "/" + (i + 1) + "." + ext; await env.FOTOS.put(r2, b64ParaBytes(f.b64), { httpMetadata: { contentType: f.tipo } }); dados = null; }
+    if (usarR2) { r2 = "checklist/" + ano + "/" + numero + "/" + (i + 1) + "." + ext; await env.FOTOS.put(r2, b64ParaBytes(f.b64), { httpMetadata: { contentType: f.tipo } }); dados = null; }
     await db.prepare("INSERT INTO checklist_fotos (numero, ordem, secao, legenda, tipo, tamanho, r2_key, dados, criado_em) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)")
-      .bind(numero, i + 1, f.secao, f.legenda, f.tipo, Math.round(f.b64.length * 3 / 4), r2, dados, quando).run();
+      .bind(numero, i + 1, f.secao, f.legenda, f.tipo, bytesB64(f.b64), r2, dados, quando).run();
   }
   return resp({ ok: true, numero: numero, fotos: fotos.length, problemas: prob.length });
 }
