@@ -55,7 +55,8 @@ video{width:100%;border-radius:10px;background:#000;max-height:46vh;object-fit:c
         <div class="seg"><button type="button" class="tab on" data-emp="HS">HS</button><button type="button" class="tab" data-emp="MC">MC</button></div>
         <label for="tipo">Tipo</label>
         <select id="tipo" required><option>Abastecimento</option><option>Material</option></select>
-        <label for="obra">Obra</label><input id="obra" required placeholder="Ex.: 4287">
+        <label for="obra">Obra</label><input id="obra" required inputmode="numeric" list="dlObras" placeholder="Digite o nº ou escolha na lista"><datalist id="dlObras"></datalist>
+        <div id="obraInfo" class="opt" style="margin-top:4px"></div>
         <label for="estab">Estabelecimento <span class="opt">(opcional)</span></label><input id="estab" placeholder="Posto, loja ou fornecedor">
         <div id="blAbast" class="hide">
           <label for="veic">Veículo</label>
@@ -180,6 +181,18 @@ video{width:100%;border-radius:10px;background:#000;max-height:46vh;object-fit:c
     var f = FROTA.filter(function (x) { return (x.placa && v.indexOf(String(x.placa).toUpperCase()) >= 0) || (x.frota && v.split(/\s+/)[0] === String(x.frota)); })[0];
     $("marca").value = f ? [f.marca, f.modelo].filter(Boolean).join(" ") : "";
   });
+  // Fase 4.3: obras do cadastro oficial (obras.json gerado pela planilha) como sugestão; ao escolher, acerta a empresa
+  var OBRAS = [];
+  fetch("/obras.json", { cache: "no-cache" }).then(function (r) { return r.json(); }).then(function (j) {
+    OBRAS = Array.isArray(j) ? j : [];
+    $("dlObras").innerHTML = OBRAS.map(function (o) { return '<option value="' + esc(o.n) + '">' + esc([o.e, o.c, o.d].filter(Boolean).join(" · ")) + '</option>'; }).join("");
+  }).catch(function () {});
+  function infoObra() {
+    var v = $("obra").value.trim(), o = OBRAS.filter(function (x) { return String(x.n) === v; })[0];
+    $("obraInfo").textContent = o ? [o.e, o.c, o.d].filter(Boolean).join(" · ") : (v && OBRAS.length ? "Obra fora do cadastro oficial - confira o número." : "");
+    if (o && (o.e === "HS" || o.e === "MC") && o.e !== empresa) { var b = document.querySelector('[data-emp="' + o.e + '"]'); if (b) b.click(); }
+  }
+  $("obra").addEventListener("input", infoObra); $("obra").addEventListener("change", infoObra);
   function novoItem() {
     var d = document.createElement("div"); d.className = "item";
     d.innerHTML = '<input class="iDesc" placeholder="Descrição do material">' +

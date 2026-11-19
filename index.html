@@ -471,6 +471,31 @@
     statusEl.innerHTML = msg ? ((cls === "err" ? ic("alert", 16) : cls === "ok" ? ic("check", 16) : "") + "<span>" + esc(msg) + "</span>") : "";
   }
   function esc(s) { return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+// Fase 4.3: cadastro oficial de obras (obras.json gerado pela planilha, aba CadObras) vira sugestão no Nº da obra
+var OBRAS = null;
+function carregarObras(cb) {
+  if (OBRAS) { cb(OBRAS); return; }
+  fetch("/obras.json", { cache: "no-cache" }).then(function (r) { return r.json(); })
+    .then(function (j) { OBRAS = Array.isArray(j) ? j : []; cb(OBRAS); }).catch(function () { OBRAS = []; cb(OBRAS); });
+}
+function ligarObras(inp, desc) {
+  carregarObras(function (L) {
+    if (!L.length || !inp) return;
+    var dl = document.getElementById("dlObras");
+    if (!dl) {
+      dl = document.createElement("datalist"); dl.id = "dlObras";
+      dl.innerHTML = L.map(function (o) { return '<option value="' + esc(o.n) + '">' + esc([o.e, o.c, o.d].filter(Boolean).join(" · ")) + '</option>'; }).join("");
+      document.body.appendChild(dl);
+    }
+    inp.setAttribute("list", "dlObras");
+    if (desc) desc.addEventListener("input", function () { desc.removeAttribute("data-auto"); });
+    function upd() {
+      var v = inp.value.trim(), o = L.filter(function (x) { return String(x.n) === v; })[0];
+      if (o && desc && (!desc.value.trim() || desc.getAttribute("data-auto"))) { desc.value = [o.c, o.d].filter(Boolean).join(" - "); desc.setAttribute("data-auto", "1"); }
+    }
+    inp.addEventListener("input", upd); inp.addEventListener("change", upd);
+  });
+}
   function fmtCNPJ(c) { return c.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5"); }
   // CNPJ (14 díg.) ou CPF (11 díg.) digitado só com números → formato com pontuação, como o Jotform recebe.
   function fmtDoc(v) {
@@ -866,7 +891,7 @@
       resultEl.querySelectorAll("#colabList label").forEach(function (lb) { lb.classList.toggle("ocult", q && noAcc(lb.textContent).indexOf(q) < 0); });
     });
     for (var bi = 0; bi < count; bi++) bindItem(bi);
-    var fo = document.getElementById("fObra"); if (fo) fo.addEventListener("input", function () { fo.closest(".field").classList.remove("invalid"); });
+    var fo = document.getElementById("fObra"); if (fo) { fo.addEventListener("input", function () { fo.closest(".field").classList.remove("invalid"); }); ligarObras(fo, document.getElementById("fObraDesc")); }
     var fcn = document.getElementById("fCnpj");
     if (fcn) fcn.addEventListener("input", function () {
       var d = fcn.value.replace(/\D/g, "");
