@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Checklist do veículo · HS</title>
+<link rel="icon" href="/icons/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#F3F5F8;--card:#FFFFFF;--tx:#14171C;--mut:#5C6577;--bd:#DFE3EA;--pri:#0071A3;--pri-tx:#FFFFFF;--ok:#1B7F3A;--warn:#B26B00;--err:#E3262B;--in:#FFFFFF}
+@media (prefers-color-scheme:dark){:root{--bg:#0F1216;--card:#181C22;--tx:#EEF1F5;--mut:#9AA3B2;--bd:#2A303A;--pri:#33C0FF;--pri-tx:#06212E;--ok:#3DBE6B;--warn:#F0A43A;--err:#FF5A5F;--in:#11151A}}
+*{box-sizing:border-box}html,body{margin:0}body{background:var(--bg);color:var(--tx);font:16px/1.45 Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header{position:sticky;top:0;z-index:5;background:var(--card);border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:10px;padding:10px 16px}
+header .logo{width:32px;height:32px;border-radius:8px;background:#00A0E7;display:grid;place-items:center;color:#fff;font-weight:800}
+header .nm{font-weight:700}header .sp{flex:1}header a{color:var(--pri);font-weight:600;text-decoration:none;min-height:44px;display:flex;align-items:center}
+.faixa{display:flex;height:4px}.faixa i{flex:1}main{max-width:640px;margin:0 auto;padding:16px 16px 96px}
+.tabs{display:flex;gap:8px;margin-bottom:12px}.tab{flex:1;min-height:44px;border-radius:10px;border:1px solid var(--bd);background:var(--card);color:var(--tx);font:inherit;font-weight:600}
+.tab.on{background:var(--pri);color:var(--pri-tx);border-color:var(--pri)}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:16px;margin-bottom:12px}
+h2{font-size:18px;margin:0 0 4px}h3{font-size:15px;margin:0 0 6px;text-transform:uppercase;letter-spacing:.04em;color:var(--mut)}.lead{color:var(--mut);margin:0 0 4px;font-size:14px}
+label{display:block;font-weight:600;font-size:14px;margin:12px 0 4px}.opt{color:var(--mut);font-weight:400}
+input,select,textarea{width:100%;min-height:44px;font:inherit;font-size:16px;color:var(--tx);background:var(--in);border:1px solid var(--bd);border-radius:10px;padding:10px 12px}
+textarea{min-height:80px;resize:vertical}input:focus,select:focus,textarea:focus{outline:2px solid var(--pri);outline-offset:1px}
+.row{display:flex;gap:8px}.row>*{flex:1;min-width:0}
+.btn{min-height:44px;border-radius:10px;border:0;background:var(--pri);color:var(--pri-tx);font:inherit;font-weight:700;padding:10px 16px;cursor:pointer;width:100%}
+.btn.ghost{background:transparent;color:var(--pri);border:1px solid var(--bd)}.btn.sm{width:auto;min-height:40px;padding:8px 12px;font-size:14px}.btn:disabled{opacity:.6}
+.msg{border-radius:10px;padding:10px 12px;margin:12px 0;font-size:14px}.msg.ok{background:color-mix(in srgb,var(--ok) 14%,transparent);color:var(--ok)}.msg.err{background:color-mix(in srgb,var(--err) 14%,transparent);color:var(--err)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}.chip{min-height:40px;border-radius:999px;border:1px solid var(--bd);background:var(--in);color:var(--tx);font:inherit;font-size:14px;font-weight:600;padding:6px 14px;cursor:pointer}
+.chip.on{background:var(--err);border-color:var(--err);color:#fff}.chip.nada.on{background:var(--ok);border-color:var(--ok)}
+.it{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--bd)}.it:last-child{border-bottom:0}.it .tx{flex:1;font-size:14px;font-weight:500}
+.it button{min-height:40px;min-width:76px;border-radius:10px;border:1px solid var(--bd);background:var(--in);color:var(--tx);font:inherit;font-size:14px;font-weight:700;cursor:pointer}
+.it button.ok.on{background:var(--ok);border-color:var(--ok);color:#fff}.it button.pb.on{background:var(--err);border-color:var(--err);color:#fff}
+.fotos{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px;margin-top:8px}.fotos div{position:relative}.fotos img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;display:block;background:#000}
+.fotos button{position:absolute;top:4px;right:4px;min-height:28px;border-radius:8px;border:0;background:rgba(0,0,0,.6);color:#fff;font-weight:700;padding:2px 8px}
+.hide{display:none}.meta{color:var(--mut);font-size:14px}.num{font-weight:800;font-size:17px}.vazio{color:var(--mut);text-align:center;padding:24px 8px}
+.envio{position:sticky;bottom:0;background:linear-gradient(transparent,var(--bg) 30%);padding:12px 0 8px}.conta{color:var(--mut);font-size:13px;font-weight:500}
+</style>
+</head>
+<body>
+<header><div class="logo">HS</div><span class="nm">Checklist do veículo</span><span class="sp"></span><a href="/rdo/">RDO</a></header>
+<div class="faixa"><i style="background:#00A0E7"></i><i style="background:#FE0000"></i><i style="background:#FFE500"></i></div>
+<main>
+  <div class="tabs"><button class="tab on" id="tNovo" type="button">Novo checklist</button><button class="tab" id="tEnviados" type="button">Enviados</button></div>
+  <section id="pNovo">
+    <div class="card">
+      <h2>Checklist do veículo</h2>
+      <p class="lead">Substitui o checklist do Jotform. Faça antes de sair com o veículo.</p>
+      <div class="meta" id="quando"></div>
+      <label for="frota">Frota do equipamento</label><select id="frota"><option value="">Carregando a lista…</option></select>
+      <label for="condutor">Condutor principal (quem faz o checklist)</label><select id="condutor"><option value="">Carregando a lista…</option></select>
+      <label for="hodo">Hodômetro (km)</label><input id="hodo" inputmode="numeric" placeholder="Km do painel agora">
+      <label for="kmOleo">Existe a informação de qual km deve ser trocado o óleo? Se sim, qual o km?</label>
+      <input id="kmOleo" placeholder="Ex.: 325000 (ou NÃO SEI)">
+    </div>
+    <div id="avarias"></div>
+    <div class="card">
+      <h3>Funcionamento <span class="conta" id="contaItens"></span></h3>
+      <p class="lead">Itens fundamentais de segurança: marque OK ou Problema em cada um.</p>
+      <div id="itens"></div>
+    </div>
+    <div class="card">
+      <label for="obs" style="margin-top:0">Obs.: caso algo não esteja funcionando bem, nos avise!</label><textarea id="obs"></textarea>
+      <div class="row" style="margin-top:10px"><button class="btn ghost sm" type="button" id="btnFotoG">+ Foto geral</button><button class="btn ghost sm" type="button" id="btnGps">Registrar localização</button></div>
+      <div class="fotos" id="fotos-Geral"></div>
+      <div id="gpsInfo" class="meta" style="margin-top:4px"></div>
+      <div id="msg"></div>
+    </div>
+    <div class="envio"><button class="btn" type="button" id="btnEnviar">Enviar checklist</button></div>
+    <input type="file" id="inFoto" accept="image/*" capture="environment" class="hide">
+  </section>
+  <section id="pEnviados" class="hide"><div id="lista"></div></section>
+</main>
+<script>
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+  var NADA = "NADA CONSTA", LS_ENV = "hsChkEnviados", LS_ULT = "hsChkUltimo";
+  var SEC = [["frente", "Frente do veículo", "Frente", ["TETO", "PARABRISA", "CAPO", "PARACHOQUE"]],
+    ["lat_esq", "Lateral esquerda", "Lateral esquerda", ["PARALAMA DIANT.", "RETROVISOR", "PORTA DIANT.", "PORTA TRAS.", "LATERAL"]],
+    ["traseira", "Traseira", "Traseira", ["TAMPA TRASEIRA", "LANTERNAS DIR.", "LANTERNA ESQ.", "PARACHOQUE TRAS.", "ESTEPE", "MACACO", "CHAVE DE RODA", "TRIANGULO"]],
+    ["lat_dir", "Lateral direita", "Lateral direita", ["LATERAL", "PORTA TRAS.", "PORTA DIANT.", "RETROVISOR", "PARALAMA DIANT."]]];
+  var ITENS = ["Nível de Óleo do motor", "Freio de mão funcionando e bem regulado", "Freio de pé funcionando e firme", "Cintos de segurança dianteiros e traseiros em perfeito estado",
+    "Buzina funcionando", "Farol Alto funcionando", "Farol baixo funcionando", "Pisca-alerta funcionando", "Setas dianteiras e traseiras",
+    "Luz de óleo, motor, freio e bateria no painel (devem apagar após dar partida)", "Medidor de combustível funcionando", "Limpador de para-brisa e esguicho funcionando",
+    "Pneus sem desgaste excessivo ou deformações", "Portas abrem e fecham normalmente", "Vidros sobem e descem corretamente", "Retrovisores intactos",
+    "Dirigibilidade Ok? Sem trepidações.", "Documento do veículo (CRLV) válido", "Tacógrafo valido?"];
+  var TACO = "Tacógrafo valido?", sel = {}, resp = {}, fotos = [], secFoto = "Geral", gps = null, inicio = new Date();
+  function esc(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
+  function msg(t, tipo) { $("msg").innerHTML = t ? '<div class="msg ' + (tipo || "err") + '">' + esc(t) + '</div>' : ""; }
+  function lsGet(k, d) { try { var v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } }
+  function lsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+  function pad(n) { return (n < 10 ? "0" : "") + n; }
+  function localISO(d) { return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()) + "T" + pad(d.getHours()) + ":" + pad(d.getMinutes()); }
+  function br(d) { return d.toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }); }
+  $("quando").textContent = "Data e hora do checklist: " + br(inicio);
+  function aba(q) { $("tNovo").classList.toggle("on", q === "novo"); $("tEnviados").classList.toggle("on", q !== "novo"); $("pNovo").classList.toggle("hide", q !== "novo"); $("pEnviados").classList.toggle("hide", q === "novo"); if (q !== "novo") listar(); }
+  $("tNovo").addEventListener("click", function () { aba("novo"); }); $("tEnviados").addEventListener("click", function () { aba("enviados"); });
+
+  // ---- avarias por lado (como no Jotform) + foto do lado ----
+  $("avarias").innerHTML = SEC.map(function (s) {
+    sel[s[0]] = [];
+    return '<div class="card"><h3>' + esc(s[1]) + '</h3><p class="lead">Marque só se houver avaria. Sem avaria: Nada consta.</p><div class="chips" data-sec="' + s[0] + '">' +
+      s[3].map(function (o) { return '<button type="button" class="chip" data-v="' + esc(o) + '">' + esc(o) + '</button>'; }).join("") +
+      '<button type="button" class="chip nada" data-v="' + NADA + '">Nada consta</button></div>' +
+      '<button type="button" class="btn ghost sm" data-foto="' + esc(s[2]) + '" style="margin-top:10px">+ Foto da avaria</button><div class="fotos" id="fotos-' + esc(s[2]).replace(/ /g, "_") + '"></div></div>';
+  }).join("");
+  $("avarias").addEventListener("click", function (e) {
+    var b = e.target.closest(".chip"); if (b) {
+      var k = b.parentNode.getAttribute("data-sec"), v = b.getAttribute("data-v"), l = sel[k];
+      if (v === NADA) l = l.indexOf(NADA) >= 0 ? [] : [NADA];
+      else { l = l.filter(function (x) { return x !== NADA; }); l = l.indexOf(v) >= 0 ? l.filter(function (x) { return x !== v; }) : l.concat([v]); }
+      sel[k] = l; b.parentNode.querySelectorAll(".chip").forEach(function (c) { c.classList.toggle("on", l.indexOf(c.getAttribute("data-v")) >= 0); });
+    }
+    var f = e.target.closest("[data-foto]"); if (f) { secFoto = f.getAttribute("data-foto"); $("inFoto").click(); }
+  });
+
+  // ---- itens de segurança: OK / Problema ----
+  function ehCaminhao() { return /munck|cesto|caminh/i.test($("frota").value); }
+  function desenharItens() {
+    $("itens").innerHTML = ITENS.filter(function (i) { return i !== TACO || ehCaminhao(); }).map(function (i) {
+      return '<div class="it" data-it="' + esc(i) + '"><span class="tx">' + esc(i) + '</span><button type="button" class="ok' + (resp[i] === "ok" ? " on" : "") + '">OK</button><button type="button" class="pb' + (resp[i] === "pb" ? " on" : "") + '">Problema</button></div>';
+    }).join("");
+    contar();
+  }
+  function visiveis() { return Array.prototype.map.call(document.querySelectorAll("#itens .it"), function (d) { return d.getAttribute("data-it"); }); }
+  function contar() { var v = visiveis(), f = v.filter(function (i) { return resp[i]; }).length, p = v.filter(function (i) { return resp[i] === "pb"; }).length; $("contaItens").textContent = "· " + f + "/" + v.length + (p ? " · " + p + " com problema" : ""); }
+  $("itens").addEventListener("click", function (e) {
+    var b = e.target.closest("button"); if (!b) return;
+    var i = b.parentNode.getAttribute("data-it"), v = b.classList.contains("ok") ? "ok" : "pb";
+    resp[i] = resp[i] === v ? undefined : v; desenharItens();
+  });
+  $("frota").addEventListener("change", desenharItens);
+  desenharItens();
+
+  // ---- listas ----
+  function opcoes(id, l, rot, salvo) { $(id).innerHTML = '<option value="">' + esc(rot) + '</option>' + l.map(function (x) { return "<option>" + esc(x) + "</option>"; }).join(""); if (salvo && l.indexOf(salvo) >= 0) $(id).value = salvo; }
+  fetch("/api/opcoes").then(function (r) { return r.json(); }).then(function (j) {
+    if (!j || !j.ok) throw new Error("sem_lista");
+    var u = lsGet(LS_ULT, {}), lim = function (x) { return String(x).replace(/\s+/g, " ").trim(); };
+    opcoes("frota", (j.placa || []).map(lim), "Selecione o veículo…", u.frota); opcoes("condutor", (j.colaboradores || []).map(lim), "Selecione o condutor…", u.condutor); desenharItens();
+  }).catch(function () { $("frota").outerHTML = '<input id="frota" placeholder="Frota ou placa">'; $("condutor").outerHTML = '<input id="condutor" placeholder="Seu nome">'; $("frota").addEventListener("input", desenharItens); });
+
+  // ---- fotos (reduz para 1600 px e grava placa/data na imagem) ----
+  function comprimir(file) {
+    return new Promise(function (ok, falha) {
+      var url = URL.createObjectURL(file), img = new Image();
+      img.onload = function () {
+        var f = Math.min(1, 1600 / Math.max(img.naturalWidth, img.naturalHeight)), c = document.createElement("canvas"); c.width = Math.round(img.naturalWidth * f); c.height = Math.round(img.naturalHeight * f);
+        var x = c.getContext("2d"); x.drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(url);
+        var t = "HS Checklist · " + ($("frota").value || "") + " · " + secFoto + " · " + br(new Date()), fs = Math.max(16, Math.round(c.width / 45)), pd = Math.round(fs / 2);
+        x.font = "600 " + fs + "px Inter, Arial, sans-serif"; x.fillStyle = "rgba(0,0,0,.55)"; x.fillRect(0, c.height - fs - pd * 2, Math.min(c.width, x.measureText(t).width + pd * 2), fs + pd * 2);
+        x.fillStyle = "#fff"; x.textBaseline = "middle"; x.fillText(t, pd, c.height - pd - fs / 2);
+        var q = 0.72, d = c.toDataURL("image/jpeg", q); while (d.length > 700000 && q > 0.35) { q -= 0.1; d = c.toDataURL("image/jpeg", q); } ok(d);
+      };
+      img.onerror = function () { URL.revokeObjectURL(url); falha(new Error("imagem")); }; img.src = url;
+    });
+  }
+  function desenharFotos() {
+    ["Frente", "Lateral esquerda", "Traseira", "Lateral direita", "Geral"].forEach(function (s) {
+      var el = $("fotos-" + s.replace(/ /g, "_")); if (!el) return;
+      el.innerHTML = fotos.map(function (f, i) { return f.secao === s ? '<div><img src="' + f.dados + '" alt="Foto ' + esc(s) + '"><button type="button" data-del="' + i + '">×</button></div>' : ""; }).join("");
+    });
+  }
+  document.addEventListener("click", function (e) { var d = e.target.getAttribute && e.target.getAttribute("data-del"); if (d != null) { fotos.splice(Number(d), 1); desenharFotos(); } });
+  $("btnFotoG").addEventListener("click", function () { secFoto = "Geral"; $("inFoto").click(); });
+  $("inFoto").addEventListener("change", function () {
+    var f = $("inFoto").files[0]; $("inFoto").value = ""; if (!f) return;
+    if (fotos.length >= 10) { msg("Máximo de 10 fotos por checklist."); return; }
+    comprimir(f).then(function (d) { fotos.push({ dados: d, secao: secFoto }); desenharFotos(); }).catch(function () { msg("Não consegui abrir a foto. Tente de novo."); });
+  });
+  $("btnGps").addEventListener("click", function () {
+    if (!navigator.geolocation) { $("gpsInfo").textContent = "Este celular não informa a localização."; return; }
+    $("gpsInfo").textContent = "Buscando a localização…";
+    navigator.geolocation.getCurrentPosition(function (p) { gps = { lat: p.coords.latitude, lon: p.coords.longitude, precisao: Math.round(p.coords.accuracy) }; $("gpsInfo").textContent = "Localização registrada (±" + gps.precisao + " m)."; },
+      function () { $("gpsInfo").textContent = "Não foi possível pegar a localização."; }, { enableHighAccuracy: true, timeout: 15000 });
+  });
+
+  // ---- enviar ----
+  $("btnEnviar").addEventListener("click", function () {
+    msg("");
+    var faltas = [], vis = visiveis();
+    if (!$("frota").value.trim()) faltas.push("veículo");
+    if (!$("condutor").value.trim()) faltas.push("condutor");
+    if (!$("hodo").value.replace(/\D/g, "")) faltas.push("hodômetro");
+    if (!$("kmOleo").value.trim()) faltas.push("km da troca de óleo (ou NÃO SEI)");
+    SEC.forEach(function (s) { if (!sel[s[0]].length) faltas.push(s[1].toLowerCase() + " (avaria ou nada consta)"); });
+    var semResp = vis.filter(function (i) { return !resp[i]; });
+    if (semResp.length) faltas.push(semResp.length + " item(ns) de funcionamento sem OK/Problema");
+    if (faltas.length) { msg("Falta: " + faltas.join("; ") + "."); return; }
+    var semFoto = SEC.filter(function (s) { return sel[s[0]].length && sel[s[0]][0] !== NADA && !fotos.some(function (f) { return f.secao === s[2]; }); });
+    if (semFoto.length && !confirm("Há avaria sem foto (" + semFoto.map(function (s) { return s[1]; }).join(", ") + "). Enviar mesmo assim?")) return;
+    var prob = vis.filter(function (i) { return resp[i] === "pb"; });
+    var corpo = { data_check: localISO(inicio), frota: $("frota").value.trim(), condutor: $("condutor").value.trim(), hodometro: $("hodo").value, km_troca_oleo: $("kmOleo").value.trim(),
+      avaria_frente: sel.frente, avaria_lat_esq: sel.lat_esq, avaria_traseira: sel.traseira, avaria_lat_dir: sel.lat_dir,
+      itens_ok: vis.filter(function (i) { return resp[i] === "ok"; }), itens_problema: prob, obs: $("obs").value.trim(),
+      lat: gps && gps.lat, lon: gps && gps.lon, precisao: gps && gps.precisao, fotos: fotos };
+    var b = $("btnEnviar"); b.disabled = true; b.textContent = fotos.length ? "Enviando checklist e " + fotos.length + " foto(s)…" : "Enviando…";
+    fetch("/api/checklist/enviar", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(corpo) })
+      .then(function (r) { return r.json().catch(function () { return { ok: false, erro: "http_" + r.status }; }); })
+      .then(function (j) {
+        if (!j.ok) throw new Error(j.msg || "Não foi possível enviar (" + (j.erro || "erro") + ").");
+        var l = lsGet(LS_ENV, []); l.unshift({ n: j.numero, quando: corpo.data_check, frota: corpo.frota, km: corpo.hodometro, prob: prob.length }); lsSet(LS_ENV, l.slice(0, 60));
+        lsSet(LS_ULT, { frota: corpo.frota, condutor: corpo.condutor });
+        msg("Checklist " + j.numero + " enviado." + (prob.length ? " " + prob.length + " problema(s) vão para a oficina." : ""), "ok");
+        fotos = []; desenharFotos(); resp = {}; desenharItens(); SEC.forEach(function (s) { sel[s[0]] = []; }); document.querySelectorAll(".chip.on").forEach(function (c) { c.classList.remove("on"); });
+        $("hodo").value = ""; $("kmOleo").value = ""; $("obs").value = ""; gps = null; $("gpsInfo").textContent = ""; inicio = new Date(); $("quando").textContent = "Data e hora do checklist: " + br(inicio);
+      })
+      .catch(function (e) { msg((e && e.message) || "Sem conexão. Tente de novo quando tiver sinal."); })
+      .then(function () { b.disabled = false; b.textContent = "Enviar checklist"; });
+  });
+  function listar() {
+    var l = lsGet(LS_ENV, []);
+    $("lista").innerHTML = l.length ? l.map(function (x) { return '<div class="card"><div class="num">' + esc(x.n) + '</div><div class="meta">' + esc(x.quando.replace("T", " ")) + ' · ' + esc(x.frota) + ' · ' + esc(x.km) + ' km' + (x.prob ? ' · ' + x.prob + ' problema(s)' : '') + '</div></div>'; }).join("") : '<div class="vazio">Nenhum checklist enviado deste celular ainda.</div>';
+  }
+})();
+</script>
+</body>
+</html>
