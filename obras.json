@@ -1,4 +1,4 @@
-[
+﻿[
 {"n":"1535","e":"MC","c":"Benalcool","d":"Adicionais Munck","a":1},
 {"n":"1534","e":"MC","c":"Benalcool","d":"Locação de Caminhão Utilização em Sertãozinho","a":1},
 {"n":"1528","e":"MC","c":"Mundial","d":"Lavagem de Barracões Externos","a":1},
@@ -24,8 +24,5 @@
 {"n":"4336","e":"HS","c":"Gasa Etanol","d":"Iluminação EX PCAT e Descarga","a":1},
 {"n":"4231","e":"HS","c":"VRO E2G","d":"Manutenção e Adequação em Rede 13.8kV","a":1},
 {"n":"1446","e":"MC","c":"Gasa E2G","d":"Extensão de Contrato de Locação Empilhadeira e Munck","a":1},
-{"n":"4051","e":"HS","c":"Univalem E2G","d":"Tampas de Leitos","a":1},
-{"n":"4016","e":"HS","c":"Mundial","d":"Cx Sedimentação Fuligem","a":1},
-{"n":"3803","e":"HS","c":"Barra E2G","d":"Desmontagem de Linha de Média Tensão","a":1},
 {"n":"4386","e":"HS","c":"Univalem","d":"Instalação Poste Quebrado da Cascata","a":1}
 ]
