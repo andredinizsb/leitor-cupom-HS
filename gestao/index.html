@@ -31,13 +31,12 @@ dl{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;margin:10px 0;font-s
 .acoes{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center}.meta{color:var(--mut);font-size:13px}
 .msg{border-radius:10px;padding:10px 12px;margin:12px 0;background:color-mix(in srgb,var(--err) 14%,transparent);color:var(--err)}
 .at{border-top:1px solid var(--bd);margin-top:8px;padding-top:8px;font-size:13px}ul{margin:4px 0;padding-left:18px}
-#imp{display:none}
-@media print{body{background:#fff;color:#000}header,.faixa,main{display:none!important}#imp{display:block}
-#imp .doc{border:2px solid #000;border-radius:8px;padding:16px;max-width:680px;margin:0 auto;font-size:13px}
-#imp .cab{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;border-bottom:4px solid #00A0E7;padding-bottom:8px}
-#imp h1{font-size:20px;margin:0}#imp .n{font-size:18px;font-weight:800;color:#E3262B}#imp .qr svg{width:150px;height:150px}
-#imp table{width:100%;border-collapse:collapse;margin-top:10px}#imp td{border:1px solid #999;padding:5px 7px;vertical-align:top}#imp td:first-child{width:32%;font-weight:700;background:#f2f2f2}
-#imp .rod{margin-top:10px;font-size:12px}}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;z-index:30;align-items:center;justify-content:center;padding:12px}.modal.on{display:flex}
+.modal .box{background:var(--card);color:var(--tx);border-radius:16px;max-width:820px;width:100%;max-height:94vh;overflow:auto;padding:16px}
+.modal h3{margin:0 0 4px;font-size:18px}.lbl{display:block;font-weight:600;font-size:14px;margin:10px 0 4px}.full{width:100%}
+.pad{width:100%;height:190px;background:#fff;border:2px dashed #9aa3b2;border-radius:12px;touch-action:none;cursor:crosshair;display:block}
+.pad-hint{color:var(--mut);font-size:13px;margin-top:4px}
+@media print{body{background:#fff}header,.faixa,main,.modal .acoes,.modal h3,.modal .meta{display:none!important}.modal{position:static;background:none;padding:0;display:block!important}.modal:not(.imprimir){display:none!important}.modal .box{max-height:none;box-shadow:none;padding:0}}
 </style>
 </head>
 <body>
@@ -50,9 +49,33 @@ dl{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;margin:10px 0;font-s
   <div id="aviso"></div>
   <div class="grid" id="lista"></div>
 </main>
-<div id="imp"></div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<!-- assinatura de quem libera o canhoto -->
+<div class="modal" id="mAss"><div class="box">
+  <h3 id="assTit">Assinar e aprovar</h3>
+  <div class="meta" id="assSub"></div>
+  <label class="lbl" for="assNome">Nome de quem assina</label><input class="full" id="assNome" placeholder="Seu nome">
+  <label class="lbl">Assinatura <span class="meta">(mouse, dedo ou caneta)</span></label>
+  <canvas class="pad" id="pad"></canvas>
+  <div class="pad-hint">Assine dentro do quadro. <a href="#" id="padLimpar">Limpar</a> · <a href="#" id="padSalva">Usar assinatura salva</a></div>
+  <label class="meta" style="display:flex;gap:8px;align-items:center;margin-top:8px"><input type="checkbox" id="assLembrar"> Lembrar minha assinatura neste aparelho</label>
+  <div class="acoes" style="justify-content:flex-end"><button class="btn ghost" type="button" id="assCancelar">Cancelar</button><button class="btn ok" type="button" id="assOk">Aprovar e emitir canhoto</button></div>
+</div></div>
+
+<!-- canhoto emitido -->
+<div class="modal" id="mCnh"><div class="box">
+  <h3 id="cnhTit">Canhoto</h3>
+  <div id="cnhCorpo"></div>
+  <div class="acoes" style="justify-content:flex-end">
+    <button class="btn ghost" type="button" id="cnhLink">Copiar link do colaborador</button>
+    <button class="btn ghost" type="button" id="cnhImp">Imprimir</button>
+    <button class="btn" type="button" id="cnhPdf">Baixar PDF</button>
+    <button class="btn" type="button" id="cnhEnv">Enviar</button>
+    <button class="btn ghost" type="button" id="cnhFechar">Fechar</button>
+  </div>
+</div></div>
+
+<script src="/autorizacao/canhoto.js"></script>
 <script>
 (function () {
   "use strict";
@@ -97,14 +120,15 @@ dl{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;margin:10px 0;font-s
   }
   function cartao(a) {
     var st = a.status_visivel, h = '<div class="card" id="c-' + esc(a.numero) + '"><div class="topo"><span class="num">' + esc(a.numero) + '</span><span class="badge b-' + esc(String(st).split(" ")[0]) + '">' + esc(st) + '</span></div><dl>';
-    h += '<dt>Tipo</dt><dd>' + esc(a.tipo) + '</dd><dt>Colaborador</dt><dd>' + esc(a.colaborador) + '</dd><dt>Obra / C.C.</dt><dd>' + esc((a.empresa ? a.empresa + " · " : "") + a.obra) + '</dd>';
+    h += '<dt>Tipo</dt><dd>' + esc(a.tipo) + '</dd><dt>Colaborador</dt><dd>' + esc(a.colaborador) + '</dd><dt>Obra</dt><dd>' + esc((a.empresa ? a.empresa + " · " : "") + a.obra) + '</dd>';
     if (a.estabelecimento) h += '<dt>Estabelecimento</dt><dd>' + esc(a.estabelecimento) + '</dd>';
-    if (a.veiculo) h += '<dt>Veículo</dt><dd>' + esc(a.veiculo) + (a.km ? " · km " + esc(a.km) : "") + '</dd>';
+    if (a.veiculo) h += '<dt>Veículo</dt><dd>' + esc(a.veiculo) + (a.marca_modelo ? " · " + esc(a.marca_modelo) : "") + (a.km ? " · km " + esc(a.km) : "") + '</dd>';
     if (a.combustivel) h += '<dt>Combustível</dt><dd>' + esc(a.combustivel) + (a.litros_max ? " · até " + nbr(a.litros_max) + " L" : "") + '</dd>';
-    if (a.justificativa) h += '<dt>Para quê</dt><dd>' + esc(a.justificativa) + '</dd>';
+    if (a.justificativa) h += '<dt>' + (a.tipo === "Abastecimento" ? "Destino" : "Para quê") + '</dt><dd>' + esc(a.justificativa) + '</dd>';
     h += '<dt>Pedido em</dt><dd>' + esc(quando(a.solicitado_em)) + '</dd>';
     if (a.validade) h += '<dt>Válida até</dt><dd>' + esc(quando(a.validade)) + '</dd>';
     if (a.decidido_por) h += '<dt>Decidido por</dt><dd>' + esc(a.decidido_por) + ' · ' + esc(quando(a.decidido_em)) + '</dd>';
+    if (a.assinado_por_nome) h += '<dt>Assinado por</dt><dd>' + esc(a.assinado_por_nome) + '</dd>';
     if (a.motivo) h += '<dt>Motivo</dt><dd>' + esc(a.motivo) + '</dd>';
     h += '</dl>';
     if (a.itens && a.itens.length) h += '<ul>' + a.itens.map(function (x) { return '<li>' + esc(x.descricao) + (x.qtd != null ? ' — ' + nbr(x.qtd) + ' ' + esc(x.unidade || "") : '') + '</li>'; }).join("") + '</ul>';
@@ -115,10 +139,10 @@ dl{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;margin:10px 0;font-s
     h += '<div class="acoes">';
     if (a.status === "Pendente") {
       h += '<label class="meta">Válida até <input type="datetime-local" data-val value="' + padrao() + '"></label>';
-      h += '<button class="btn ok" type="button" data-ac="aprovar">Aprovar e emitir</button><button class="btn red" type="button" data-ac="recusar">Recusar</button>';
+      h += '<button class="btn ok" type="button" data-ac="aprovar">Assinar e aprovar</button><button class="btn red" type="button" data-ac="recusar">Recusar</button>';
     }
-    if (st === "Emitida" || st === "Parcialmente atendida" || st === "Expirada") {
-      h += '<button class="btn" type="button" data-ac="imprimir">Imprimir</button><button class="btn ghost" type="button" data-ac="link">Copiar link do colaborador</button>';
+    if (a.decidido_em && a.status !== "Recusada") {
+      h += '<button class="btn" type="button" data-ac="canhoto">Ver canhoto / PDF</button><button class="btn ghost" type="button" data-ac="link">Copiar link do colaborador</button>';
     }
     if (a.status === "Pendente" || a.status === "Emitida" || a.status === "Parcialmente atendida") h += '<button class="btn ghost" type="button" data-ac="cancelar">Cancelar</button>';
     return h + '</div></div>';
@@ -128,17 +152,13 @@ dl{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;margin:10px 0;font-s
     c.querySelectorAll("[data-ac]").forEach(function (b) {
       b.addEventListener("click", function () {
         var ac = b.getAttribute("data-ac");
-        if (ac === "imprimir") return imprimir(a);
-        if (ac === "link") {
-          var url = location.origin + "/autorizacao/#n=" + encodeURIComponent(a.numero) + "&k=" + encodeURIComponent(a.chave_solicitante);
-          (navigator.clipboard ? navigator.clipboard.writeText(url) : Promise.reject()).then(function () { b.textContent = "Link copiado"; }, function () { prompt("Link do colaborador:", url); });
-          return;
-        }
+        if (ac === "canhoto") return abrirCanhoto(a.numero);
+        if (ac === "link") return copiarLink(a, b);
         var corpo = { numero: a.numero, acao: ac };
         if (ac === "aprovar") {
           var v = c.querySelector("[data-val]").value; if (!v) { alert("Informe a validade."); return; }
           corpo.validade = new Date(v).toISOString();
-          if (!confirm("Aprovar e emitir " + a.numero + " para " + a.colaborador + ", válida até " + quando(corpo.validade) + "?")) return;
+          return abrirAssinatura(a, corpo);
         } else {
           var m = prompt(ac === "recusar" ? "Motivo da recusa:" : "Motivo do cancelamento:"); if (!m) return; corpo.motivo = m;
         }
@@ -149,19 +169,77 @@ dl{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;margin:10px 0;font-s
       });
     });
   }
-  function imprimir(a) {
-    var qr = ""; try { var q = qrcode(0, "M"); q.addData(location.origin + "/v/" + a.token_qr); q.make(); qr = q.createSvgTag({ cellSize: 4, margin: 1, scalable: true }); } catch (e) {}
-    var linhas = [["Tipo", a.tipo], ["Colaborador", a.colaborador], ["Empresa / obra ou C.C.", (a.empresa ? a.empresa + " · " : "") + a.obra]];
-    if (a.estabelecimento) linhas.push(["Estabelecimento", a.estabelecimento]);
-    if (a.veiculo) linhas.push(["Veículo / km", a.veiculo + (a.km ? " · km " + a.km : "")]);
-    if (a.combustivel) linhas.push(["Combustível", a.combustivel + (a.litros_max ? " · até " + nbr(a.litros_max) + " L" : "")]);
-    if (a.itens && a.itens.length) linhas.push(["Itens", a.itens.map(function (x) { return x.descricao + (x.qtd != null ? " — " + nbr(x.qtd) + " " + (x.unidade || "") : ""); }).join("\n")]);
-    linhas.push(["Válida até", quando(a.validade)], ["Autorizado por", (a.decidido_por || "") + " em " + quando(a.decidido_em)]);
-    $("imp").innerHTML = '<div class="doc"><div class="cab"><div><h1>HS ELETRICIDADE</h1><div>AUTORIZAÇÃO DE COMPRA</div><div class="n">' + esc(a.numero) + '</div></div><div class="qr">' + qr + '</div></div>' +
-      '<table>' + linhas.map(function (l) { return '<tr><td>' + esc(l[0]) + '</td><td>' + esc(l[1]).replace(/\n/g, "<br>") + '</td></tr>'; }).join("") + '</table>' +
-      '<div class="rod">Uso único. O estabelecimento confere a autenticidade e a validade lendo o QR. A compra é registrada pelo cupom fiscal no app da HS.</div></div>';
-    setTimeout(function () { window.print(); }, 50);
+  function copiarLink(a, b) {
+    var url = location.origin + "/autorizacao/#n=" + encodeURIComponent(a.numero) + "&k=" + encodeURIComponent(a.chave_solicitante);
+    (navigator.clipboard ? navigator.clipboard.writeText(url) : Promise.reject()).then(function () { b.textContent = "Link copiado"; }, function () { prompt("Link do colaborador:", url); });
   }
+
+  // ---- assinatura (mouse, dedo ou caneta) ----
+  var LS_NOME = "hsAssNome", LS_IMG = "hsAssImg";
+  var pad = $("pad"), ctx = pad.getContext("2d"), riscou = false, desenhando = false, pendente = null;
+  function prepararPad() {
+    var r = pad.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+    pad.width = Math.round(r.width * dpr); pad.height = Math.round(r.height * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.lineWidth = 2.4; ctx.lineCap = "round"; ctx.lineJoin = "round"; ctx.strokeStyle = "#0d2a7a";
+    ctx.clearRect(0, 0, r.width, r.height); riscou = false;
+  }
+  function ponto(e) { var r = pad.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
+  pad.addEventListener("pointerdown", function (e) { e.preventDefault(); pad.setPointerCapture(e.pointerId); desenhando = true; var p = ponto(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x + 0.1, p.y + 0.1); ctx.stroke(); riscou = true; });
+  pad.addEventListener("pointermove", function (e) { if (!desenhando) return; e.preventDefault(); var p = ponto(e); ctx.lineTo(p.x, p.y); ctx.stroke(); });
+  ["pointerup", "pointercancel", "pointerleave"].forEach(function (ev) { pad.addEventListener(ev, function () { desenhando = false; }); });
+  $("padLimpar").addEventListener("click", function (e) { e.preventDefault(); prepararPad(); });
+  $("padSalva").addEventListener("click", function (e) {
+    e.preventDefault(); var s = null; try { s = localStorage.getItem(LS_IMG); } catch (x) {}
+    if (!s) { alert("Nenhuma assinatura salva neste aparelho."); return; }
+    var im = new Image(); im.onload = function () { prepararPad(); var r = pad.getBoundingClientRect(), k = Math.min(r.width / im.width, r.height / im.height); ctx.drawImage(im, (r.width - im.width * k) / 2, (r.height - im.height * k) / 2, im.width * k, im.height * k); riscou = true; }; im.src = s;
+  });
+  // recorta a área desenhada (menos bytes, assinatura bem enquadrada no canhoto)
+  function assinaturaPNG() {
+    var w = pad.width, h = pad.height, d = ctx.getImageData(0, 0, w, h).data, x0 = w, y0 = h, x1 = -1, y1 = -1;
+    for (var y = 0; y < h; y++) for (var x = 0; x < w; x++) if (d[(y * w + x) * 4 + 3] > 10) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+    if (x1 < 0) return null;
+    var m = 8, cw = Math.min(w, x1 - x0 + 2 * m), ch = Math.min(h, y1 - y0 + 2 * m), out = document.createElement("canvas"), esc2 = Math.min(1, 600 / cw);
+    out.width = Math.round(cw * esc2); out.height = Math.round(ch * esc2);
+    out.getContext("2d").drawImage(pad, Math.max(0, x0 - m), Math.max(0, y0 - m), cw, ch, 0, 0, out.width, out.height);
+    return out.toDataURL("image/png");
+  }
+  function abrirAssinatura(a, corpo) {
+    pendente = { a: a, corpo: corpo };
+    $("assSub").textContent = a.numero + " · " + a.tipo + " · " + a.colaborador + " · válida até " + quando(corpo.validade);
+    try { $("assNome").value = localStorage.getItem(LS_NOME) || ""; $("assLembrar").checked = !!localStorage.getItem(LS_IMG); } catch (x) {}
+    $("mAss").classList.add("on"); setTimeout(prepararPad, 30);
+  }
+  $("assCancelar").addEventListener("click", function () { $("mAss").classList.remove("on"); pendente = null; });
+  $("assOk").addEventListener("click", function () {
+    if (!pendente) return;
+    var nome = $("assNome").value.trim(); if (!nome) { alert("Informe o nome de quem assina."); return; }
+    var img = riscou ? assinaturaPNG() : null; if (!img) { alert("Assine dentro do quadro."); return; }
+    try { localStorage.setItem(LS_NOME, nome); if ($("assLembrar").checked) localStorage.setItem(LS_IMG, img); else localStorage.removeItem(LS_IMG); } catch (x) {}
+    var corpo = pendente.corpo, num = pendente.a.numero; corpo.assinatura = img; corpo.assinado_por = nome;
+    $("assOk").disabled = true;
+    fetch("/api/gestao/decidir", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(corpo) })
+      .then(function (r) { return r.json(); }).then(function (j) {
+        $("assOk").disabled = false;
+        if (!j.ok) { alert(j.msg || j.erro); return; }
+        $("mAss").classList.remove("on"); pendente = null; carregar(); abrirCanhoto(num);
+      }).catch(function () { $("assOk").disabled = false; alert("Sem conexão."); });
+  });
+
+  // ---- canhoto emitido ----
+  var cnhAtual = null;
+  function abrirCanhoto(n) {
+    $("cnhTit").textContent = "Canhoto " + n; $("cnhCorpo").innerHTML = '<div class="meta">Carregando…</div>'; $("mCnh").classList.add("on");
+    fetch("/api/gestao/canhoto?n=" + encodeURIComponent(n)).then(function (r) { return r.json(); }).then(function (j) {
+      if (!j.ok) { $("cnhCorpo").innerHTML = '<div class="msg">' + esc(j.msg || j.erro) + '</div>'; return; }
+      cnhAtual = j.autorizacao; $("cnhCorpo").innerHTML = HSCanhoto.render(cnhAtual);
+    }).catch(function () { $("cnhCorpo").innerHTML = '<div class="msg">Sem conexão.</div>'; });
+  }
+  function acao(b, fn) { if (!cnhAtual) return; var t = b.textContent; b.disabled = true; b.textContent = "Gerando PDF…"; fn(cnhAtual).catch(function () { alert("Não consegui gerar o PDF."); }).then(function () { b.disabled = false; b.textContent = t; }); }
+  $("cnhPdf").addEventListener("click", function () { acao(this, HSCanhoto.pdf); });
+  $("cnhEnv").addEventListener("click", function () { acao(this, HSCanhoto.enviar); });
+  $("cnhLink").addEventListener("click", function () { if (cnhAtual) copiarLink(cnhAtual, this); });
+  $("cnhImp").addEventListener("click", function () { $("mCnh").classList.add("imprimir"); window.print(); setTimeout(function () { $("mCnh").classList.remove("imprimir"); }, 500); });
+  $("cnhFechar").addEventListener("click", function () { $("mCnh").classList.remove("on"); cnhAtual = null; $("cnhLink").textContent = "Copiar link do colaborador"; });
   $("q").addEventListener("input", desenhar);
   $("btnRec").addEventListener("click", carregar);
   carregar();

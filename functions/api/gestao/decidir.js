@@ -1,6 +1,6 @@
-// POST /api/gestao/decidir { numero, acao: "aprovar" | "recusar" | "cancelar", validade (ISO), motivo }
-// Aprovar = emitir: gera o QR de validação e fixa a validade escolhida por quem aprova.
-import { resp, semBanco, ERRO_BANCO, txt, agora, aleatorio, historico, STATUS_ATIVOS } from "../../../lib/aut.js";
+// POST /api/gestao/decidir { numero, acao: "aprovar" | "recusar" | "cancelar", validade (ISO), motivo, assinatura, assinado_por }
+// Aprovar = emitir o canhoto: exige a assinatura desenhada por quem libera (escritório) e fixa a validade.
+import { resp, semBanco, ERRO_BANCO, txt, agora, aleatorio, historico, STATUS_ATIVOS, assinaturaValida } from "../../../lib/aut.js";
 
 export async function onRequestPost({ request, env, data }) {
   if (semBanco(env)) return resp(ERRO_BANCO, 503);
@@ -16,10 +16,13 @@ export async function onRequestPost({ request, env, data }) {
     const dt = new Date(val);
     if (!val || isNaN(dt.getTime())) return resp({ ok: false, erro: "sem_validade", msg: "Informe até quando vale a autorização." }, 400);
     if (dt.getTime() <= Date.now()) return resp({ ok: false, erro: "validade_passada", msg: "A validade precisa ser no futuro." }, 400);
+    const nome = txt(d.assinado_por, 80);
+    if (!nome) return resp({ ok: false, erro: "sem_nome", msg: "Informe o nome de quem assina." }, 400);
+    if (!assinaturaValida(d.assinatura)) return resp({ ok: false, erro: "sem_assinatura", msg: "Assine o canhoto antes de aprovar." }, 400);
     await db.batch([
-      db.prepare("UPDATE autorizacoes SET status = 'Emitida', validade = ?2, decidido_por = ?3, decidido_em = ?4, token_qr = ?5, motivo = NULL WHERE numero = ?1 AND status = 'Pendente'")
-        .bind(numero, dt.toISOString(), quem, agora(), aleatorio(18)),
-      historico(db, numero, quem, a.status, "Emitida", "válida até " + dt.toISOString())
+      db.prepare("UPDATE autorizacoes SET status = 'Emitida', validade = ?2, decidido_por = ?3, decidido_em = ?4, token_qr = ?5, motivo = NULL, assinatura = ?6, assinado_por_nome = ?7 WHERE numero = ?1 AND status = 'Pendente'")
+        .bind(numero, dt.toISOString(), quem, agora(), aleatorio(18), d.assinatura, nome),
+      historico(db, numero, quem, a.status, "Emitida", "assinado por " + nome + "; válida até " + dt.toISOString())
     ]);
     return resp({ ok: true, status: "Emitida" });
   }

@@ -47,7 +47,7 @@ video{width:100%;border-radius:10px;background:#000;max-height:46vh;object-fit:c
   <section id="pPedir">
     <div class="card">
       <h2>Pedir autorização de compra</h2>
-      <p class="lead">Substitui o canhoto de papel. Suprimentos aprova e você recebe um QR para mostrar no estabelecimento.</p>
+      <p class="lead">Substitui o canhoto de papel. O escritório aprova e assina, e o canhoto aparece aqui no seu celular para mostrar ou enviar em PDF.</p>
       <form id="fPedir" autocomplete="off">
         <label for="colab">Colaborador</label><input id="colab" list="dlColab" required>
         <datalist id="dlColab"></datalist>
@@ -59,6 +59,7 @@ video{width:100%;border-radius:10px;background:#000;max-height:46vh;object-fit:c
         <label for="estab">Estabelecimento <span class="opt">(opcional)</span></label><input id="estab" placeholder="Posto, loja ou fornecedor">
         <div id="blAbast" class="hide">
           <label for="veic">Veículo (frota ou placa)</label><input id="veic" list="dlPlaca"><datalist id="dlPlaca"></datalist>
+          <label for="marca">Marca/Modelo</label><input id="marca" placeholder="Preenche sozinho ao escolher o veículo">
           <div class="row">
             <div><label for="km">Km atual</label><input id="km" inputmode="numeric"></div>
             <div><label for="litros">Até quantos litros <span class="opt">(opc.)</span></label><input id="litros" inputmode="decimal"></div>
@@ -71,7 +72,7 @@ video{width:100%;border-radius:10px;background:#000;max-height:46vh;object-fit:c
           <div id="itens"></div>
           <button class="btn ghost sm" type="button" id="addItem" style="margin-top:8px">+ Adicionar item</button>
         </div>
-        <label for="just">Justificativa <span class="opt">(para que é)</span></label><textarea id="just"></textarea>
+        <label for="just" id="lblJust">Justificativa <span class="opt">(para que é)</span></label><textarea id="just"></textarea>
         <div id="msgPedir"></div>
         <button class="btn" type="submit" id="btnEnviar" style="margin-top:12px">Enviar pedido</button>
       </form>
@@ -104,7 +105,7 @@ video{width:100%;border-radius:10px;background:#000;max-height:46vh;object-fit:c
   <div class="row" style="margin-top:12px"><button class="btn ghost" type="button" id="btnCancelaCupom">Cancelar</button><button class="btn" type="button" id="btnSalvaCupom">Registrar</button></div>
 </div></div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<script src="/autorizacao/canhoto.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js"></script>
 <script>
 (function () {
@@ -159,6 +160,15 @@ video{width:100%;border-radius:10px;background:#000;max-height:46vh;object-fit:c
   $("tipo").addEventListener("change", function () {
     var ab = $("tipo").value === "Abastecimento";
     $("blAbast").classList.toggle("hide", !ab); $("blItens").classList.toggle("hide", ab);
+    $("lblJust").innerHTML = ab ? 'Destino da viagem' : 'Justificativa <span class="opt">(para que é)</span>';
+  });
+  // marca/modelo do veículo (cadastro da frota da planilha)
+  var FROTA = [];
+  fetch("/autorizacao/frota.json").then(function (r) { return r.json(); }).then(function (j) { FROTA = j || []; }).catch(function () {});
+  $("veic").addEventListener("change", function () {
+    var v = $("veic").value.toUpperCase();
+    var f = FROTA.filter(function (x) { return (x.placa && v.indexOf(String(x.placa).toUpperCase()) >= 0) || (x.frota && v.split(/\s+/)[0] === String(x.frota)); })[0];
+    if (f && !$("marca").value.trim()) $("marca").value = [f.marca, f.modelo].filter(Boolean).join(" ");
   });
   function novoItem() {
     var d = document.createElement("div"); d.className = "item";
@@ -179,7 +189,8 @@ video{width:100%;border-radius:10px;background:#000;max-height:46vh;object-fit:c
     });
     var corpo = { colaborador: $("colab").value.trim(), empresa: empresa, tipo: tipo, obra: $("obra").value.trim(), estabelecimento: $("estab").value.trim(),
       justificativa: $("just").value.trim(), itens: ab ? [] : itens };
-    if (ab) { corpo.veiculo = $("veic").value.trim(); corpo.km = $("km").value.trim(); corpo.combustivel = $("comb").value; corpo.litros_max = $("litros").value.trim(); }
+    if (ab) { corpo.veiculo = $("veic").value.trim(); corpo.marca_modelo = $("marca").value.trim(); corpo.km = $("km").value.trim(); corpo.combustivel = $("comb").value; corpo.litros_max = $("litros").value.trim(); }
+    if (ab && !corpo.justificativa) { msg("msgPedir", "Informe o destino da viagem."); return; }
     if (!ab && !itens.length) { msg("msgPedir", "Informe ao menos um item."); return; }
     $("btnEnviar").disabled = true; $("btnEnviar").textContent = "Enviando…";
     postar(API + "/aut/solicitar", corpo).then(function (j) {
@@ -194,23 +205,36 @@ video{width:100%;border-radius:10px;background:#000;max-height:46vh;object-fit:c
   });
 
   // ---- minhas autorizações ----
-  function qrSvg(texto) { try { var q = qrcode(0, "M"); q.addData(texto); q.make(); return q.createSvgTag({ cellSize: 5, margin: 2, scalable: true }); } catch (e) { return '<div class="meta">QR indisponível — mostre o número.</div>'; } }
+  var CARREGADAS = {};
   function cartao(a, k) {
-    var st = a.status, cls = "b-" + String(st).split(" ")[0];
+    var st = a.status, cls = "b-" + String(st).split(" ")[0], ativa = st === "Emitida" || st === "Parcialmente atendida";
+    CARREGADAS[a.numero] = a;
     var h = '<div class="card"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><span class="num">' + esc(a.numero) + '</span><span class="badge ' + cls + '">' + esc(st) + '</span></div>';
     h += '<div class="meta">' + esc(a.tipo) + ' · ' + esc((a.empresa ? a.empresa + " " : "") + a.obra) + (a.veiculo ? ' · ' + esc(a.veiculo) : '') + '</div>';
-    if (a.itens && a.itens.length) h += '<ul class="lista-itens">' + a.itens.map(function (x) { return '<li>' + esc(x.descricao) + (x.qtd != null ? ' — ' + esc(String(x.qtd).replace(".", ",")) + ' ' + esc(x.unidade || "") : '') + '</li>'; }).join("") + '</ul>';
-    if (a.combustivel) h += '<div class="meta">' + esc(a.combustivel) + (a.litros_max ? ' · até ' + esc(String(a.litros_max).replace(".", ",")) + ' L' : '') + '</div>';
-    if (st === "Pendente") h += '<p class="meta">Aguardando Suprimentos aprovar. Pedido em ' + esc(quando(a.solicitado_em)) + '.</p>';
-    if (st === "Recusada" || st === "Cancelada") h += '<p class="meta">' + esc(st) + (a.motivo ? ': ' + esc(a.motivo) : '') + '</p>';
-    if (a.token_qr && (st === "Emitida" || st === "Parcialmente atendida")) {
-      h += '<div class="qr">' + qrSvg(location.origin + "/v/" + a.token_qr) + '</div>';
-      h += '<p class="meta" style="text-align:center">Mostre este QR no estabelecimento. Válida até <b>' + esc(quando(a.validade)) + '</b>.</p>';
-      h += '<button class="btn" type="button" data-cupom="' + esc(a.numero) + '" data-k="' + esc(k) + '">Registrar o cupom da compra</button>';
+    if (st === "Pendente" || st === "Recusada") {
+      if (a.itens && a.itens.length) h += '<ul class="lista-itens">' + a.itens.map(function (x) { return '<li>' + esc(x.descricao) + (x.qtd != null ? ' — ' + esc(String(x.qtd).replace(".", ",")) + ' ' + esc(x.unidade || "") : '') + '</li>'; }).join("") + '</ul>';
+      if (a.combustivel) h += '<div class="meta">' + esc(a.combustivel) + (a.litros_max ? ' · até ' + esc(String(a.litros_max).replace(".", ",")) + ' L' : '') + '</div>';
     }
+    if (st === "Pendente") h += '<p class="meta">Aguardando o escritório aprovar e assinar. Pedido em ' + esc(quando(a.solicitado_em)) + '.</p>';
+    if (st === "Recusada" || st === "Cancelada") h += '<p class="meta">' + esc(st) + (a.motivo ? ': ' + esc(a.motivo) : '') + '</p>';
+    if (a.decidido_em && window.HSCanhoto && st !== "Recusada") {
+      // canhoto assinado: abre direto (ativo) ou recolhido (já usado / vencido / cancelado)
+      h += '<div class="canhoto-box' + (ativa ? '' : ' hide') + '" id="cx-' + esc(a.numero) + '" style="margin:12px 0">' + HSCanhoto.render(a) + '</div>';
+      if (!ativa) h += '<button class="btn ghost sm" type="button" data-ver="' + esc(a.numero) + '" style="margin-top:8px">Ver canhoto</button>';
+      h += '<div class="row" style="margin-top:8px"><button class="btn' + (ativa ? '' : ' ghost') + '" type="button" data-pdf="' + esc(a.numero) + '">Baixar PDF</button>' +
+        '<button class="btn' + (ativa ? '' : ' ghost') + '" type="button" data-env="' + esc(a.numero) + '">Enviar</button></div>';
+      if (ativa) h += '<p class="meta" style="text-align:center">Mostre o canhoto no estabelecimento (na tela ou em PDF). Válido até <b>' + esc(quando(a.validade)) + '</b>.</p>';
+    }
+    if (ativa) h += '<button class="btn ghost" type="button" data-cupom="' + esc(a.numero) + '" data-k="' + esc(k) + '">Registrar o cupom da compra</button>';
     if (st === "Expirada") h += '<p class="meta">Venceu em ' + esc(quando(a.validade)) + '. Se a compra foi feita antes, registre o cupom: </p><button class="btn ghost" type="button" data-cupom="' + esc(a.numero) + '" data-k="' + esc(k) + '">Registrar cupom</button>';
     if (a.atendimentos && a.atendimentos.length) h += '<p class="meta">Cupons: ' + a.atendimentos.map(function (x) { return esc((x.numero_nf ? "NF " + x.numero_nf + " · " : "") + brl(x.valor_total)); }).join(" | ") + '</p>';
     return h + '</div>';
+  }
+  function acaoCanhoto(b, fn) {
+    var a = CARREGADAS[b.getAttribute("data-pdf") || b.getAttribute("data-env")]; if (!a) return;
+    var t = b.textContent; b.disabled = true; b.textContent = "Gerando PDF…";
+    fn(a).catch(function () { alert("Não consegui gerar o PDF. Verifique a internet e tente de novo."); })
+      .then(function () { b.disabled = false; b.textContent = t; });
   }
   function carregarMinhas() {
     var l = ler();
@@ -223,6 +247,9 @@ video{width:100%;border-radius:10px;background:#000;max-height:46vh;object-fit:c
     })).then(function (cards) {
       $("lista").innerHTML = cards.join("");
       document.querySelectorAll("[data-cupom]").forEach(function (b) { b.addEventListener("click", function () { abrirCupom(b.getAttribute("data-cupom"), b.getAttribute("data-k")); }); });
+      document.querySelectorAll("[data-pdf]").forEach(function (b) { b.addEventListener("click", function () { acaoCanhoto(b, HSCanhoto.pdf); }); });
+      document.querySelectorAll("[data-env]").forEach(function (b) { b.addEventListener("click", function () { acaoCanhoto(b, HSCanhoto.enviar); }); });
+      document.querySelectorAll("[data-ver]").forEach(function (b) { b.addEventListener("click", function () { var c = document.getElementById("cx-" + b.getAttribute("data-ver")); if (c) { c.classList.toggle("hide"); b.textContent = c.classList.contains("hide") ? "Ver canhoto" : "Esconder canhoto"; } }); });
     });
   }
   $("btnAtualizar").addEventListener("click", carregarMinhas);

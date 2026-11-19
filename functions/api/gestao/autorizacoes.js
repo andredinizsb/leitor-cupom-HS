@@ -7,7 +7,8 @@ export async function onRequestGet({ request, env, data }) {
   const st = u.searchParams.get("status") || "todas";
   const q = (u.searchParams.get("q") || "").trim().toLowerCase();
   const db = env.DB;
-  const rs = await db.prepare("SELECT * FROM autorizacoes ORDER BY solicitado_em DESC LIMIT 500").all();
+  // sem a imagem da assinatura (pesada): o canhoto completo vem de /api/gestao/canhoto
+  const rs = await db.prepare("SELECT numero, tipo, colaborador, empresa, obra, estabelecimento, veiculo, marca_modelo, km, combustivel, litros_max, justificativa, status, solicitado_em, validade, decidido_por, decidido_em, motivo, token_qr, chave_solicitante, assinado_por_nome, (assinatura IS NOT NULL) AS tem_assinatura FROM autorizacoes ORDER BY solicitado_em DESC LIMIT 500").all();
   const lista = rs.results || [];
   const nums = lista.map(function (a) { return a.numero; });
   const itens = {}, atend = {};

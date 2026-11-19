@@ -26,9 +26,9 @@ export async function onRequestPost({ request, env }) {
   const numero = await proximoNumero(db, ano);
   const chave = aleatorio(18);
   const ops = [
-    db.prepare("INSERT INTO autorizacoes (numero, tipo, colaborador, empresa, obra, estabelecimento, veiculo, km, combustivel, litros_max, justificativa, status, solicitado_em, chave_solicitante) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, 'Pendente', ?12, ?13)")
+    db.prepare("INSERT INTO autorizacoes (numero, tipo, colaborador, empresa, obra, estabelecimento, veiculo, km, combustivel, litros_max, justificativa, status, solicitado_em, chave_solicitante, marca_modelo) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, 'Pendente', ?12, ?13, ?14)")
       .bind(numero, tipo, colaborador, empresa, obra, txt(d.estabelecimento, 120), veiculo, abast && soDigitos(d.km) ? parseInt(soDigitos(d.km), 10) : null, combustivel,
-            abast ? num(d.litros_max) : null, txt(d.justificativa, 400), agora(), chave),
+            abast ? num(d.litros_max) : null, txt(d.justificativa, 400), agora(), chave, abast ? txt(d.marca_modelo, 60) : null),
     historico(db, numero, colaborador, null, "Pendente", "solicitada pelo app")
   ];
   itens.forEach(function (x, i) {
