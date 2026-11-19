@@ -49,21 +49,19 @@ video{width:100%;border-radius:10px;background:#000;max-height:46vh;object-fit:c
       <h2>Pedir autorização de compra</h2>
       <p class="lead">Substitui o canhoto de papel. O escritório aprova e assina, e o canhoto aparece aqui no seu celular para mostrar ou enviar em PDF.</p>
       <form id="fPedir" autocomplete="off">
-        <label for="colab">Colaborador</label><input id="colab" list="dlColab" required>
-        <datalist id="dlColab"></datalist>
+        <label for="colab">Colaborador</label>
+        <select id="colab" required><option value="">Carregando a lista…</option></select>
         <label>Empresa</label>
         <div class="seg"><button type="button" class="tab on" data-emp="HS">HS</button><button type="button" class="tab" data-emp="MC">MC</button></div>
         <label for="tipo">Tipo</label>
-        <select id="tipo" required><option value="">Escolha…</option><option>Abastecimento</option><option>Material elétrico</option><option>Material de consumo</option><option>Ferramenta</option><option>Peça / manutenção</option><option>Outros</option></select>
-        <label for="obra">Obra ou centro de custo</label><input id="obra" required placeholder="Ex.: 4287">
+        <select id="tipo" required><option>Abastecimento</option><option>Material</option></select>
+        <label for="obra">Obra</label><input id="obra" required placeholder="Ex.: 4287">
         <label for="estab">Estabelecimento <span class="opt">(opcional)</span></label><input id="estab" placeholder="Posto, loja ou fornecedor">
         <div id="blAbast" class="hide">
-          <label for="veic">Veículo (frota ou placa)</label><input id="veic" list="dlPlaca"><datalist id="dlPlaca"></datalist>
+          <label for="veic">Veículo</label>
+          <select id="veic"><option value="">Carregando a lista…</option></select>
           <label for="marca">Marca/Modelo</label><input id="marca" placeholder="Preenche sozinho ao escolher o veículo">
-          <div class="row">
-            <div><label for="km">Km atual</label><input id="km" inputmode="numeric"></div>
-            <div><label for="litros">Até quantos litros <span class="opt">(opc.)</span></label><input id="litros" inputmode="decimal"></div>
-          </div>
+          <label for="km">Km atual</label><input id="km" inputmode="numeric">
           <label for="comb">Combustível</label>
           <select id="comb"><option value="">Escolha…</option><option>Diesel S-10</option><option>Diesel S-500</option><option>Gasolina</option><option>Etanol</option><option>Arla 32</option></select>
         </div>
@@ -72,7 +70,7 @@ video{width:100%;border-radius:10px;background:#000;max-height:46vh;object-fit:c
           <div id="itens"></div>
           <button class="btn ghost sm" type="button" id="addItem" style="margin-top:8px">+ Adicionar item</button>
         </div>
-        <label for="just" id="lblJust">Justificativa <span class="opt">(para que é)</span></label><textarea id="just"></textarea>
+        <label for="just" id="lblJust">Justificativa</label><textarea id="just" required></textarea>
         <div id="msgPedir"></div>
         <button class="btn" type="submit" id="btnEnviar" style="margin-top:12px">Enviar pedido</button>
       </form>
@@ -147,12 +145,22 @@ video{width:100%;border-radius:10px;background:#000;max-height:46vh;object-fit:c
   $("tMinhas").addEventListener("click", function () { aba("minhas"); });
 
   // ---- listas (as mesmas do app de despesas) ----
-  try { $("colab").value = localStorage.getItem(LS_COLAB) || ""; } catch (e) {}
+  function colabSalvo() { try { return localStorage.getItem(LS_COLAB) || ""; } catch (e) { return ""; } }
+  function preencherLista(id, lista, rotulo, salvo) {
+    var s = $(id);
+    s.innerHTML = '<option value="">' + esc(rotulo) + '</option>' + lista.map(function (c) { return '<option>' + esc(c) + '</option>'; }).join("");
+    if (salvo && lista.indexOf(salvo) >= 0) s.value = salvo;
+  }
+  // sem a lista (internet/servidor fora), o campo vira texto para não travar o pedido
+  function virarTexto(id, dica) {
+    var s = $(id), i = document.createElement("input");
+    i.id = id; i.placeholder = dica; i.required = s.required; s.parentNode.replaceChild(i, s);
+  }
   fetch(API + "/opcoes").then(function (r) { return r.json(); }).then(function (j) {
-    if (!j || !j.ok) return;
-    $("dlColab").innerHTML = (j.colaboradores || []).map(function (c) { return '<option value="' + esc(c) + '">'; }).join("");
-    $("dlPlaca").innerHTML = (j.placa || []).map(function (c) { return '<option value="' + esc(c) + '">'; }).join("");
-  }).catch(function () {});
+    if (!j || !j.ok || !(j.colaboradores || []).length) throw new Error("sem_lista");
+    preencherLista("colab", j.colaboradores, "Selecione o colaborador…", colabSalvo());
+    if ((j.placa || []).length) preencherLista("veic", j.placa, "Selecione o veículo…"); else virarTexto("veic", "Frota ou placa");
+  }).catch(function () { virarTexto("colab", "Seu nome"); virarTexto("veic", "Frota ou placa"); try { $("colab").value = colabSalvo(); } catch (e) {} });
 
   document.querySelectorAll("[data-emp]").forEach(function (b) {
     b.addEventListener("click", function () { empresa = b.getAttribute("data-emp"); document.querySelectorAll("[data-emp]").forEach(function (x) { x.classList.toggle("on", x === b); }); });
@@ -160,15 +168,17 @@ video{width:100%;border-radius:10px;background:#000;max-height:46vh;object-fit:c
   $("tipo").addEventListener("change", function () {
     var ab = $("tipo").value === "Abastecimento";
     $("blAbast").classList.toggle("hide", !ab); $("blItens").classList.toggle("hide", ab);
-    $("lblJust").innerHTML = ab ? 'Destino da viagem' : 'Justificativa <span class="opt">(para que é)</span>';
+    $("lblJust").textContent = ab ? "Destino da viagem" : "Justificativa";
   });
+  $("tipo").dispatchEvent(new Event("change"));
   // marca/modelo do veículo (cadastro da frota da planilha)
   var FROTA = [];
   fetch("/autorizacao/frota.json").then(function (r) { return r.json(); }).then(function (j) { FROTA = j || []; }).catch(function () {});
-  $("veic").addEventListener("change", function () {
-    var v = $("veic").value.toUpperCase();
+  document.addEventListener("change", function (e) {
+    if (!e.target || e.target.id !== "veic") return;
+    var v = e.target.value.toUpperCase();
     var f = FROTA.filter(function (x) { return (x.placa && v.indexOf(String(x.placa).toUpperCase()) >= 0) || (x.frota && v.split(/\s+/)[0] === String(x.frota)); })[0];
-    if (f && !$("marca").value.trim()) $("marca").value = [f.marca, f.modelo].filter(Boolean).join(" ");
+    $("marca").value = f ? [f.marca, f.modelo].filter(Boolean).join(" ") : "";
   });
   function novoItem() {
     var d = document.createElement("div"); d.className = "item";
@@ -189,8 +199,11 @@ video{width:100%;border-radius:10px;background:#000;max-height:46vh;object-fit:c
     });
     var corpo = { colaborador: $("colab").value.trim(), empresa: empresa, tipo: tipo, obra: $("obra").value.trim(), estabelecimento: $("estab").value.trim(),
       justificativa: $("just").value.trim(), itens: ab ? [] : itens };
-    if (ab) { corpo.veiculo = $("veic").value.trim(); corpo.marca_modelo = $("marca").value.trim(); corpo.km = $("km").value.trim(); corpo.combustivel = $("comb").value; corpo.litros_max = $("litros").value.trim(); }
-    if (ab && !corpo.justificativa) { msg("msgPedir", "Informe o destino da viagem."); return; }
+    if (ab) { corpo.veiculo = $("veic").value.trim(); corpo.marca_modelo = $("marca").value.trim(); corpo.km = $("km").value.trim(); corpo.combustivel = $("comb").value; }
+    if (!corpo.colaborador) { msg("msgPedir", "Selecione o colaborador."); return; }
+    if (ab && !corpo.veiculo) { msg("msgPedir", "Selecione o veículo."); return; }
+    if (ab && !corpo.combustivel) { msg("msgPedir", "Escolha o combustível."); return; }
+    if (!corpo.justificativa) { msg("msgPedir", ab ? "Informe o destino da viagem." : "Informe a justificativa."); return; }
     if (!ab && !itens.length) { msg("msgPedir", "Informe ao menos um item."); return; }
     $("btnEnviar").disabled = true; $("btnEnviar").textContent = "Enviando…";
     postar(API + "/aut/solicitar", corpo).then(function (j) {
@@ -198,7 +211,7 @@ video{width:100%;border-radius:10px;background:#000;max-height:46vh;object-fit:c
       if (!j.ok) { msg("msgPedir", j.msg || ("Não foi possível enviar (" + (j.erro || "erro") + ").")); return; }
       try { localStorage.setItem(LS_COLAB, corpo.colaborador); } catch (e) {}
       guardar(j.numero, j.chave);
-      $("fPedir").reset(); $("colab").value = corpo.colaborador; $("itens").innerHTML = ""; novoItem(); $("tipo").dispatchEvent(new Event("change"));
+      $("fPedir").reset(); $("colab").value = corpo.colaborador; $("tipo").value = tipo; $("itens").innerHTML = ""; novoItem(); $("tipo").dispatchEvent(new Event("change"));
       aba("minhas");
       msg("msgPedir", "");
     }).catch(function () { $("btnEnviar").disabled = false; $("btnEnviar").textContent = "Enviar pedido"; msg("msgPedir", "Sem conexão. Tente de novo."); });
@@ -213,7 +226,7 @@ video{width:100%;border-radius:10px;background:#000;max-height:46vh;object-fit:c
     h += '<div class="meta">' + esc(a.tipo) + ' · ' + esc((a.empresa ? a.empresa + " " : "") + a.obra) + (a.veiculo ? ' · ' + esc(a.veiculo) : '') + '</div>';
     if (st === "Pendente" || st === "Recusada") {
       if (a.itens && a.itens.length) h += '<ul class="lista-itens">' + a.itens.map(function (x) { return '<li>' + esc(x.descricao) + (x.qtd != null ? ' — ' + esc(String(x.qtd).replace(".", ",")) + ' ' + esc(x.unidade || "") : '') + '</li>'; }).join("") + '</ul>';
-      if (a.combustivel) h += '<div class="meta">' + esc(a.combustivel) + (a.litros_max ? ' · até ' + esc(String(a.litros_max).replace(".", ",")) + ' L' : '') + '</div>';
+      if (a.combustivel) h += '<div class="meta">' + esc(a.combustivel) + '</div>';
     }
     if (st === "Pendente") h += '<p class="meta">Aguardando o escritório aprovar e assinar. Pedido em ' + esc(quando(a.solicitado_em)) + '.</p>';
     if (st === "Recusada" || st === "Cancelada") h += '<p class="meta">' + esc(st) + (a.motivo ? ': ' + esc(a.motivo) : '') + '</p>';

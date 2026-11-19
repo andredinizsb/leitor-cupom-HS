@@ -2,19 +2,39 @@
 // Usado pela tela do colaborador (/autorizacao/) e pela gestão (/gestao/). Gera PDF e compartilha.
 (function () {
   "use strict";
-  var EMPRESA = {
-    razao: "HERCILIO BOATTO JUNIOR - ME",
-    cnpj: "09.647.420/0001-39",
-    ie: "710.068.884.115",
-    crea: "1921026",
-    fone: "(18) 3401-7542",
-    claro: "(18) 99143-1314",
-    vivo: "(18) 99782-8061",
-    emails: "hseletricidade@yahoo.com.br / financeiro@hseletricidade.com.br",
-    endereco: "Rua José Dias Nunes, 11 - Pq Industrial - Valparaíso - SP",
-    cidade: "Valparaíso"
+  // dados impressos no canhoto de cada empresa (informados pela HS em 19/11/2026)
+  var EMPRESAS = {
+    HS: {
+      razao: "HS ELETRICIDADE LTDA",
+      texto: "HS ELETRICIDADE",
+      cnpj: "09.647.420/0001-39",
+      ie: "710.068.884.115",
+      crea: "1921026",
+      fone: "(18) 3401-7542",
+      whats: "(18) 98104-5844",
+      vivo: "(18) 99782-8061",
+      emails: "projetos@hseletricidade.com.br",
+      endereco: "Rua José Dias Nunes, 11 - Pq Industrial - Valparaíso - SP",
+      cidade: "Valparaíso",
+      logo: "/autorizacao/logo-hs.png"
+    },
+    MC: {
+      razao: "MC MANUTENÇÕES E SERVIÇOS VALPARAÍSO LTDA",
+      texto: "MC MANUTENÇÕES",
+      cnpj: "28.019.324/0001-90",
+      ie: "710.025.698.115",
+      crea: "1921026",
+      fone: "(18) 3401-7542",
+      whats: "(18) 99822-9787",
+      vivo: "(18) 99782-8061",
+      emails: "mc.manutencoes.orcamentos@gmail.com",
+      endereco: "Rua Francisco de Carvalho, 391 - Centro - Valparaíso - SP",
+      cidade: "Valparaíso",
+      logo: "/autorizacao/logo-mc.png"
+    }
   };
-  var LOGO = "/autorizacao/logo-hs.jpg";
+  function empresaDe(a) { return EMPRESAS[a && a.empresa === "MC" ? "MC" : "HS"]; }
+  var EMPRESA = EMPRESAS.HS;
   var MESES = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
   var CARIMBO = { "Cancelada": "CANCELADA", "Expirada": "VENCIDA", "Atendida": "UTILIZADA", "Recusada": "RECUSADA" };
 
@@ -32,7 +52,7 @@
 
   var CSS = '' +
     '.cnh{position:relative;box-sizing:border-box;width:100%;max-width:760px;margin:0 auto;background:#FBF8DA;color:#1d1d1d;border:2px solid #3b3b3b;border-radius:16px;padding:14px 16px 16px;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.35;overflow:hidden}' +
-    '.cnh *{box-sizing:border-box}.cnh-top{display:flex;gap:12px;align-items:center}.cnh-logo{width:38%;max-width:250px;height:auto;flex:none}' +
+    '.cnh *{box-sizing:border-box}.cnh-top{display:flex;gap:12px;align-items:center}.cnh-logo{max-width:40%;max-height:104px;width:auto;height:auto;flex:none;object-fit:contain}' +
     '.cnh-emp{flex:1;text-align:right;font-size:11px;line-height:1.35}.cnh-emp b{display:block;font-size:13px}' +
     '.cnh-tit{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#C9C9C9;border:1px solid #9a9a9a;margin:12px -16px 10px;padding:7px 16px}' +
     '.cnh-tit span{font-weight:800;font-size:16px;letter-spacing:.3px}.cnh-num{color:#D3191C;font-weight:800;font-size:18px;white-space:nowrap;font-family:"Courier New",monospace}' +
@@ -48,15 +68,15 @@
     '.cnh-ass .vazio{height:56px}.cnh-ass .ln{border-top:1px solid #333;padding-top:2px;font-size:12px}.cnh-ass small{display:block;font-size:10.5px;color:#444}' +
     '.cnh-val{margin-top:10px;font-size:10.5px;color:#555;text-align:center;border-top:1px dashed #b9b48c;padding-top:6px}' +
     '.cnh-carimbo{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) rotate(-18deg);border:5px solid rgba(211,25,28,.75);color:rgba(211,25,28,.75);font:800 46px Arial,sans-serif;padding:4px 18px;border-radius:10px;letter-spacing:3px;pointer-events:none}' +
-    '@media (max-width:520px){.cnh{font-size:12px;padding:10px 10px 12px}.cnh-top{flex-direction:column;gap:6px}.cnh-logo{width:72%;max-width:240px}.cnh-emp{text-align:center;font-size:9.5px}.cnh-emp b{font-size:11.5px}' +
+    '@media (max-width:520px){.cnh{font-size:12px;padding:10px 10px 12px}.cnh-top{flex-direction:column;gap:6px}.cnh-logo{max-width:72%;max-height:96px}.cnh-emp{text-align:center;font-size:9.5px}.cnh-emp b{font-size:11.5px}' +
     '.cnh-tit{margin:10px -10px 8px;padding:6px 10px;flex-wrap:wrap;gap:2px 8px}.cnh-tit span{font-size:12.5px}.cnh-num{font-size:14px}.cnh-row{flex-direction:column;gap:0}.cnh-rod{flex-direction:column;align-items:stretch;gap:10px}.cnh-ass{flex:none;min-width:0;max-width:none;width:100%;margin:0}.cnh-carimbo{font-size:30px}}';
   if (!document.getElementById("cnh-css")) { var st = document.createElement("style"); st.id = "cnh-css"; st.textContent = CSS; document.head.appendChild(st); }
 
-  function cabecalho() {
-    return '<div class="cnh-top"><img class="cnh-logo" src="' + LOGO + '" alt="HS Eletricidade" crossorigin="anonymous">' +
-      '<div class="cnh-emp"><b>' + esc(EMPRESA.razao) + '</b>CNPJ: ' + esc(EMPRESA.cnpj) + ' / Inscrição Estadual ' + esc(EMPRESA.ie) + '<br>' +
-      'Inscrição CREA: ' + esc(EMPRESA.crea) + '<br>Fone: ' + esc(EMPRESA.fone) + '<br>Claro: ' + esc(EMPRESA.claro) + ' / Vivo: ' + esc(EMPRESA.vivo) + '<br>' +
-      'Email: ' + esc(EMPRESA.emails) + '<br>' + esc(EMPRESA.endereco) + '</div></div>';
+  function cabecalho(E) {
+    return '<div class="cnh-top"><img class="cnh-logo" src="' + E.logo + '" alt="' + esc(E.texto) + '" crossorigin="anonymous">' +
+      '<div class="cnh-emp"><b>' + esc(E.razao) + '</b>CNPJ: ' + esc(E.cnpj) + ' / Inscrição Estadual ' + esc(E.ie) + '<br>' +
+      'Inscrição CREA: ' + esc(E.crea) + '<br>Fone: ' + esc(E.fone) + '<br>WhatsApp: ' + esc(E.whats) + ' / Vivo: ' + esc(E.vivo) + '<br>' +
+      'Email: ' + esc(E.emails) + '<br>' + esc(E.endereco) + '</div></div>';
   }
   function campo(rot, val) { return '<div class="cnh-campo"><span>' + esc(rot) + '</span><b>' + esc(val) + '</b></div>'; }
   function assinatura(a, rotulo) {
@@ -67,21 +87,21 @@
 
   // HTML do canhoto. a = autorização (campos do /api/aut/ver ou /api/gestao/canhoto)
   function render(a) {
-    var p = partes(a.decidido_em), abast = a.tipo === "Abastecimento", h = '<div class="cnh">';
-    h += cabecalho();
+    var p = partes(a.decidido_em), abast = a.tipo === "Abastecimento", E = empresaDe(a), h = '<div class="cnh">';
+    h += cabecalho(E);
     h += '<div class="cnh-obra"><span>Obra</span><b>' + esc(obraTxt(a)) + '</b></div>';
     if (abast) {
       h += '<div class="cnh-tit"><span>AUTORIZAÇÃO DE ABASTECIMENTO</span><span class="cnh-num">' + esc(a.numero) + '</span></div>';
       h += campo("Nome:", a.colaborador);
       h += campo("Marca/Modelo:", a.marca_modelo || "");
       h += '<div class="cnh-row">' + campo("Placa:", placaDe(a.veiculo)) + campo("KM:", a.km != null ? Number(a.km).toLocaleString("pt-BR") : "") + '</div>';
-      h += campo("Combustível:", (a.combustivel || "") + (a.litros_max ? " — até " + nbr(a.litros_max) + " litros" : ""));
+      h += campo("Combustível:", a.combustivel || "");
       if (a.estabelecimento) h += campo("Posto:", a.estabelecimento);
-      h += '<div class="cnh-row">' + campo(EMPRESA.cidade, p.dia + "/" + p.mes + "/" + p.ano) + campo("Destino Viagem:", a.justificativa || "") + '</div>';
+      h += '<div class="cnh-row">' + campo(E.cidade, p.dia + "/" + p.mes + "/" + p.ano) + campo("Destino Viagem:", a.justificativa || "") + '</div>';
       h += '<div class="cnh-rod"><div></div>' + assinatura(a, "Assinatura do Responsável") + '</div>';
     } else {
       h += '<div class="cnh-tit"><span>AUTORIZAÇÃO DE COMPRA DE MATERIAIS</span><span class="cnh-num">' + esc(a.numero) + '</span></div>';
-      h += '<p>A empresa <b>HS ELETRICIDADE</b>, autoriza por meio deste a realização de compras de materiais:</p>';
+      h += '<p>A empresa <b>' + esc(E.texto) + '</b>, autoriza por meio deste a realização de compras de materiais:</p>';
       h += campo("Funcionário:", a.colaborador);
       var itens = (a.itens || []).map(function (x) {
         return (x.qtd != null ? nbr(x.qtd) + (x.unidade ? " " + x.unidade : "") + " — " : "") + x.descricao;
@@ -90,7 +110,7 @@
       while (itens.length < 3) itens.push("");
       h += '<ul class="cnh-itens">' + itens.map(function (t) { return '<li>' + esc(t) + '</li>'; }).join("") + '</ul>';
       var mes = MESES[parseInt(p.mes, 10) - 1] || p.mes;
-      h += '<div class="cnh-rod"><div class="cnh-data">' + esc(EMPRESA.cidade) + ' <u>' + esc(p.dia) + '</u> de <u>' + esc(mes) + '</u> de <u>' + esc(p.ano) + '</u></div>' +
+      h += '<div class="cnh-rod"><div class="cnh-data">' + esc(E.cidade) + ' <u>' + esc(p.dia) + '</u> de <u>' + esc(mes) + '</u> de <u>' + esc(p.ano) + '</u></div>' +
         assinatura(a, "Responsável") + '</div>';
     }
     if (a.validade) { var v = partes(a.validade); h += '<div class="cnh-val">Válida até ' + v.dia + '/' + v.mes + '/' + v.ano + ' às ' + v.hora + ' · Uso único · ' + esc(a.tipo) + '</div>'; }
@@ -124,7 +144,7 @@
           var doc = new window.jspdf.jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
           var w = 190, h = cv.height * w / cv.width;
           doc.addImage(cv.toDataURL("image/jpeg", 0.92), "JPEG", 10, 10, w, h);
-          doc.setProperties({ title: "Autorização " + a.numero + " - HS Eletricidade" });
+          doc.setProperties({ title: "Autorização " + a.numero + " - " + empresaDe(a).razao });
           return new File([doc.output("blob")], "Autorizacao " + a.numero + ".pdf", { type: "application/pdf" });
         }, function (e) { if (box.parentNode) document.body.removeChild(box); throw e; });
     });
@@ -137,12 +157,12 @@
   // Envia o PDF pelo compartilhamento do celular (WhatsApp, e-mail...). Sem suporte: baixa o PDF.
   function enviar(a) {
     return pdf(a).then(function (arq) {
-      var dados = { files: [arq], title: "Autorização " + a.numero, text: "Autorização " + a.numero + " — HS Eletricidade" };
+      var dados = { files: [arq], title: "Autorização " + a.numero, text: "Autorização " + a.numero + " — " + empresaDe(a).texto };
       if (navigator.canShare && navigator.canShare(dados)) return navigator.share(dados).catch(function (e) { if (!e || e.name !== "AbortError") baixar(arq); });
       baixar(arq);
       return "baixado";
     });
   }
 
-  window.HSCanhoto = { render: render, pdf: function (a) { return pdf(a).then(baixar); }, enviar: enviar, EMPRESA: EMPRESA };
+  window.HSCanhoto = { render: render, pdf: function (a) { return pdf(a).then(baixar); }, enviar: enviar, EMPRESAS: EMPRESAS };
 })();
