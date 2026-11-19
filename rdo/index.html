@@ -54,7 +54,7 @@ textarea{min-height:96px;resize:vertical}input:focus,select:focus,textarea:focus
       <label>Empresa</label>
       <div class="seg"><button type="button" class="tab on" data-emp="HS">HS</button><button type="button" class="tab" data-emp="MC">MC</button></div>
       <label for="obra">Nº da obra ou orçamento</label>
-      <input id="obra" inputmode="numeric" list="dlObras" placeholder="Digite o nº ou escolha na lista"><datalist id="dlObras"></datalist>
+      <input id="obra" placeholder="Toque para ver a lista ou digite o nº / cliente">
       <div id="obraInfo" class="meta" style="margin-top:4px"></div>
       <label for="cliente">Nome do cliente</label><input id="cliente" required placeholder="Preenche sozinho ao escolher a obra">
       <div class="row">
@@ -148,6 +148,7 @@ textarea{min-height:96px;resize:vertical}input:focus,select:focus,textarea:focus
   </section>
 </main>
 
+<script src="/obras.js"></script>
 <script>
 (function () {
   "use strict";
@@ -181,11 +182,8 @@ textarea{min-height:96px;resize:vertical}input:focus,select:focus,textarea:focus
   CLIMAS.forEach(function (c) { ["climaM", "climaT"].forEach(function (id) { var o = document.createElement("option"); o.textContent = c; $(id).appendChild(o); }); });
 
   // ---- obras (cadastro oficial: obras.json gerado pela planilha) ----
-  fetch("/obras.json", { cache: "no-cache" }).then(function (r) { return r.json(); }).then(function (j) {
-    OBRAS = Array.isArray(j) ? j : [];
-    $("dlObras").innerHTML = OBRAS.map(function (o) { return '<option value="' + esc(o.n) + '">' + esc([o.e, o.c, o.d].filter(Boolean).join(" · ")) + '</option>'; }).join("");
-    infoObra(false);
-  }).catch(function () {});
+  HSObras.carregar().then(function (j) { OBRAS = j; infoObra(false); });
+  HSObras.ligar($("obra"));
   function obraAtual() { var v = $("obra").value.trim(); return OBRAS.filter(function (x) { return String(x.n) === v; })[0]; }
   function infoObra(preencher) {
     var v = $("obra").value.trim(), o = obraAtual();
@@ -193,7 +191,7 @@ textarea{min-height:96px;resize:vertical}input:focus,select:focus,textarea:focus
     if (o && preencher !== false) {
       if (!$("cliente").value.trim() || $("cliente").getAttribute("data-auto")) { $("cliente").value = o.c || ""; $("cliente").setAttribute("data-auto", "1"); }
       if ((o.e === "HS" || o.e === "MC") && o.e !== empresa) setEmpresa(o.e);
-    }
+    } else if (!o && preencher !== false && $("cliente").getAttribute("data-auto")) { $("cliente").value = ""; $("cliente").removeAttribute("data-auto"); }
   }
   $("obra").addEventListener("input", function () { infoObra(true); });
   $("cliente").addEventListener("input", function () { $("cliente").removeAttribute("data-auto"); });

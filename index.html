@@ -407,6 +407,7 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js"></script>
+<script src="/obras.js"></script>
 <script>
 (function () {
   "use strict";
@@ -472,28 +473,12 @@
   }
   function esc(s) { return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
 // Fase 4.3: cadastro oficial de obras (obras.json gerado pela planilha, aba CadObras) vira sugestão no Nº da obra
-var OBRAS = null;
-function carregarObras(cb) {
-  if (OBRAS) { cb(OBRAS); return; }
-  fetch("/obras.json", { cache: "no-cache" }).then(function (r) { return r.json(); })
-    .then(function (j) { OBRAS = Array.isArray(j) ? j : []; cb(OBRAS); }).catch(function () { OBRAS = []; cb(OBRAS); });
-}
+// lista suspensa de obras (obras.js): toca e escolhe, ou digita obra nova
 function ligarObras(inp, desc) {
-  carregarObras(function (L) {
-    if (!L.length || !inp) return;
-    var dl = document.getElementById("dlObras");
-    if (!dl) {
-      dl = document.createElement("datalist"); dl.id = "dlObras";
-      dl.innerHTML = L.map(function (o) { return '<option value="' + esc(o.n) + '">' + esc([o.e, o.c, o.d].filter(Boolean).join(" · ")) + '</option>'; }).join("");
-      document.body.appendChild(dl);
-    }
-    inp.setAttribute("list", "dlObras");
-    if (desc) desc.addEventListener("input", function () { desc.removeAttribute("data-auto"); });
-    function upd() {
-      var v = inp.value.trim(), o = L.filter(function (x) { return String(x.n) === v; })[0];
-      if (o && desc && (!desc.value.trim() || desc.getAttribute("data-auto"))) { desc.value = [o.c, o.d].filter(Boolean).join(" - "); desc.setAttribute("data-auto", "1"); }
-    }
-    inp.addEventListener("input", upd); inp.addEventListener("change", upd);
+  if (!inp || !window.HSObras) return;
+  if (desc) desc.addEventListener("input", function () { desc.removeAttribute("data-auto"); });
+  HSObras.ligar(inp, function (o) {
+    if (o && desc && (!desc.value.trim() || desc.getAttribute("data-auto"))) { desc.value = [o.c, o.d].filter(Boolean).join(" - "); desc.setAttribute("data-auto", "1"); }
   });
 }
   function fmtCNPJ(c) { return c.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5"); }

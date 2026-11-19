@@ -55,7 +55,7 @@ video{width:100%;border-radius:10px;background:#000;max-height:46vh;object-fit:c
         <div class="seg"><button type="button" class="tab on" data-emp="HS">HS</button><button type="button" class="tab" data-emp="MC">MC</button></div>
         <label for="tipo">Tipo</label>
         <select id="tipo" required><option>Abastecimento</option><option>Material</option></select>
-        <label for="obra">Obra</label><input id="obra" required inputmode="numeric" list="dlObras" placeholder="Digite o nº ou escolha na lista"><datalist id="dlObras"></datalist>
+        <label for="obra">Obra</label><input id="obra" required placeholder="Toque para ver a lista ou digite o nº / cliente">
         <div id="obraInfo" class="opt" style="margin-top:4px"></div>
         <label for="estab">Estabelecimento <span class="opt">(opcional)</span></label><input id="estab" placeholder="Posto, loja ou fornecedor">
         <div id="blAbast" class="hide">
@@ -104,6 +104,7 @@ video{width:100%;border-radius:10px;background:#000;max-height:46vh;object-fit:c
   <div class="row" style="margin-top:12px"><button class="btn ghost" type="button" id="btnCancelaCupom">Cancelar</button><button class="btn" type="button" id="btnSalvaCupom">Registrar</button></div>
 </div></div>
 
+<script src="/obras.js"></script>
 <script src="/autorizacao/canhoto.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js"></script>
 <script>
@@ -183,10 +184,8 @@ video{width:100%;border-radius:10px;background:#000;max-height:46vh;object-fit:c
   });
   // Fase 4.3: obras do cadastro oficial (obras.json gerado pela planilha) como sugestão; ao escolher, acerta a empresa
   var OBRAS = [];
-  fetch("/obras.json", { cache: "no-cache" }).then(function (r) { return r.json(); }).then(function (j) {
-    OBRAS = Array.isArray(j) ? j : [];
-    $("dlObras").innerHTML = OBRAS.map(function (o) { return '<option value="' + esc(o.n) + '">' + esc([o.e, o.c, o.d].filter(Boolean).join(" · ")) + '</option>'; }).join("");
-  }).catch(function () {});
+  HSObras.carregar().then(function (j) { OBRAS = j; });
+  HSObras.ligar($("obra"));
   function infoObra() {
     var v = $("obra").value.trim(), o = OBRAS.filter(function (x) { return String(x.n) === v; })[0];
     $("obraInfo").textContent = o ? [o.e, o.c, o.d].filter(Boolean).join(" · ") : (v && OBRAS.length ? "Obra fora do cadastro oficial - confira o número." : "");
