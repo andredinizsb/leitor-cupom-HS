@@ -1,7 +1,7 @@
 // POST /api/rdo/enviar — o encarregado lança o RDO do dia pelo celular (sem login, como o app de despesas)
 import { resp, origemOk, semBanco, ERRO_BANCO, txt, num, agora, aleatorio } from "../../../lib/aut.js";
 import { CLIMAS, ETAPAS, MAX_FOTOS, MAX_FOTO_B64, SEM_VEICULO, inteiro, dataHora, bool, proximoNumeroRdo, separarFoto, b64ParaBytes } from "../../../lib/rdo.js";
-import { guardarNoR2, bytesB64 } from "../../../lib/fotos.js";
+import { ondeGuardar, comR2Contado, bytesB64 } from "../../../lib/fotos.js";
 
 function erro(cod, msg) { return resp({ ok: false, erro: cod, msg: msg }, 400); }
 
@@ -54,6 +54,11 @@ export async function onRequestPost({ request, env }) {
     fotos.push({ tipo: p.tipo, b64: p.b64, etapa: ETAPAS.includes(f.etapa) ? f.etapa : null, legenda: txt(f.legenda, 200) });
   }
 
+  // tetos do plano grátis (lib/fotos.js): D1 até ~1.500 fotos, depois R2; sem espaço = RDO vai sem as fotos, com aviso
+  env = comR2Contado(env);
+  let aviso = null;
+  const onde = fotos.length ? await ondeGuardar(env, fotos.reduce(function (s, f) { return s + bytesB64(f.b64); }, 0)) : "d1";
+  if (!onde) { fotos.length = 0; aviso = "O RDO foi salvo, mas as fotos NÃO: o espaço grátis do app está cheio. Avise o Suprimentos e guarde as fotos no celular."; }
   const db = env.DB, ano = Number(ini.slice(0, 4)) || new Date().getFullYear(), quando = agora(), chave = aleatorio(18);
   let numero = null;
   for (let tentativa = 0; tentativa < 3 && !numero; tentativa++) {
@@ -74,7 +79,7 @@ export async function onRequestPost({ request, env }) {
   if (!numero) return resp({ ok: false, erro: "numero_ocupado", msg: "Tente enviar de novo." }, 503);
 
   let salvas = 0;
-  const usarR2 = fotos.length ? await guardarNoR2(env) : false;   // R2 só depois de ~1.500 fotos no D1 (lib/fotos.js)
+  const usarR2 = onde === "r2";
   for (let i = 0; i < fotos.length; i++) {
     const f = fotos[i], ext = f.tipo === "image/png" ? "png" : f.tipo === "image/webp" ? "webp" : "jpg";
     let r2 = null, dados = f.b64;
@@ -87,5 +92,5 @@ export async function onRequestPost({ request, env }) {
       .bind(numero, i + 1, f.etapa, f.legenda, f.tipo, bytesB64(f.b64), r2, dados, quando).run();
     salvas++;
   }
-  return resp({ ok: true, numero: numero, chave: chave, fotos: salvas });
+  return resp({ ok: true, numero: numero, chave: chave, fotos: salvas, aviso: aviso });
 }

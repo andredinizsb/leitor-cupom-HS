@@ -1,9 +1,11 @@
 // GET /api/gestao/checklist-foto?id=123 — imagem de uma foto do checklist (login do Access, ver _middleware)
 import { resp, semBanco, ERRO_BANCO } from "../../../lib/aut.js";
 import { b64ParaBytes } from "../../../lib/rdo.js";
+import { comR2Contado } from "../../../lib/fotos.js";
 
 export async function onRequestGet({ request, env }) {
   if (semBanco(env)) return resp(ERRO_BANCO, 503);
+  env = comR2Contado(env);   // conta as leituras do R2 (teto do plano gratis, lib/fotos.js)
   const id = parseInt(new URL(request.url).searchParams.get("id") || "", 10);
   if (!id) return resp({ ok: false, erro: "sem_id" }, 400);
   const f = await env.DB.prepare("SELECT tipo, r2_key, dados FROM checklist_fotos WHERE id = ?1").bind(id).first();

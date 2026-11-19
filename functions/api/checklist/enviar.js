@@ -2,7 +2,7 @@
 import { resp, origemOk, semBanco, ERRO_BANCO, txt, num, agora } from "../../../lib/aut.js";
 import { MAX_FOTOS, MAX_FOTO_B64, inteiro, dataHora, separarFoto, b64ParaBytes } from "../../../lib/rdo.js";
 import { AVARIAS, SECOES, ITENS, avarias, proximoNumeroChk } from "../../../lib/checklist.js";
-import { guardarNoR2, bytesB64 } from "../../../lib/fotos.js";
+import { ondeGuardar, comR2Contado, bytesB64 } from "../../../lib/fotos.js";
 
 function erro(cod, msg) { return resp({ ok: false, erro: cod, msg: msg }, 400); }
 
@@ -30,6 +30,11 @@ export async function onRequestPost({ request, env }) {
     if (p.b64.length > MAX_FOTO_B64) return erro("foto_grande", "Uma das fotos ficou grande demais. Tire de novo.");
     fotos.push({ tipo: p.tipo, b64: p.b64, secao: SECOES.includes(f.secao) ? f.secao : "Geral", legenda: txt(f.legenda, 200) });
   }
+  // tetos do plano grátis (lib/fotos.js): sem espaço = checklist vai sem as fotos, com aviso
+  env = comR2Contado(env);
+  let aviso = null;
+  const onde = fotos.length ? await ondeGuardar(env, fotos.reduce(function (s, f) { return s + bytesB64(f.b64); }, 0)) : "d1";
+  if (!onde) { fotos.length = 0; aviso = "O checklist foi salvo, mas as fotos NÃO: o espaço grátis do app está cheio. Avise o Suprimentos."; }
   const db = env.DB, ano = Number(quandoCheck.slice(0, 4)) || new Date().getFullYear(), quando = agora();
   let numero = null;
   for (let t = 0; t < 3 && !numero; t++) {
@@ -43,7 +48,7 @@ export async function onRequestPost({ request, env }) {
     } catch (e) { if (!/UNIQUE|constraint/i.test(String(e && e.message))) throw e; }
   }
   if (!numero) return resp({ ok: false, erro: "numero_ocupado", msg: "Tente enviar de novo." }, 503);
-  const usarR2 = fotos.length ? await guardarNoR2(env) : false;   // R2 só depois de ~1.500 fotos no D1 (lib/fotos.js)
+  const usarR2 = onde === "r2";
   for (let i = 0; i < fotos.length; i++) {
     const f = fotos[i], ext = f.tipo === "image/png" ? "png" : f.tipo === "image/webp" ? "webp" : "jpg";
     let r2 = null, dados = f.b64;
@@ -51,5 +56,5 @@ export async function onRequestPost({ request, env }) {
     await db.prepare("INSERT INTO checklist_fotos (numero, ordem, secao, legenda, tipo, tamanho, r2_key, dados, criado_em) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)")
       .bind(numero, i + 1, f.secao, f.legenda, f.tipo, bytesB64(f.b64), r2, dados, quando).run();
   }
-  return resp({ ok: true, numero: numero, fotos: fotos.length, problemas: prob.length });
+  return resp({ ok: true, numero: numero, fotos: fotos.length, problemas: prob.length, aviso: aviso });
 }

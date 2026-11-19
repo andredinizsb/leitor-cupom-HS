@@ -8,7 +8,9 @@
 //   POST apagar  {tipo, pasta, itens:[{id, bytes}]} -> apaga do app só as fotos cujo tamanho confere (a linha do RDO fica)
 import { resp, semBanco, ERRO_BANCO, txt, agora } from "../../../lib/aut.js";
 import { tokenOk, b64ParaBytes } from "../../../lib/rdo.js";
-import { TABELAS, SQL_BYTES, DIAS_CHECKLIST, nomeFoto, tsv, resumoHtml } from "../../../lib/fotos.js";
+import { TABELAS, SQL_BYTES, DIAS_CHECKLIST, nomeFoto, tsv, resumoHtml, uso, situacao, comR2Contado } from "../../../lib/fotos.js";
+//   GET  uso                                     -> "maior <pct>" (maior % de espaço usado, D1 ou R2) e cada teto: nome, usado, teto, pct
+//   GET  listar?tipo=rdo&dias=180                -> RDOs de qualquer obra com mais de N dias (limpeza por espaço; a macro decide N pelo uso)
 
 const GUARDADA = "(dados IS NOT NULL OR r2_key IS NOT NULL)";
 
@@ -23,6 +25,7 @@ export async function onRequest({ request, env, params }) {
   if (!env.RDO_TOKEN) return resp({ ok: false, erro: "token_nao_configurado" }, 503);
   if (!tokenOk(request.headers.get("X-HS-Token"), env.RDO_TOKEN)) return resp({ ok: false, erro: "nao_autorizado" }, 401);
   if (semBanco(env)) return resp(ERRO_BANCO, 503);
+  env = comR2Contado(env);
   const db = env.DB, u = new URL(request.url), q = u.searchParams, acao = String(params.acao || "");
   const tipo = (acao === "apagar" ? null : q.get("tipo")) || "rdo";
 
@@ -43,6 +46,10 @@ export async function onRequest({ request, env, params }) {
     return tsv([["apagadas", apagadas], ["recusadas", recusadas]]);
   }
   if (request.method !== "GET") return resp({ ok: false, erro: "metodo" }, 405);
+  if (acao === "uso") {
+    const s = situacao(await uso(env)), espaco = s.itens.filter(function (i) { return !/antes de passar|no mês/.test(i.nome); });
+    return tsv([["maior", Math.max.apply(null, espaco.map(function (i) { return i.pct; }))]].concat(s.itens.map(function (i) { return [i.nome, i.usado, i.teto, i.pct]; })));
+  }
   const t = TABELAS[tipo];
   if (!t) return resp({ ok: false, erro: "tipo_invalido" }, 400);
 
@@ -56,10 +63,12 @@ export async function onRequest({ request, env, params }) {
   if (acao === "listar") {
     let rs;
     if (tipo === "rdo") {
-      const obra = txt(q.get("obra"), 30);
-      if (!obra) return resp({ ok: false, erro: "sem_obra" }, 400);
-      rs = await db.prepare("SELECT f.id, f.numero, f.ordem, f.etapa, f.tipo, f.r2_key, " + SQL_BYTES.replace(/\b(dados|tamanho)\b/g, "f.$1") + " AS bytes FROM rdo_fotos f JOIN rdo r ON r.numero = f.numero " +
-        "WHERE r.obra = ?1 AND coalesce(r.empresa, '') = ?2 AND (f.dados IS NOT NULL OR f.r2_key IS NOT NULL) ORDER BY f.numero, f.ordem").bind(obra, txt(q.get("empresa"), 4)).all();
+      const obra = txt(q.get("obra"), 30), diasR = parseInt(q.get("dias") || "", 10);
+      const sel = "SELECT f.id, f.numero, f.ordem, f.etapa, f.tipo, f.r2_key, " + SQL_BYTES.replace(/\b(dados|tamanho)\b/g, "f.$1") + " AS bytes, coalesce(r.empresa, '') AS empresa, coalesce(r.obra, '') AS obra " +
+        "FROM rdo_fotos f JOIN rdo r ON r.numero = f.numero WHERE (f.dados IS NOT NULL OR f.r2_key IS NOT NULL) AND ";
+      if (obra) rs = await db.prepare(sel + "r.obra = ?1 AND coalesce(r.empresa, '') = ?2 ORDER BY f.numero, f.ordem").bind(obra, txt(q.get("empresa"), 4)).all();
+      else if (diasR > 0) rs = await db.prepare(sel + "r.data_inicio < ?1 ORDER BY f.numero, f.ordem LIMIT 2000").bind(new Date(Date.now() - diasR * 864e5).toISOString().slice(0, 10)).all();
+      else return resp({ ok: false, erro: "sem_obra_ou_dias" }, 400);
     } else {
       const dias = Math.max(1, parseInt(q.get("dias") || DIAS_CHECKLIST, 10) || DIAS_CHECKLIST);
       const corte = new Date(Date.now() - dias * 864e5).toISOString().slice(0, 10);
@@ -69,7 +78,7 @@ export async function onRequest({ request, env, params }) {
     const out = [];
     for (const f of rs.results || []) {
       const l = [f.id, f.numero, nomeFoto(f, t.grupo), await bytesR2(env, f)];
-      if (tipo === "checklist") l.push(f.frota, f.data);
+      if (tipo === "checklist") l.push(f.frota, f.data); else l.push(f.empresa, f.obra);
       out.push(l);
     }
     return tsv(out);

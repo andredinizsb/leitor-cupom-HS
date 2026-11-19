@@ -209,7 +209,7 @@ textarea{min-height:80px;resize:vertical}input:focus,select:focus,textarea:focus
         if (!j.ok) throw new Error(j.msg || "Não foi possível enviar (" + (j.erro || "erro") + ").");
         var l = lsGet(LS_ENV, []); l.unshift({ n: j.numero, quando: corpo.data_check, frota: corpo.frota, km: corpo.hodometro, prob: prob.length }); lsSet(LS_ENV, l.slice(0, 60));
         lsSet(LS_ULT, { frota: corpo.frota, condutor: corpo.condutor });
-        msg("Checklist " + j.numero + " enviado." + (prob.length ? " " + prob.length + " problema(s) vão para a oficina." : ""), "ok");
+        msg("Checklist " + j.numero + " enviado." + (prob.length ? " " + prob.length + " problema(s) vão para a oficina." : "") + (j.aviso ? " " + j.aviso : ""), j.aviso ? "warn" : "ok");
         fotos = []; desenharFotos(); resp = {}; desenharItens(); SEC.forEach(function (s) { sel[s[0]] = []; }); document.querySelectorAll(".chip.on").forEach(function (c) { c.classList.remove("on"); });
         $("hodo").value = ""; $("kmOleo").value = ""; $("obs").value = ""; gps = null; $("gpsInfo").textContent = ""; inicio = new Date(); $("quando").textContent = "Data e hora do checklist: " + br(inicio);
       })
