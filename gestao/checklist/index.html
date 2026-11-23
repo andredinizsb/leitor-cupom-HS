@@ -37,7 +37,7 @@ dl{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;margin:10px 0;font-s
 </style>
 </head>
 <body>
-<header><div class="logo">HS</div><span class="nm">Checklists da frota</span><span class="sp"></span><span class="quem" id="quem"></span>
+<header><div class="logo">HS</div><span class="nm">Checklists da frota</span><span class="sp"></span><span class="quem" id="quem"></span><a class="btn ghost" href="/inicio/">← Início</a>
   <a class="btn ghost" href="/gestao/">Autorizações</a><a class="btn ghost" href="/gestao/rdo/">RDOs</a><a class="btn ghost" href="/gestao/frota/#pend">Pendências da frota</a><a class="btn ghost" id="csv" href="/api/gestao/checklist?formato=csv">Exportar CSV</a></header>
 <div class="faixa"><i style="background:#00A0E7"></i><i style="background:#FE0000"></i><i style="background:#FFE500"></i></div>
 <main>
@@ -83,7 +83,7 @@ dl{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;margin:10px 0;font-s
   buscar();
 })();
 </script>
-<script src="/gestao/aviso-limites.js" defer></script>
-<script src="/icons/abertura.js" data-app="gestao"></script>
+<script src="/gestao/aviso-limites.js?v=3" defer></script>
+<script src="/icons/abertura.js?v=4" data-app="gestao"></script>
 </body>
 </html>
