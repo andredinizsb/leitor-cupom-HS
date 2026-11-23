@@ -75,7 +75,7 @@ dialog{padding:0;width:min(760px,calc(100vw - 24px))}
     <div id="dMsg"></div>
     <h3>Histórico</h3><ul class="hist" id="dHist"></ul>
   </div>
-  <div class="df"><button class="btn ghost" type="button" id="dAssumir">Assumir a compra</button><button class="btn" type="button" id="dSalvar">Salvar</button></div>
+  <div class="df"><a class="btn ghost" id="dCot" href="#">Abrir cotação</a><span style="flex:1"></span><button class="btn ghost" type="button" id="dAssumir">Assumir a compra</button><button class="btn" type="button" id="dSalvar">Salvar</button></div>
 </dialog>
 
 <script>
@@ -146,6 +146,7 @@ dialog{padding:0;width:min(760px,calc(100vw - 24px))}
     $("dHist").innerHTML = r.eventos.slice().reverse().map(function (e) {
       return "<li><span>" + esc(quando(e.em)) + "</span><div>" + (e.para ? "<b>" + esc(e.para) + "</b>" : "") + (e.obs ? (e.para ? " · " : "") + esc(e.obs) : "") + ' <span>· ' + esc(String(e.por || "").split("@")[0]) + "</span></div></li>";
     }).join("");
+    $("dCot").href = "/gestao/compras/cotacao/?n=" + encodeURIComponent(r.numero); $("dCot").hidden = r.status === "Cancelada";
     if (!$("dlg").open) $("dlg").showModal();
   }
   $("fSt").addEventListener("change", function () { $("lMot").classList.toggle("hide", this.value !== "Cancelada"); });

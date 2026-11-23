@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Cotação · Gestão HS</title>
+<link rel="icon" href="/icons/gestao.svg" type="image/svg+xml">
+<link rel="manifest" href="/icons/gestao.webmanifest">
+<meta name="theme-color" content="#0E1217">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/ds/hs.css?v=1">
+<style>
+.passo{display:flex;align-items:center;gap:10px;margin:28px 0 12px}.passo .n{width:28px;height:28px;border-radius:50%;background:var(--primary-subtle);color:var(--primary-text);display:grid;place-items:center;font-weight:700;font-size:14px;flex:none}
+.passo h2{margin:0;font-size:17px;line-height:24px;font-weight:600}.passo .sp{flex:1}.passo .m{color:var(--text-muted);font-size:13px}
+.wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);box-shadow:var(--shadow-sm);overflow-x:auto}
+.tabela td .m,.m{color:var(--text-muted);font-size:13px}.tabela td.q,.tabela th.q{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.fx{display:inline-flex;align-items:center;gap:6px;font-size:13px;background:var(--surface-muted);border:1px solid var(--border);border-radius:var(--r-sm);padding:2px 8px}
+.busca-fx{margin-top:8px;display:grid;gap:6px}.res{display:grid;gap:4px;max-height:240px;overflow:auto}
+.res button{display:grid;grid-template-columns:1fr auto;gap:2px 10px;text-align:left;padding:8px 10px;border:1px solid var(--border);border-radius:var(--r-md);background:var(--surface);color:var(--text);font:inherit;font-size:14px;cursor:pointer}
+.res button:hover{border-color:var(--primary)}.res button small{grid-column:1/-1;color:var(--text-muted);font-size:12.5px}
+.sug{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.cots{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px}
+.cot .topo{display:flex;align-items:center;gap:8px}.cot .topo b{font-size:15px}.cot .topo .sp{flex:1}
+.cot .acoes{display:flex;gap:6px;flex-wrap:wrap}
+.resp{display:grid;grid-template-columns:1fr 1fr;gap:10px 12px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)}
+.resp label{display:grid;gap:4px;font-size:13px;font-weight:500}.resp .larga{grid-column:1/-1}.resp :is(input,select){min-height:40px;padding:6px 10px;width:100%;font-size:15px}
+.resp table{width:100%;border-collapse:collapse;font-size:13.5px}.resp td,.resp th{padding:6px 4px;border-bottom:1px solid var(--border);text-align:left}.resp td input{min-height:36px}
+.resp th{font-size:12px;color:var(--text-muted);font-weight:600}
+.comp td.esc{cursor:pointer}.comp td.esc:hover{background:var(--primary-subtle)}.comp td.sel{background:var(--primary-subtle);box-shadow:inset 0 0 0 2px var(--primary)}
+.comp .menor{display:inline-flex;margin-left:6px;font-size:11px;font-weight:700;color:var(--success-text);background:var(--success-subtle);border-radius:var(--r-full);padding:0 7px}
+.comp tfoot td{background:var(--surface-muted);font-weight:600}
+.just{display:grid;gap:4px;margin-top:6px}.just input{min-height:36px;padding:4px 8px;font-size:14px}
+.fim{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin-top:16px}.fim label{display:grid;gap:4px;font-size:14px;font-weight:500;flex:1 1 300px}.fim input{min-height:44px;padding:8px 12px}
+@media (max-width:640px){.resp{grid-template-columns:1fr}.cots{grid-template-columns:1fr}}
+</style>
+</head>
+<body data-mod="compras">
+<script src="/ds/shell.js?v=2"></script>
+<main>
+  <header class="hs-ph"><div class="tt"><div class="hs-crumbs"><a href="/gestao/painel/">Gestão</a> / <a href="/gestao/compras/">Requisições</a></div><h1 id="tit">Cotação</h1><p id="sub"></p></div>
+    <div class="acoes"><a class="btn ghost" href="/gestao/compras/">Voltar às requisições</a></div></header>
+  <div id="aviso"></div>
+
+  <div class="passo"><span class="n">1</span><h2>Itens</h2><span class="m">Ligue cada item ao cadastro do FX para ver o histórico de preço e os fornecedores que já venderam.</span></div>
+  <div class="wrap"><table class="tabela"><thead><tr><th>#</th><th>Item pedido</th><th class="q">Qtd</th><th>Cadastro do FX · último preço</th></tr></thead><tbody id="itens"></tbody></table></div>
+
+  <div class="passo"><span class="n">2</span><h2>Fornecedores consultados</h2><span class="sp"></span><span class="m" id="regra"></span></div>
+  <div class="sug" id="sug"></div>
+  <div class="barra"><input class="busca" id="qForn" placeholder="Buscar fornecedor do FX por nome, CNPJ ou cidade…" aria-label="Buscar fornecedor"><button class="btn ghost" type="button" id="btnNovo">+ Fornecedor novo</button></div>
+  <div class="res" id="resForn"></div>
+  <div id="novoForn" class="card hide" style="margin-bottom:12px"><div class="resp" style="margin:0;padding:0;border:0">
+    <label>Fornecedor<input id="nfNome" maxlength="120"></label><label>Telefone / WhatsApp<input id="nfTel" maxlength="40" inputmode="tel"></label>
+    <label>Contato<input id="nfCont" maxlength="80"></label><label>E-mail<input id="nfMail" maxlength="120" inputmode="email"></label>
+    <div class="larga"><button class="btn" type="button" id="nfOk">Acrescentar à cotação</button></div></div></div>
+  <div class="cots" id="cots"></div>
+
+  <div class="passo"><span class="n">3</span><h2>Comparativo e escolha</h2><span class="sp"></span><span class="m">Custo = preço + impostos não inclusos. Clique na célula para escolher o fornecedor de cada item.</span></div>
+  <div class="wrap"><table class="tabela comp" id="comp"></table></div>
+  <div class="fim">
+    <label id="lExc" class="hide">Motivo da exceção (só 1 cotação: fabricante, distribuidor ou representante)<input id="exc" maxlength="300"></label>
+    <button class="btn" type="button" id="btnEsc">Registrar escolha</button>
+  </div>
+  <div id="msgEsc"></div>
+</main>
+<script>
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); }, I = window.HSIcone || function () { return ""; };
+  var N = new URLSearchParams(location.search).get("n") || "", D = null, esc_ = {}, abertaResp = null;
+  function esc(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
+  function rs(v) { return v == null || v === "" ? "—" : Number(v).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }); }
+  function br(d) { var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(d || ""); return m ? m[3] + "/" + m[2] + "/" + m[1] : ""; }
+  function q(v) { return String(v == null ? "" : v).replace(".", ","); }
+  function aviso(t, tipo) { $("aviso").innerHTML = t ? '<div class="msg ' + (tipo || "") + '">' + esc(t) + "</div>" : ""; }
+  function api(corpo) {
+    return fetch("/api/gestao/compras-cotacao", corpo ? { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(Object.assign({ numero: N }, corpo)) } : undefined)
+      .then(function (r) { return r.json(); }).then(function (j) { if (!j.ok) { var e = new Error(j.msg || j.erro || "erro"); e.j = j; throw e; } return j; });
+  }
+  function carregar() {
+    return fetch("/api/gestao/compras-cotacao?numero=" + encodeURIComponent(N)).then(function (r) { return r.json(); }).then(function (j) {
+      if (!j.ok) throw new Error(j.msg || j.erro || "erro");
+      if (j.quem) $("quem").textContent = j.quem;
+      D = j; esc_ = {}; D.requisicao.itens.forEach(function (x) { if (x.escolha_cot) esc_[x.item] = x.escolha_cot; });
+      desenhar();
+    }).catch(function (e) { aviso(e.message); });
+  }
+  function custo(x) { return x && x.disponivel && x.preco != null ? Number(x.preco) + Number(x.impostos || 0) : null; }
+
+  function desenhar() {
+    var r = D.requisicao;
+    $("tit").textContent = "Cotação " + r.numero;
+    $("sub").textContent = [r.destino === "Obra" ? (r.empresa ? r.empresa + " · " : "") + "Obra " + r.obra + (r.obra_desc ? " · " + r.obra_desc : "") : r.destino === "Frota" ? r.frota : "Estoque",
+      "pedida por " + r.solicitante, "para " + br(r.data_necessaria) + (r.prioridade !== "Normal" ? " (" + r.prioridade + ")" : ""), r.status].join(" · ");
+    // 1. itens
+    $("itens").innerHTML = r.itens.map(function (x) {
+      var h = D.historico[x.codigo_fx] || [], ult = h[0];
+      return "<tr><td>" + x.item + "</td><td><b>" + esc(x.descricao) + "</b></td><td class=\"q\">" + esc(q(x.qtd)) + " " + esc(x.unidade || "") + "</td><td>" +
+        (x.codigo_fx ? '<span class="fx">FX ' + esc(x.codigo_fx) + "</span> " + (ult ? '<span class="m">' + rs(ult.preco) + " · " + esc(ult.nome || ult.cnpj) + " · " + br(ult.data) + (h.length > 1 ? " · " + h.length + " fornecedores" : "") + "</span>" : '<span class="m">sem compra nos últimos 3 anos</span>') +
+          ' <button class="link" type="button" data-fx="' + x.item + '">trocar</button>' : '<button class="btn ghost pq" type="button" data-fx="' + x.item + '">Ligar ao FX</button>') +
+        '<div class="busca-fx hide" id="bfx' + x.item + '"><input placeholder="Buscar no cadastro do FX (ex.: cabo 10mm)" data-qfx="' + x.item + '" value="' + esc(x.descricao.split(" ").slice(0, 3).join(" ")) + '"><div class="res" id="rfx' + x.item + '"></div>' +
+        (x.codigo_fx ? '<button class="link" type="button" data-desfx="' + x.item + '">desligar do FX</button>' : "") + "</div></td></tr>";
+    }).join("");
+    // 2. sugestões e cotações
+    var ja = {}; D.cotacoes.forEach(function (c) { if (c.cnpj) ja[c.cnpj] = 1; });
+    var sg = D.sugestoes.filter(function (s) { return !ja[s.cnpj]; });
+    $("sug").innerHTML = sg.length ? '<span class="m" style="align-self:center">Já venderam estes itens:</span>' + sg.map(function (s) {
+      return '<button class="chip" type="button" data-addf="' + esc(s.cnpj) + '" title="' + esc((s.cidade || "") + " · última compra " + br(s.ultima)) + '">+ ' + esc(s.fantasia || s.nome || s.cnpj) + "<b>" + s.itens + " item(ns)</b></button>";
+    }).join("") : (r.itens.some(function (x) { return x.codigo_fx; }) ? "" : '<span class="m">Ligue os itens ao FX para ver sugestões de fornecedores.</span>');
+    var resp = D.cotacoes.filter(function (c) { return c.respondida_em; }).length;
+    $("regra").innerHTML = '<span class="badge ' + (resp >= 2 ? "s-ok" : "s-warn") + '">' + resp + " resposta(s) · a IT 1.6 pede no mínimo 2</span>";
+    $("cots").innerHTML = D.cotacoes.length ? D.cotacoes.map(cartao).join("") : '<div class="vazio">Nenhum fornecedor na cotação ainda. Use as sugestões, a busca ou “Fornecedor novo”.</div>';
+    comparativo();
+  }
+  function cartao(c) {
+    var st = c.respondida_em ? '<span class="badge s-ok">Respondida</span>' : c.enviada_em ? '<span class="badge s-info">Enviada ' + br(c.enviada_em.slice(0, 10)) + "</span>" : '<span class="badge">A enviar</span>';
+    var h = '<div class="card cot"><div class="topo"><b>' + esc(c.fornecedor) + "</b><span class=\"sp\"></span>" + st + "</div>";
+    h += '<div class="m" style="margin:4px 0 10px">' + esc([c.contato, c.telefone, c.email, c.cnpj].filter(Boolean).join(" · ") || "sem contato") + "</div>";
+    if (c.respondida_em) h += '<div class="m" style="margin-bottom:10px">' + esc([c.prazo_dias != null ? "entrega em " + c.prazo_dias + " dia(s)" : "", c.cond_pagto, c.frete_tipo ? "frete " + c.frete_tipo + (c.frete_tipo === "FOB" && c.frete_valor ? " " + rs(c.frete_valor) : "") : "", c.validade ? "válida até " + br(c.validade) : ""].filter(Boolean).join(" · ")) + "</div>";
+    h += '<div class="acoes">' + (c.telefone ? '<a class="btn ghost pq" target="_blank" rel="noopener" data-zap="' + c.id + '" href="' + zap(c) + '">WhatsApp</a>' : "") +
+      (c.email ? '<a class="btn ghost pq" data-zap="' + c.id + '" href="mailto:' + esc(c.email) + "?subject=" + encodeURIComponent("Cotação HS Eletricidade · " + D.requisicao.numero) + "&body=" + encodeURIComponent(mensagem(c)) + '">E-mail</a>' : "") +
+      '<button class="btn ghost pq" type="button" data-copiar="' + c.id + '">Copiar mensagem</button><button class="btn pq" type="button" data-resp="' + c.id + '">' + (c.respondida_em ? "Editar resposta" : "Lançar resposta") + "</button>" +
+      '<button class="btn ghost pq" type="button" data-rem="' + c.id + '" aria-label="Tirar da cotação">Tirar</button></div>';
+    if (abertaResp === c.id) h += formResp(c);
+    return h + "</div>";
+  }
+  function mensagem(c) {
+    var r = D.requisicao, quem = ($("quem").textContent || "").split("@")[0];
+    return "Olá" + (c.contato ? ", " + c.contato : "") + "! Aqui é " + (quem ? quem + ", " : "") + "do Suprimentos da HS Eletricidade.\nPoderia nos enviar uma cotação para:\n" +
+      r.itens.map(function (x) { return "• " + x.descricao + " — " + q(x.qtd) + " " + (x.unidade || ""); }).join("\n") +
+      "\n\nPrecisamos até " + br(r.data_necessaria) + (r.local_entrega ? ", entrega em: " + r.local_entrega : "") + ".\nPor favor, informe preço unitário, impostos não inclusos, frete (CIF ou FOB), prazo de entrega, condição de pagamento e validade da proposta.\n\nReferência: " + r.numero + ". Obrigado!";
+  }
+  function zap(c) { var t = String(c.telefone || "").replace(/\D/g, ""); if (t.length >= 10 && t.length <= 11) t = "55" + t; return "https://wa.me/" + t + "?text=" + encodeURIComponent(mensagem(c)); }
+  function formResp(c) {
+    var P = {}; c.itens.forEach(function (x) { P[x.item] = x; });
+    return '<form class="resp" data-form="' + c.id + '"><label>Prazo de entrega (dias)<input name="prazo" inputmode="numeric" value="' + esc(c.prazo_dias == null ? "" : c.prazo_dias) + '"></label>' +
+      '<label>Condição de pagamento<input name="pagto" value="' + esc(c.cond_pagto || "") + '" placeholder="28 dias, à vista…"></label>' +
+      '<label>Frete<select name="frete"><option value="">—</option><option' + (c.frete_tipo === "CIF" ? " selected" : "") + '>CIF</option><option' + (c.frete_tipo === "FOB" ? " selected" : "") + ">FOB</option></select></label>" +
+      '<label>Valor do frete FOB (R$)<input name="fretev" inputmode="decimal" value="' + esc(c.frete_valor == null ? "" : q(c.frete_valor)) + '"></label>' +
+      '<label>Validade da proposta<input type="date" name="val" value="' + esc(c.validade || "") + '"></label><label>Observação<input name="obs" value="' + esc(c.obs || "") + '"></label>' +
+      '<div class="larga"><table><thead><tr><th>Item</th><th>Preço unit. (R$)</th><th>Impostos não incl. (R$/un)</th><th>Tem?</th></tr></thead><tbody>' +
+      D.requisicao.itens.map(function (x) { var p = P[x.item] || {}; var tem = p.disponivel !== 0;
+        return "<tr><td>" + x.item + ". " + esc(x.descricao) + '</td><td><input data-p="' + x.item + '" inputmode="decimal" value="' + esc(p.preco == null ? "" : q(p.preco)) + '"></td><td><input data-i="' + x.item + '" inputmode="decimal" value="' + esc(p.impostos == null ? "" : q(p.impostos)) + '"></td><td><input type="checkbox" data-d="' + x.item + '"' + (tem ? " checked" : "") + "></td></tr>"; }).join("") +
+      '</tbody></table></div><div class="larga" style="display:flex;gap:8px;justify-content:flex-end"><button class="btn ghost" type="button" data-fechar="1">Cancelar</button><button class="btn" type="submit">Salvar resposta</button></div></form>';
+  }
+  function comparativo() {
+    var r = D.requisicao, C = D.cotacoes.filter(function (c) { return c.respondida_em; });
+    $("lExc").classList.toggle("hide", C.length >= 2);
+    if (!C.length) { $("comp").innerHTML = '<tbody><tr><td class="vazio">O comparativo aparece quando houver resposta de fornecedor.</td></tr></tbody>'; return; }
+    var tot = {}; C.forEach(function (c) { tot[c.id] = 0; });
+    var h = "<thead><tr><th>Item</th><th class=\"q\">Qtd</th>" + C.map(function (c) { return '<th class="q">' + esc(c.fornecedor) + "</th>"; }).join("") + "</tr></thead><tbody>";
+    r.itens.forEach(function (x) {
+      var cs = C.map(function (c) { return custo(c.itens.filter(function (y) { return y.item === x.item; })[0]); }), vals = cs.filter(function (v) { return v != null; }), menor = vals.length ? Math.min.apply(null, vals) : null;
+      if (!esc_[x.item] && menor != null) { var ix = cs.indexOf(menor); esc_[x.item] = C[ix].id; }
+      var escolhido = C.filter(function (c) { return c.id === esc_[x.item]; })[0], cEsc = escolhido ? cs[C.indexOf(escolhido)] : null;
+      h += "<tr><td><b>" + x.item + ". " + esc(x.descricao) + "</b>" + (escolhido && cEsc != null && cEsc > menor + 0.005 ? '<div class="just"><input placeholder="Justificativa: não é o menor custo (prazo, qualidade, frete…)" data-just="' + x.item + '" value="' + esc(x.justificativa || "") + '"></div>' : "") +
+        '<div class="just"><input placeholder="Preço negociado (opcional)" inputmode="decimal" data-neg="' + x.item + '" value="' + esc(x.preco_negociado == null ? "" : q(x.preco_negociado)) + '"></div></td><td class="q">' + esc(q(x.qtd)) + " " + esc(x.unidade || "") + "</td>";
+      C.forEach(function (c, i) {
+        var v = cs[i]; if (v != null && c.id === esc_[x.item]) tot[c.id] += v * Number(x.qtd || 0);
+        h += v == null ? '<td class="q m">não tem</td>' : '<td class="q esc' + (c.id === esc_[x.item] ? " sel" : "") + '" data-esc="' + x.item + ":" + c.id + '" title="Escolher este fornecedor para o item">' + rs(v) + (v === menor ? '<span class="menor">menor</span>' : "") + '<div class="m">' + rs(v * Number(x.qtd || 0)) + "</div></td>";
+      });
+      h += "</tr>";
+    });
+    h += "</tbody><tfoot><tr><td>Total escolhido + frete FOB</td><td></td>" + C.map(function (c) { var t = tot[c.id] + (tot[c.id] && c.frete_tipo === "FOB" ? Number(c.frete_valor || 0) : 0); return '<td class="q">' + (t ? rs(t) : "—") + '<div class="m">' + esc([c.prazo_dias != null ? c.prazo_dias + " dia(s)" : "", c.cond_pagto].filter(Boolean).join(" · ")) + "</div></td>"; }).join("") + "</tr></tfoot>";
+    $("comp").innerHTML = h;
+  }
+
+  // ---- ações ----
+  document.addEventListener("click", function (e) {
+    var t = e.target.closest("[data-fx],[data-desfx],[data-vinc],[data-addf],[data-copiar],[data-resp],[data-rem],[data-esc],[data-fechar],[data-zap]"); if (!t) return;
+    if (t.hasAttribute("data-fx")) { var b = $("bfx" + t.getAttribute("data-fx")); b.classList.toggle("hide"); if (!b.classList.contains("hide")) { var i = b.querySelector("input"); i.focus(); buscarFx(i); } }
+    else if (t.hasAttribute("data-desfx")) api({ acao: "vincular", item: +t.getAttribute("data-desfx"), codigo_fx: null }).then(carregar).catch(function (x) { aviso(x.message); });
+    else if (t.hasAttribute("data-vinc")) { var p = t.getAttribute("data-vinc").split("|"); api({ acao: "vincular", item: +p[0], codigo_fx: p[1] }).then(carregar).catch(function (x) { aviso(x.message); }); }
+    else if (t.hasAttribute("data-addf")) { if (t.disabled) return; t.disabled = true; addForn({ cnpj: t.getAttribute("data-addf") }); }
+    else if (t.hasAttribute("data-copiar")) { var c = cot(t.getAttribute("data-copiar")); (navigator.clipboard ? navigator.clipboard.writeText(mensagem(c)) : Promise.reject()).then(function () { t.textContent = "Copiada"; marcarEnviada(c); }, function () { prompt("Copie a mensagem:", mensagem(c)); }); }
+    else if (t.hasAttribute("data-zap")) marcarEnviada(cot(t.getAttribute("data-zap")));
+    else if (t.hasAttribute("data-resp")) { abertaResp = +t.getAttribute("data-resp"); desenhar(); }
+    else if (t.hasAttribute("data-fechar")) { abertaResp = null; desenhar(); }
+    else if (t.hasAttribute("data-rem")) { if (confirm("Tirar este fornecedor da cotação? A resposta dele, se houver, também sai.")) api({ acao: "remover", cot_id: +t.getAttribute("data-rem") }).then(carregar).catch(function (x) { aviso(x.message); }); }
+    else if (t.hasAttribute("data-esc")) { var s = t.getAttribute("data-esc").split(":"); esc_[s[0]] = +s[1]; comparativo(); }
+  });
+  function cot(id) { return D.cotacoes.filter(function (c) { return c.id === +id; })[0]; }
+  function marcarEnviada(c) { if (c && !c.enviada_em) api({ acao: "enviada", cot_id: c.id }).then(function () { c.enviada_em = new Date().toISOString(); desenhar(); }).catch(function () {}); }
+  var tFx = null;
+  function buscarFx(inp) {
+    clearTimeout(tFx); var item = inp.getAttribute("data-qfx");
+    tFx = setTimeout(function () {
+      fetch("/api/gestao/compras-catalogo?q=" + encodeURIComponent(inp.value)).then(function (r) { return r.json(); }).then(function (j) {
+        $("rfx" + item).innerHTML = (j.materiais || []).map(function (m) { return '<button type="button" data-vinc="' + item + "|" + esc(m.id_fx) + '"><span>' + esc(m.descricao) + '</span><span class="m">' + rs(m.ultimo_preco) + "</span><small>FX " + esc(m.id_fx) + (m.marca ? " · " + esc(m.marca) : "") + " · " + esc(m.unidade || "") + " · " + m.fornecedores + " fornecedor(es) · última compra " + br(m.ultima_compra) + "</small></button>"; }).join("") || '<span class="m">Nada encontrado. Tente outras palavras.</span>';
+      });
+    }, 250);
+  }
+  document.addEventListener("input", function (e) { if (e.target.hasAttribute && e.target.hasAttribute("data-qfx")) buscarFx(e.target); });
+  var tF = null;
+  $("qForn").addEventListener("input", function () {
+    clearTimeout(tF); var v = this.value.trim(); if (v.length < 2) { $("resForn").innerHTML = ""; return; }
+    tF = setTimeout(function () {
+      fetch("/api/gestao/compras-catalogo?forn=" + encodeURIComponent(v)).then(function (r) { return r.json(); }).then(function (j) {
+        $("resForn").innerHTML = (j.fornecedores || []).map(function (f) { return '<button type="button" data-addf="' + esc(f.cnpj) + '"><span>' + esc(f.fantasia || f.nome) + '</span><span class="m">' + f.itens + " item(ns) comprados</span><small>" + esc([f.nome, f.cnpj, f.cidade && f.cidade + "/" + f.uf, f.telefone].filter(Boolean).join(" · ")) + "</small></button>"; }).join("") || '<span class="m">Nenhum fornecedor do FX com esse nome. Use “Fornecedor novo”.</span>';
+      });
+    }, 250);
+  });
+  function addForn(c) { api(Object.assign({ acao: "fornecedor" }, c)).then(function () { $("qForn").value = ""; $("resForn").innerHTML = ""; $("novoForn").classList.add("hide"); return carregar(); }).catch(function (x) { aviso(x.message); }); }
+  $("btnNovo").addEventListener("click", function () { $("novoForn").classList.toggle("hide"); $("nfNome").focus(); });
+  $("nfOk").addEventListener("click", function () { addForn({ fornecedor: $("nfNome").value, telefone: $("nfTel").value, contato: $("nfCont").value, email: $("nfMail").value }); });
+  document.addEventListener("submit", function (e) {
+    var f = e.target.closest("[data-form]"); if (!f) return; e.preventDefault();
+    var it = D.requisicao.itens.map(function (x) { return { item: x.item, preco: f.querySelector('[data-p="' + x.item + '"]').value, impostos: f.querySelector('[data-i="' + x.item + '"]').value, disponivel: f.querySelector('[data-d="' + x.item + '"]').checked }; });
+    api({ acao: "resposta", cot_id: +f.getAttribute("data-form"), prazo_dias: f.prazo.value, cond_pagto: f.pagto.value, frete_tipo: f.frete.value, frete_valor: f.fretev.value, validade: f.val.value || null, obs: f.obs.value, itens: it })
+      .then(function () { abertaResp = null; aviso("Resposta salva.", "ok"); return carregar(); }).catch(function (x) { aviso(x.message); });
+  });
+  $("btnEsc").addEventListener("click", function () {
+    var es = D.requisicao.itens.filter(function (x) { return esc_[x.item]; }).map(function (x) {
+      var j = document.querySelector('[data-just="' + x.item + '"]'), n = document.querySelector('[data-neg="' + x.item + '"]');
+      return { item: x.item, cot_id: esc_[x.item], justificativa: j ? j.value : "", preco_negociado: n ? n.value : "" };
+    });
+    if (!es.length) { $("msgEsc").innerHTML = '<div class="msg">Ainda não há resposta para escolher.</div>'; return; }
+    api({ acao: "escolher", escolhas: es, excecao: $("exc").value }).then(function () {
+      $("msgEsc").innerHTML = '<div class="msg ok">Escolha registrada no histórico da requisição. Próximo passo: emitir o pedido de compra e informar o nº na requisição.</div>'; return carregar();
+    }).catch(function (x) { $("msgEsc").innerHTML = '<div class="msg">' + esc(x.message) + "</div>"; var j = x.j && x.j.item && document.querySelector('[data-just="' + x.j.item + '"]'); if (j) j.focus(); });
+  });
+  if (!N) aviso("Abra a cotação pela lista de requisições."); else carregar();
+})();
+</script>
+<script src="/gestao/aviso-limites.js?v=4" defer></script>
+</body>
+</html>

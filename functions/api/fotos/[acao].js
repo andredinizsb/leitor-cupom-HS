@@ -10,7 +10,7 @@ import { resp, semBanco, ERRO_BANCO, txt, agora } from "../../../lib/aut.js";
 import { tokenOk, b64ParaBytes, brData } from "../../../lib/rdo.js";
 import { relatorioHtml, dadosRelatorio, dataUri, regRdoJotform } from "../../../lib/relatorio.js";
 import { ITENS } from "../../../lib/checklist.js";
-import { garantir as garantirCompras } from "../../../lib/compras.js";
+import { garantir as garantirCompras, norm as normCompras } from "../../../lib/compras.js";
 import { TABELAS, SQL_BYTES, DIAS_CHECKLIST, DIAS_FROTA, nomeFoto, nomeArquivoFrota, tsv, resumoHtml, resumoFrotaHtml, uso, situacao, comR2Contado } from "../../../lib/fotos.js";
 //   GET  listar?tipo=frota&dias=180              -> id, ref, arquivo, bytes, frota, data (NF/PDF/fotos da frota; o último arquivo de cada documento fica)
 //   GET  resumo?tipo=frota&numero=MAN:MAN-2026-000001 (ou DOC:12)
@@ -39,6 +39,25 @@ export async function onRequest({ request, env, params }) {
   env = comR2Contado(env);
   const db = env.DB, u = new URL(request.url), q = u.searchParams, acao = String(params.acao || "");
   const tipo = (acao === "apagar" ? null : q.get("tipo")) || "rdo";
+  //   POST catalogo {tipo: mat|forn|precos, linhas: [[...]]} -> HS Compras C2: catálogo do FX (até 400 linhas por chamada; grava só o que mudou)
+  if (request.method === "POST" && acao === "catalogo") {
+    let d;
+    try { d = await request.json(); } catch (e) { return resp({ ok: false, erro: "json_invalido" }, 400); }
+    const L = Array.isArray(d.linhas) ? d.linhas.slice(0, 400) : [], t = String(d.tipo || "");
+    const S = (v, n) => (v == null || v === "") ? null : String(v).slice(0, n || 200);
+    const N = (v) => { const x = Number(v); return v === "" || v == null || !isFinite(x) ? null : x; };
+    await garantirCompras(db);
+    let st;
+    if (t === "mat") st = L.filter((l) => S(l[0])).map((l) => db.prepare("INSERT INTO compras_mat (id_fx, descricao, marca, categoria, unidade, busca) VALUES (?1, ?2, ?3, ?4, ?5, ?6) ON CONFLICT(id_fx) DO UPDATE SET descricao = ?2, marca = ?3, categoria = ?4, unidade = ?5, busca = ?6")
+      .bind(S(l[0], 20), S(l[1]) || "", S(l[2], 60), S(l[3], 60), S(l[4], 10), normCompras([l[0], l[1], l[2]].join(" "))));
+    else if (t === "forn") st = L.filter((l) => S(l[0])).map((l) => db.prepare("INSERT INTO compras_forn (cnpj, nome, fantasia, contato, telefone, email, cidade, uf, busca) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9) ON CONFLICT(cnpj) DO UPDATE SET nome = ?2, fantasia = ?3, contato = ?4, telefone = ?5, email = coalesce(?6, email), cidade = ?7, uf = ?8, busca = ?9")
+      .bind(S(l[0], 20), S(l[1]) || "", S(l[2], 120), S(l[3], 80), S(l[4], 40), S(l[5], 120), S(l[6], 60), S(l[7], 2), normCompras([l[0], l[1], l[2], l[6]].join(" "))));
+    else if (t === "precos") st = L.filter((l) => S(l[0]) && S(l[1])).map((l) => db.prepare("INSERT INTO compras_precos (id_fx, cnpj, data, preco, qtd, nf, vezes) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7) ON CONFLICT(id_fx, cnpj) DO UPDATE SET data = ?3, preco = ?4, qtd = ?5, nf = ?6, vezes = ?7")
+      .bind(S(l[0], 20), S(l[1], 20), S(l[2], 10), N(l[3]), N(l[4]), S(l[5], 20), N(l[6])));
+    else return resp({ ok: false, erro: "tipo_invalido" }, 400);
+    if (st.length) await db.batch(st);
+    return tsv([["gravadas", st.length]]);
+  }
   //   GET  requisicoes -> HS Compras: 1 linha por item (mesmas colunas da tRequisicoes da planilha)
   if (acao === "requisicoes") {
     await garantirCompras(db);
