@@ -613,16 +613,30 @@ function ligarObras(inp, desc) {
     if (document.visibilityState === "visible" && srvOnline !== true) { clearTimeout(window.__retryOpc); loadOpcoes(1); }
   });
 
+  // Para onde vai a despesa: obra (nº da obra) ou orçamento / visita técnica (custo de pré-venda).
+  // O campo da obra no Jotform só aceita número: orçamento vai como a obra 9000 (reservada) e o cliente/proposta na descrição.
+  var DEST = "obra", OBRA_ORC = "9000";
+  function setDest(d) {
+    DEST = d === "orc" ? "orc" : "obra";
+    var seg = document.getElementById("destSeg"); if (!seg) return;
+    seg.querySelectorAll("button[data-dest]").forEach(function (b) { b.classList.toggle("sel", b.getAttribute("data-dest") === DEST); });
+    var ow = document.getElementById("obraWrap"), rw = document.getElementById("orcWrap"), fo = document.getElementById("fObra"), fd = document.getElementById("fObraDesc");
+    if (ow) ow.hidden = DEST === "orc";
+    if (rw) rw.hidden = DEST !== "orc";
+    if (fd && fd.closest(".field")) fd.closest(".field").hidden = DEST === "orc";
+    if (DEST === "obra") { if (fo && fo.value === OBRA_ORC) fo.value = ""; if (fd && /^ORÇAMENTO - /.test(fd.value)) fd.value = ""; }
+  }
+
   // Preserva o que a pessoa digitou quando a tela é redesenhada (chegada da nota ou das listas).
   function capturarEntrada() {
     function v(id) { var e = document.getElementById(id); return e ? e.value : undefined; }
     var colab = []; resultEl.querySelectorAll(".colabChk:checked").forEach(function (c) { colab.push(c.value); });
-    return { obra: v("fObra"), obraDesc: v("fObraDesc"), obs: v("fObs"), colab: colab };
+    return { obra: v("fObra"), obraDesc: v("fObraDesc"), obs: v("fObs"), colab: colab, orcCli: v("fOrcCli"), orcNum: v("fOrcNum") };
   }
   function restaurarEntrada(c) {
     if (!c) return;
     function set(id, val) { var e = document.getElementById(id); if (e && val != null && val !== "") e.value = val; }
-    set("fObra", c.obra); set("fObraDesc", c.obraDesc); set("fObs", c.obs);
+    set("fObra", c.obra); set("fObraDesc", c.obraDesc); set("fObs", c.obs); set("fOrcCli", c.orcCli); set("fOrcNum", c.orcNum);
     if (c.colab && c.colab.length) { resultEl.querySelectorAll(".colabChk").forEach(function (ch) { if (c.colab.indexOf(ch.value) >= 0) ch.checked = true; }); updateColabChips(); }
   }
   function refreshOpenConf() {
@@ -793,7 +807,11 @@ function ligarObras(inp, desc) {
     h += '</div>';
 
     // Nº da obra (único obrigatório, logo após o resumo)
-    h += field("Nº da obra", "fObra", "", { inputmode: "numeric", req: true, ph: "Ex.: 4231", msg: "Informe o número da obra para enviar." });
+    h += '<div class="field"><label>A despesa é de</label><div class="seg" id="destSeg" style="margin-top:0">' +
+      '<button type="button" data-dest="obra" class="sel">Obra</button><button type="button" data-dest="orc">Orçamento / visita técnica</button></div></div>';
+    h += '<div id="obraWrap">' + field("Nº da obra", "fObra", "", { inputmode: "numeric", req: true, ph: "Ex.: 4231", msg: "Informe o número da obra para enviar." }) + '</div>';
+    h += '<div id="orcWrap" hidden>' + field("Cliente / usina visitada", "fOrcCli", "", { req: true, ph: "Ex.: Usina Santa Adélia", msg: "Informe o cliente ou a usina do orçamento." }) +
+      field("Nº do orçamento / proposta", "fOrcNum", "", { ph: "Opcional · se já tiver" }) + '</div>';
     if (MANUAL) {
       // No modo digitado os dados da nota vêm logo no topo (no QR eles vêm preenchidos e ficam recolhidos).
       h += field("Data da despesa", "fData", hojeISO(), { inputType: "date", req: true, msg: "Informe a data." });
@@ -881,6 +899,9 @@ function ligarObras(inp, desc) {
     });
     for (var bi = 0; bi < count; bi++) bindItem(bi);
     var fo = document.getElementById("fObra"); if (fo) { fo.addEventListener("input", function () { fo.closest(".field").classList.remove("invalid"); }); ligarObras(fo, document.getElementById("fObraDesc")); }
+    var dseg = document.getElementById("destSeg");
+    if (dseg) { dseg.addEventListener("click", function (e) { var b = e.target.closest("button[data-dest]"); if (b) setDest(b.getAttribute("data-dest")); }); setDest(DEST); }
+    var foc = document.getElementById("fOrcCli"); if (foc) foc.addEventListener("input", function () { foc.closest(".field").classList.remove("invalid"); });
     var fcn = document.getElementById("fCnpj");
     if (fcn) fcn.addEventListener("input", function () {
       var d = fcn.value.replace(/\D/g, "");
@@ -939,6 +960,13 @@ function ligarObras(inp, desc) {
   function enviar() {
     var st2 = document.getElementById("st2"); var btn = document.getElementById("btnEnviar");
     function msg(m, cls) { st2.className = "status" + (cls ? " " + cls : ""); st2.innerHTML = m ? ((cls === "err" ? ic("alert", 16) : "") + "<span>" + esc(m) + "</span>") : ""; }
+    if (DEST === "orc") {
+      var cliEl = document.getElementById("fOrcCli"), cli = (cliEl.value || "").trim();
+      if (!cli) { cliEl.closest(".field").classList.add("invalid"); msg("Informe o cliente ou a usina do orçamento.", "err"); cliEl.focus(); return; }
+      var np = (document.getElementById("fOrcNum").value || "").trim().slice(0, 30);
+      document.getElementById("fObra").value = OBRA_ORC;
+      document.getElementById("fObraDesc").value = "ORÇAMENTO - " + cli + (np ? " - Proposta " + np : "");
+    }
     var obraEl = document.getElementById("fObra");
     var obra = (obraEl.value || "").trim();
     if (!obra) { obraEl.closest(".field").classList.add("invalid"); msg("Informe o número da obra para enviar.", "err"); obraEl.focus(); return; }
@@ -1038,7 +1066,7 @@ function ligarObras(inp, desc) {
     var h = '<div class="card done"><div class="ic-ok">' + ic("circle-check", 38) + '</div>';
     h += '<h2>' + (n > 1 ? (n + " despesas lançadas") : "Despesa lançada") + '</h2>';
     if (total) h += '<div class="big hs-num">' + esc(total) + '</div>';
-    h += '<p>Enviada' + (n > 1 ? "s" : "") + ' com sucesso para o formulário de despesas, obra ' + esc(obra) + '.' + (viaReserva ? ' <br><span class="t-small">(Gravado pelo envio direto, sem o servidor NFC-e.)</span>' : '') + '</p>';
+    h += '<p>Enviada' + (n > 1 ? "s" : "") + ' com sucesso para o formulário de despesas, ' + (String(obra) === OBRA_ORC ? 'orçamento / visita técnica (obra ' + esc(obra) + ')' : 'obra ' + esc(obra)) + '.' + (viaReserva ? ' <br><span class="t-small">(Gravado pelo envio direto, sem o servidor NFC-e.)</span>' : '') + '</p>';
     h += '<button class="btn" id="btnNova" type="button">' + ic("camera") + '<span>Ler próxima nota</span></button>';
     h += '<button class="btn sub" id="btnNovaManual" type="button" style="margin-top:var(--s2)">' + ic("keyboard") + '<span>Digitar outra</span></button>';
     h += '<a class="btn sub" href="/inicio/" style="margin-top:var(--s2);text-decoration:none"><span>← Voltar ao início</span></a></div>';
