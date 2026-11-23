@@ -1,5 +1,5 @@
 // POST /api/rdo/enviar — o encarregado lança o RDO do dia pelo celular (sem login, como o app de despesas)
-import { resp, origemOk, semBanco, ERRO_BANCO, txt, num, agora, aleatorio } from "../../../lib/aut.js";
+import { resp, origemOk, semBanco, ERRO_BANCO, txt, num, agora, aleatorio, assinaturaValida } from "../../../lib/aut.js";
 import { CLIMAS, ETAPAS, MAX_FOTOS, MAX_FOTO_B64, SEM_VEICULO, inteiro, dataHora, bool, proximoNumeroRdo, separarFoto, b64ParaBytes } from "../../../lib/rdo.js";
 import { ondeGuardar, comR2Contado, bytesB64 } from "../../../lib/fotos.js";
 
@@ -42,6 +42,7 @@ export async function onRequestPost({ request, env }) {
   if (houve && !materiais.length) return erro("sem_materiais", "Informe os materiais aplicados.");
   const responsavel = txt(d.responsavel, 80);
   if (!responsavel) return erro("sem_responsavel", "Informe o responsável pelo lançamento.");
+  if (!assinaturaValida(d.assinatura_resp)) return erro("sem_assinatura", "Assine o RDO para confirmar (se não aparecer o quadro de assinatura, feche e abra o app de novo).");
   const s = d.seguranca || {};
   const seguranca = JSON.stringify({ dds: !!s.dds, apr: !!s.apr, pt: !!s.pt });
   const lat = num(d.lat), lon = num(d.lon), prec = num(d.precisao);
@@ -65,12 +66,12 @@ export async function onRequestPost({ request, env }) {
     const n = await proximoNumeroRdo(db, ano);
     try {
       await db.prepare("INSERT INTO rdo (numero, criado_em, data_inicio, data_fim, empresa, cliente, obra, obra_desc, colaboradores, descricao, frota, km_inicial, km_final, " +
-        "mesma_frota, frota_exec, km_exec_inicial, km_exec_final, houve_material, materiais, clima_manha, clima_tarde, ocorrencias, seguranca, responsavel, lat, lon, precisao, qtd_fotos, chave) " +
-        "VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?22, ?23, ?24, ?25, ?26, ?27, ?28, ?29)")
+        "mesma_frota, frota_exec, km_exec_inicial, km_exec_final, houve_material, materiais, clima_manha, clima_tarde, ocorrencias, seguranca, responsavel, lat, lon, precisao, qtd_fotos, chave, assinatura_resp, assinado_resp_em, status) " +
+        "VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?22, ?23, ?24, ?25, ?26, ?27, ?28, ?29, ?30, ?2, 'Aguardando gestão')")
         .bind(n, quando, ini, fim, ["HS", "MC"].includes(d.empresa) ? d.empresa : null, cliente, txt(d.obra, 30), txt(d.obra_desc, 160), JSON.stringify(colaboradores), descricao,
               frota, kmI, kmF, mesma ? 1 : 0, frotaExec, kmEI, kmEF, houve ? 1 : 0, JSON.stringify(materiais),
               CLIMAS.includes(d.clima_manha) ? d.clima_manha : null, CLIMAS.includes(d.clima_tarde) ? d.clima_tarde : null, txt(d.ocorrencias, 2000), seguranca, responsavel,
-              lat, lon, prec, fotos.length, chave).run();
+              lat, lon, prec, fotos.length, chave, d.assinatura_resp).run();
       numero = n;
     } catch (e) {
       if (!/UNIQUE|constraint/i.test(String(e && e.message))) throw e;   // outro RDO pegou o mesmo número: tenta o próximo

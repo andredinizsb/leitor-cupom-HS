@@ -202,7 +202,7 @@ textarea{min-height:80px;resize:vertical}input:focus,select:focus,textarea:focus
       avaria_frente: sel.frente, avaria_lat_esq: sel.lat_esq, avaria_traseira: sel.traseira, avaria_lat_dir: sel.lat_dir,
       itens_ok: vis.filter(function (i) { return resp[i] === "ok"; }), itens_problema: prob, obs: $("obs").value.trim(),
       lat: gps && gps.lat, lon: gps && gps.lon, precisao: gps && gps.precisao, fotos: fotos };
-    var b = $("btnEnviar"); b.disabled = true; b.textContent = fotos.length ? "Enviando checklist e " + fotos.length + " foto(s)…" : "Enviando…";
+    var postar = function () { + fotos.length + " foto(s)…" : "Enviando…";
     fetch("/api/checklist/enviar", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(corpo) })
       .then(function (r) { return r.json().catch(function () { return { ok: false, erro: "http_" + r.status }; }); })
       .then(function (j) {
@@ -220,6 +220,12 @@ textarea{min-height:80px;resize:vertical}input:focus,select:focus,textarea:focus
       })
       .catch(function (e) { msg((e && e.message) || "Sem conexão. Tente de novo quando tiver sinal."); })
       .then(function () { b.disabled = false; b.textContent = "Enviar checklist"; });
+    };
+    // assinatura de quem fez o checklist (uma só) = confirmação
+    if (!window.hsAssinar) { msg("Atualize o app (feche e abra de novo) para assinar o checklist."); return; }
+    hsAssinar({ app: "checklist", titulo: "Assine para confirmar o checklist", sub: "Confira o resumo. Para mudar algo, toque em Voltar e editar.", nome: corpo.condutor,
+      linhas: [["Veículo", corpo.frota], ["Hodômetro", corpo.hodometro ? corpo.hodometro + " km" : ""], ["Com problema", prob.length ? prob.join("; ") : "Nenhum"], ["Fotos", fotos.length]],
+      confirmar: "Assinar e enviar checklist", ok: function (png) { corpo.assinatura = png; postar(); } });
   });
   function listar() {
     var l = lsGet(LS_ENV, []);
@@ -227,6 +233,7 @@ textarea{min-height:80px;resize:vertical}input:focus,select:focus,textarea:focus
   }
 })();
 </script>
+<script src="/icons/assinatura.js"></script>
 <script src="/icons/enviado.js"></script>
 <script src="/icons/abertura.js" data-app="checklist"></script>
 </body>

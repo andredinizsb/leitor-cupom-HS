@@ -24,6 +24,6 @@ export async function onRequestGet({ request, env, data }) {
     (f.results || []).forEach(function (x) { (fotos[x.numero] = fotos[x.numero] || []).push({ id: x.id, etapa: x.etapa, legenda: x.legenda, arquivo: x.arquivo || null }); });
   }
   return resp({ ok: true, quem: data && data.quem, rdos: rdos.map(function (r) {
-    return Object.assign({}, r, { chave: undefined, colaboradores: lista(r.colaboradores), materiais: lista(r.materiais), seguranca: objeto(r.seguranca), fotos: fotos[r.numero] || [] });
+    return Object.assign({}, r, { chave: undefined, assinatura_resp: undefined, assinatura_gestao: undefined, assinado_resp: !!r.assinatura_resp, status: r.status || "Aguardando gestão", colaboradores: lista(r.colaboradores), materiais: lista(r.materiais), seguranca: objeto(r.seguranca), fotos: fotos[r.numero] || [] });
   }) });
 }

@@ -76,6 +76,7 @@ dl{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;margin:10px 0;font-s
       $("lista").innerHTML = L.length ? L.map(cartao).join("") : '<div class="vazio">Nenhum RDO no período.</div>';
     }).catch(function (e) { $("lista").innerHTML = ""; $("aviso").innerHTML = '<div class="msg">' + esc(e.message) + '</div>'; });
   }
+  var RDOS = {};
   function cartao(r) {
     var s = r.seguranca || {}, seg = [s.dds ? "DDS" : "", s.apr ? "APR" : "", s.pt ? "PT" : ""].filter(Boolean).join(" · ");
     var exec = r.mesma_frota ? "" : (r.frota_exec || "Sem veículo") + (r.km_exec_final != null ? " · " + (r.km_exec_final - r.km_exec_inicial) + " km" : "");
@@ -94,13 +95,70 @@ dl{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;margin:10px 0;font-s
     if (r.lat != null && r.lon != null) h += '<dt>Local</dt><dd><a href="https://www.google.com/maps?q=' + r.lat + ',' + r.lon + '" target="_blank" rel="noopener">ver no mapa</a> <span class="meta">±' + esc(r.precisao) + ' m</span></dd>';
     h += '</dl>';
     if (r.fotos.length) h += '<div class="fts">' + r.fotos.map(function (f) { var u = "/api/gestao/rdo-foto?id=" + f.id; if (f.arquivo) return '<a class="arqv" title="' + esc(f.arquivo) + '"><span>' + esc(f.etapa || "Foto") + ' · no servidor</span></a>'; return '<a href="' + u + '" target="_blank" rel="noopener" title="' + esc([f.etapa, f.legenda].filter(Boolean).join(" - ")) + '"><img loading="lazy" src="' + u + '" alt="' + esc(f.legenda || f.etapa || "foto") + '">' + (f.etapa ? '<span>' + esc(f.etapa) + '</span>' : '') + '</a>'; }).join("") + '</div>';
+    RDOS[r.numero] = r;
+    var fin = r.status === "Finalizado";
+    h += '<div class="stt ' + (fin ? "fin" : "pen") + '">' + (fin ? "✔ Finalizado · assinado por " + esc(r.assinado_gestao_por || "") + " em " + esc(new Date(r.assinado_gestao_em).toLocaleString("pt-BR"))
+      : "Aguardando a gestão · " + (r.assinado_resp ? "assinado pelo responsável" : "sem assinatura do responsável") + (r.editado_em ? " · editado por " + esc(r.editado_por) : "")) + '</div>';
+    if (!fin) h += '<div class="acoesR"><button class="btn ghost" type="button" data-editar="' + esc(r.numero) + '">Editar</button><button class="btn" type="button" data-finalizar="' + esc(r.numero) + '">Assinar e finalizar</button></div>';
     return h + '<div class="meta" style="margin-top:8px">Enviado em ' + esc(new Date(r.criado_em).toLocaleString("pt-BR")) + '</div></div>';
   }
   $("btnBuscar").addEventListener("click", buscar);
   $("q").addEventListener("keydown", function (e) { if (e.key === "Enter") buscar(); });
+  // ===== revisão da gestão: editar, assinar e finalizar =====
+  var CLIMAS = ["Bom", "Nublado", "Chuva fraca", "Chuva forte (parou o serviço)"];
+  var st = document.createElement("style");
+  st.textContent = ".stt{margin-top:10px;padding:8px 10px;border-radius:8px;font-size:13px;font-weight:600}.stt.pen{background:#FEF3C7;color:#92400E}.stt.fin{background:#DDF3EA;color:#0B6B4A}" +
+    ".acoesR{display:flex;gap:8px;margin-top:8px}.acoesR .btn{flex:1}" +
+    ".edR{position:fixed;inset:0;z-index:9990;background:rgba(14,18,23,.55);display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:20px 12px}" +
+    ".edR form{background:var(--card,#fff);color:inherit;width:100%;max-width:560px;border-radius:14px;padding:16px;display:grid;gap:10px}" +
+    ".edR label{display:grid;gap:4px;font-size:13px;font-weight:600}.edR input,.edR textarea,.edR select{font:15px Inter,system-ui,sans-serif;padding:9px 10px;border:1px solid #C9D2DC;border-radius:8px;background:#fff;color:#0E1217}" +
+    ".edR textarea{min-height:90px}.edR .dois{display:grid;grid-template-columns:1fr 1fr;gap:10px}.edR .bts{display:flex;gap:8px;justify-content:flex-end}.edR .err{color:#C81E1E;font-size:14px;min-height:18px}";
+  document.head.appendChild(st);
+  function acao(corpo) {
+    return fetch("/api/gestao/rdo-acao", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(corpo) })
+      .then(function (r) { return r.json().catch(function () { return { ok: false, msg: "Erro " + r.status }; }); });
+  }
+  function opcoes(v) { return '<option value="">—</option>' + CLIMAS.map(function (c) { return '<option' + (c === v ? " selected" : "") + ">" + esc(c) + "</option>"; }).join(""); }
+  function editar(r) {
+    var d = document.createElement("div"); d.className = "edR";
+    d.innerHTML = '<form><h3 style="margin:0">Editar ' + esc(r.numero) + '</h3>' +
+      '<label>Cliente<input name="cliente" value="' + esc(r.cliente) + '"></label>' +
+      '<label>Colaboradores (um por linha)<textarea name="colaboradores">' + esc((r.colaboradores || []).join("\n")) + '</textarea></label>' +
+      '<label>Atividades executadas<textarea name="descricao">' + esc(r.descricao) + '</textarea></label>' +
+      '<label>Ocorrências<textarea name="ocorrencias">' + esc(r.ocorrencias || "") + '</textarea></label>' +
+      '<div class="dois"><label>Clima manhã<select name="clima_manha">' + opcoes(r.clima_manha) + '</select></label><label>Clima tarde<select name="clima_tarde">' + opcoes(r.clima_tarde) + '</select></label></div>' +
+      '<div class="dois"><label>Km inicial<input name="km_inicial" inputmode="numeric" value="' + esc(r.km_inicial) + '"></label><label>Km final<input name="km_final" inputmode="numeric" value="' + esc(r.km_final) + '"></label></div>' +
+      '<label>Responsável<input name="responsavel" value="' + esc(r.responsavel) + '"></label><div class="err"></div>' +
+      '<div class="bts"><button class="btn ghost" type="button" data-x="1">Cancelar</button><button class="btn" type="submit">Salvar alterações</button></div></form>';
+    document.body.appendChild(d);
+    var f = d.querySelector("form");
+    d.querySelector("[data-x]").addEventListener("click", function () { d.remove(); });
+    f.addEventListener("submit", function (e) {
+      e.preventDefault();
+      var c = {}; ["cliente", "colaboradores", "descricao", "ocorrencias", "clima_manha", "clima_tarde", "km_inicial", "km_final", "responsavel"].forEach(function (n) { c[n] = f.elements[n].value; });
+      f.querySelector("[type=submit]").disabled = true;
+      acao({ numero: r.numero, acao: "editar", campos: c }).then(function (j) {
+        if (!j.ok) { d.querySelector(".err").textContent = j.msg || "Não foi possível salvar."; f.querySelector("[type=submit]").disabled = false; return; }
+        d.remove(); buscar();
+      });
+    });
+  }
+  function finalizar(r) {
+    if (!window.hsAssinar) return;
+    hsAssinar({ app: "gestao", titulo: "Assinar e finalizar " + r.numero, sub: "Depois de finalizado o RDO não pode mais ser editado, e o relatório final com as duas assinaturas vai para o servidor.",
+      linhas: [["Obra", [r.obra, r.obra_desc].filter(Boolean).join(" · ")], ["Cliente", r.cliente], ["Responsável", r.responsavel], ["Data", br(r.data_inicio)]],
+      confirmar: "Assinar e finalizar", voltar: "Cancelar",
+      ok: function (png) { acao({ numero: r.numero, acao: "finalizar", assinatura: png }).then(function (j) { if (!j.ok) window.alert(j.msg || "Não foi possível finalizar."); buscar(); }); } });
+  }
+  $("lista").addEventListener("click", function (e) {
+    var ed = e.target.getAttribute("data-editar"), fi = e.target.getAttribute("data-finalizar");
+    if (ed && RDOS[ed]) editar(RDOS[ed]);
+    if (fi && RDOS[fi]) finalizar(RDOS[fi]);
+  });
   buscar();
 })();
 </script>
+<script src="/icons/assinatura.js"></script>
 <script src="/gestao/aviso-limites.js" defer></script>
 <script src="/icons/abertura.js" data-app="gestao"></script>
 </body>

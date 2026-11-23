@@ -1,5 +1,5 @@
 // POST /api/checklist/enviar — o condutor faz o checklist do veículo pelo celular (sem login, como o RDO)
-import { resp, origemOk, semBanco, ERRO_BANCO, txt, num, agora } from "../../../lib/aut.js";
+import { resp, origemOk, semBanco, ERRO_BANCO, txt, num, agora, assinaturaValida } from "../../../lib/aut.js";
 import { MAX_FOTOS, MAX_FOTO_B64, inteiro, dataHora, separarFoto, b64ParaBytes } from "../../../lib/rdo.js";
 import { AVARIAS, SECOES, ITENS, avarias, proximoNumeroChk } from "../../../lib/checklist.js";
 import { ondeGuardar, comR2Contado, bytesB64 } from "../../../lib/fotos.js";
@@ -19,6 +19,7 @@ export async function onRequestPost({ request, env }) {
   if (hodo == null) return erro("sem_hodometro", "Informe o hodômetro (km).");
   const kmOleo = txt(d.km_troca_oleo, 60);
   if (!kmOleo) return erro("sem_km_oleo", "Informe o km da próxima troca de óleo (ou NÃO SEI).");
+  if (!assinaturaValida(d.assinatura)) return erro("sem_assinatura", "Assine o checklist para confirmar (se não aparecer o quadro de assinatura, feche e abra o app de novo).");
   const av = { frente: avarias(d.avaria_frente, AVARIAS.frente), lat_esq: avarias(d.avaria_lat_esq, AVARIAS.lat_esq),
     traseira: avarias(d.avaria_traseira, AVARIAS.traseira), lat_dir: avarias(d.avaria_lat_dir, AVARIAS.lat_dir) };
   const ok = (Array.isArray(d.itens_ok) ? d.itens_ok : []).filter(function (x) { return ITENS.includes(x); });
@@ -41,9 +42,9 @@ export async function onRequestPost({ request, env }) {
     const n = await proximoNumeroChk(db, ano);
     try {
       await db.prepare("INSERT INTO checklist (numero, criado_em, data_check, frota, condutor, hodometro, km_troca_oleo, avaria_frente, avaria_lat_esq, avaria_traseira, avaria_lat_dir, " +
-        "itens_ok, itens_problema, obs, lat, lon, precisao, qtd_fotos) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18)")
+        "itens_ok, itens_problema, obs, lat, lon, precisao, qtd_fotos, assinatura, assinado_em) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?2)")
         .bind(n, quando, quandoCheck, frota, condutor, hodo, kmOleo, JSON.stringify(av.frente), JSON.stringify(av.lat_esq), JSON.stringify(av.traseira), JSON.stringify(av.lat_dir),
-              JSON.stringify(ok), JSON.stringify(prob), txt(d.obs, 2000), num(d.lat), num(d.lon), num(d.precisao), fotos.length).run();
+              JSON.stringify(ok), JSON.stringify(prob), txt(d.obs, 2000), num(d.lat), num(d.lon), num(d.precisao), fotos.length, d.assinatura).run();
       numero = n;
     } catch (e) { if (!/UNIQUE|constraint/i.test(String(e && e.message))) throw e; }
   }

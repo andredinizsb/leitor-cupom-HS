@@ -7,7 +7,7 @@
 //   GET  resumo?tipo=rdo&numero=RDO-2026-000001  -> página HTML do RDO/checklist (vai na pasta junto das fotos)
 //   POST apagar  {tipo, pasta, itens:[{id, bytes}]} -> apaga do app só as fotos cujo tamanho confere (a linha do RDO fica)
 import { resp, semBanco, ERRO_BANCO, txt, agora } from "../../../lib/aut.js";
-import { tokenOk, b64ParaBytes } from "../../../lib/rdo.js";
+import { tokenOk, b64ParaBytes, brData } from "../../../lib/rdo.js";
 import { relatorioHtml, dadosRelatorio, dataUri } from "../../../lib/relatorio.js";
 import { ITENS } from "../../../lib/checklist.js";
 import { TABELAS, SQL_BYTES, DIAS_CHECKLIST, DIAS_FROTA, nomeFoto, nomeArquivoFrota, tsv, resumoHtml, resumoFrotaHtml, uso, situacao, comR2Contado } from "../../../lib/fotos.js";
@@ -17,6 +17,7 @@ import { TABELAS, SQL_BYTES, DIAS_CHECKLIST, DIAS_FROTA, nomeFoto, nomeArquivoFr
 //   GET  listar?tipo=rdo&dias=180                -> RDOs de qualquer obra com mais de N dias (limpeza por espaço; a macro decide N pelo uso)
 
 const GUARDADA = "(dados IS NOT NULL OR r2_key IS NOT NULL)";
+const TIPOS_REL = ["rdo", "checklist", "frota", "autorizacao", "frota-docs", "frota-pend", "jotform"];
 // só arquiva (e apaga do app) o que já tem o relatório final salvo no servidor
 const COM_RELATORIO = (tipo, col) => "EXISTS (SELECT 1 FROM relatorios x WHERE x.tipo = '" + tipo + "' AND x.numero = " + col + ")";
 //   GET  relatorios?tipo=rdo|checklist|frota    -> registros sem relatório salvo: numero, empresa|frota, obra, data
@@ -38,7 +39,7 @@ export async function onRequest({ request, env, params }) {
   const db = env.DB, u = new URL(request.url), q = u.searchParams, acao = String(params.acao || "");
   const tipo = (acao === "apagar" ? null : q.get("tipo")) || "rdo";
   // tabela dos relatórios salvos no servidor (cria sozinha na 1ª vez; nas outras não faz nada)
-  if (/^(relatorios|relatorio-salvo|listar)$/.test(acao)) await db.prepare("CREATE TABLE IF NOT EXISTS relatorios (tipo TEXT NOT NULL, numero TEXT NOT NULL, salvo_em TEXT, arquivo TEXT, PRIMARY KEY (tipo, numero))").run();
+  if (/^(relatorios|relatorio-salvo|listar)$/.test(acao)) await db.prepare("CREATE TABLE IF NOT EXISTS relatorios (tipo TEXT NOT NULL, numero TEXT NOT NULL, salvo_em TEXT, arquivo TEXT, estado TEXT, PRIMARY KEY (tipo, numero))").run();
 
   if (request.method === "POST" && acao === "apagar") {
     let d;
@@ -59,22 +60,39 @@ export async function onRequest({ request, env, params }) {
   if (request.method === "POST" && acao === "relatorio-salvo") {
     let d;
     try { d = await request.json(); } catch (e) { return resp({ ok: false, erro: "json_invalido" }, 400); }
-    if (!TABELAS[d.tipo] || !txt(d.numero, 30)) return resp({ ok: false, erro: "parametros" }, 400);
-    await db.prepare("INSERT INTO relatorios (tipo, numero, salvo_em, arquivo) VALUES (?1, ?2, ?3, ?4) ON CONFLICT(tipo, numero) DO UPDATE SET salvo_em = ?3, arquivo = ?4")
-      .bind(d.tipo, txt(d.numero, 30), agora(), txt(d.arquivo, 300)).run();
+    if (!TIPOS_REL.includes(d.tipo) || !txt(d.numero, 30)) return resp({ ok: false, erro: "parametros" }, 400);
+    await db.prepare("INSERT INTO relatorios (tipo, numero, salvo_em, arquivo, estado) VALUES (?1, ?2, ?3, ?4, ?5) ON CONFLICT(tipo, numero) DO UPDATE SET salvo_em = ?3, arquivo = ?4, estado = ?5")
+      .bind(d.tipo, txt(d.numero, 30), agora(), txt(d.arquivo, 300), txt(d.estado, 40)).run();
     return tsv([["ok", 1]]);
+  }
+  if (request.method === "POST" && acao === "relatorio-dados") {
+    // checklist do histórico do Jotform (vem da planilha): só gera o relatório, nada é gravado no app
+    let d;
+    try { d = await request.json(); } catch (e) { return resp({ ok: false, erro: "json_invalido" }, 400); }
+    const c = d.reg || {}, iso = /^(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2})/.exec(String(c.data || "")), itens = String(c.itens || "");
+    const av = function (s) { const l = String(s || "").split(/,\s*/).map(function (x) { return x.trim(); }).filter(Boolean); return JSON.stringify(l); };
+    const reg = { numero: txt(c.numero, 40) || "Jotform", data_check: iso ? iso[3] + "-" + iso[2] + "-" + iso[1] + "T" + iso[4] + ":" + iso[5] : "", frota: txt(c.frota, 80), condutor: txt(c.condutor, 120),
+      hodometro: txt(c.hodometro, 20), km_troca_oleo: txt(c.km_oleo, 40), itens_ok: JSON.stringify(ITENS.filter(function (i) { return itens.includes(i); })), itens_problema: "[]",
+      avaria_frente: av(c.frente), avaria_lat_esq: av(c.lat_esq), avaria_traseira: av(c.traseira), avaria_lat_dir: av(c.lat_dir), obs: txt(c.obs, 2000) };
+    return new Response(relatorioHtml("checklist", reg, { fotos: [], base: u.origin, itens: ITENS }), { headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" } });
   }
   if (request.method !== "GET") return resp({ ok: false, erro: "metodo" }, 405);
   if (acao === "relatorios") {
     // registros que ainda não têm o relatório salvo no servidor: numero, a, b, data (rdo: empresa, obra | checklist/frota: frota)
     const sql = {
-      rdo: "SELECT r.numero, coalesce(r.empresa, '') AS a, coalesce(r.obra, '') AS b, substr(r.data_inicio, 1, 10) AS d FROM rdo r WHERE NOT EXISTS (SELECT 1 FROM relatorios x WHERE x.tipo = 'rdo' AND x.numero = r.numero) ORDER BY r.numero",
+      rdo: "SELECT r.numero, coalesce(r.empresa, '') AS a, coalesce(r.obra, '') AS b, substr(r.data_inicio, 1, 10) AS d FROM rdo r WHERE r.status = 'Finalizado' AND NOT EXISTS (SELECT 1 FROM relatorios x WHERE x.tipo = 'rdo' AND x.numero = r.numero) ORDER BY r.numero",
       checklist: "SELECT c.numero, coalesce(c.frota, '') AS a, '' AS b, substr(c.data_check, 1, 10) AS d FROM checklist c WHERE NOT EXISTS (SELECT 1 FROM relatorios x WHERE x.tipo = 'checklist' AND x.numero = c.numero) ORDER BY c.numero",
+      autorizacao: "SELECT a.numero, coalesce(a.empresa, '') AS a, a.status AS b, substr(a.solicitado_em, 1, 10) AS d FROM autorizacoes a WHERE a.status <> 'Pendente' AND NOT EXISTS (SELECT 1 FROM relatorios x WHERE x.tipo = 'autorizacao' AND x.numero = a.numero AND coalesce(x.estado, '') = a.status) ORDER BY a.numero",
       frota: "SELECT m.numero, coalesce(m.frota, '') AS a, '' AS b, substr(m.data, 1, 10) AS d FROM frota_manut m WHERE m.excluido = 0 AND NOT EXISTS (SELECT 1 FROM relatorios x WHERE x.tipo = 'frota' AND x.numero = m.numero) ORDER BY m.numero"
     }[tipo];
     if (!sql) return resp({ ok: false, erro: "tipo_invalido" }, 400);
     const rs = await db.prepare(sql + " LIMIT " + Math.min(200, Math.max(1, parseInt(q.get("max") || "60", 10) || 60))).all();
     return tsv((rs.results || []).map(function (x) { return [x.numero, x.a, x.b, x.d]; }));
+  }
+  if (acao === "chaves-checklist") {
+    // checklists feitos no app ("dd/mm/aaaa hh:mm|frota"): a planilha pula estes ao gerar os relatórios do histórico do Jotform
+    const rs = await db.prepare("SELECT data_check, frota FROM checklist").all();
+    return tsv((rs.results || []).map(function (c) { return [brData(c.data_check) + "|" + c.frota]; }));
   }
   if (acao === "relatorio") {
     // relatório completo com as fotos embutidas (a planilha grava em PDF no servidor; abre sem internet e sem login)
