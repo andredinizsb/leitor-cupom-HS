@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Despesas · Gestão HS</title>
+<link rel="icon" href="/icons/gdespesas.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/icons/gestao-apple.png">
+<link rel="manifest" href="/icons/gestao.webmanifest">
+<meta name="theme-color" content="#0E1217">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Gestão HS">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#F3F5F8;--card:#FFFFFF;--tx:#14171C;--mut:#5C6577;--bd:#DFE3EA;--pri:#0071A3;--pri-tx:#FFFFFF;--pri-sub:#E1F1F9;--ok:#1B7F3A;--warn:#B26B00;--err:#E3262B;--in:#FFFFFF;--bar:#00A0E7}
+@media (prefers-color-scheme:dark){:root{--bg:#0F1216;--card:#181C22;--tx:#EEF1F5;--mut:#9AA3B2;--bd:#2A303A;--pri:#33C0FF;--pri-tx:#06212E;--pri-sub:#10324A;--ok:#3DBE6B;--warn:#F0A43A;--err:#FF5A5F;--in:#11151A;--bar:#33C0FF}}
+*{box-sizing:border-box}html,body{margin:0}body{background:var(--bg);color:var(--tx);font:15px/1.45 Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header{position:sticky;top:0;z-index:5;background:var(--card);border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:10px;padding:10px 16px;flex-wrap:wrap}
+header .logo{width:32px;height:32px;border-radius:8px;background:#0071A3;display:grid;place-items:center;color:#fff;font-weight:800}
+header .nm{font-weight:700}header .sp{flex:1}.quem{color:var(--mut);font-size:13px}
+.faixa{display:flex;height:4px}.faixa i{flex:1}main{max-width:1180px;margin:0 auto;padding:16px}
+.barra{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-bottom:14px}.barra label{display:grid;gap:4px;font-size:13px;color:var(--mut);font-weight:600}
+input,select,textarea{min-height:40px;font:inherit;color:var(--tx);background:var(--in);border:1px solid var(--bd);border-radius:10px;padding:8px 10px;max-width:100%}
+select{min-width:150px}.busca{flex:1;min-width:200px}
+.btn{min-height:40px;border-radius:10px;border:0;background:var(--pri);color:var(--pri-tx);font:inherit;font-weight:700;padding:8px 14px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.btn.ghost{background:transparent;color:var(--pri);border:1px solid var(--bd)}.btn.pq{min-height:32px;padding:4px 10px;font-size:13px}.btn:disabled{opacity:.55;cursor:default}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px}
+.kpi{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:14px;border-top:4px solid #00A0E7}.kpi:nth-child(2){border-top-color:#FE0000}.kpi:nth-child(3){border-top-color:#FFE500}.kpi:nth-child(4){border-top-color:#0071A3}
+.kpi small{display:block;color:var(--mut);font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.04em}.kpi b{display:block;font-size:24px;font-weight:800;letter-spacing:-.02em;margin-top:2px}
+.kpi span{color:var(--mut);font-size:13px}
+.blocos{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:14px}.card h2{margin:0 0 10px;font-size:15px}
+.lin{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;margin-bottom:9px;font-size:13.5px;cursor:pointer}.lin:hover .nm2{color:var(--pri)}
+.lin .nm2{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}.lin .vl{font-weight:700;font-variant-numeric:tabular-nums}
+.lin .bar{grid-column:1/-1;height:7px;border-radius:4px;background:var(--pri-sub);overflow:hidden}.lin .bar i{display:block;height:100%;background:var(--bar);border-radius:4px}
+.lin .sub{grid-column:1/-1;color:var(--mut);font-size:12px;margin-top:-1px}
+.tab{width:100%;border-collapse:collapse;font-size:13.5px}.tab th{text-align:left;color:var(--mut);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;padding:8px 6px;border-bottom:1px solid var(--bd);white-space:nowrap}
+.tab td{padding:9px 6px;border-bottom:1px solid var(--bd);vertical-align:top}.tab td.v{text-align:right;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}.tab th.v{text-align:right}
+.tab .m{color:var(--mut);font-size:12.5px}.ed{display:inline-block;margin-top:3px;font-size:11.5px;font-weight:700;color:var(--warn)}
+.tit{display:flex;align-items:center;gap:10px;margin:4px 0 10px;flex-wrap:wrap}.tit h2{margin:0;font-size:16px}.tit .sp{flex:1}
+.msg{border-radius:10px;padding:10px 12px;margin:12px 0;background:color-mix(in srgb,var(--err) 14%,transparent);color:var(--err)}.msg.ok{background:color-mix(in srgb,var(--ok) 14%,transparent);color:var(--ok)}
+.vazio{color:var(--mut);text-align:center;padding:24px 8px}
+.filtro{display:inline-flex;gap:6px;align-items:center;background:var(--pri-sub);color:var(--pri);border-radius:999px;padding:3px 10px;font-size:12.5px;font-weight:700;margin:0 6px 8px 0}
+.filtro button{border:0;background:none;color:inherit;font-weight:800;cursor:pointer;padding:0 2px}
+/* edição */
+dialog{border:0;border-radius:16px;padding:0;width:min(680px,calc(100vw - 24px));background:var(--card);color:var(--tx);box-shadow:0 18px 50px rgba(0,0,0,.35)}
+dialog::backdrop{background:rgba(14,18,23,.55)}
+.dl-h{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--bd)}.dl-h b{font-size:16px}.dl-h .sp{flex:1}
+.dl-c{padding:14px 16px;max-height:calc(100vh - 190px);overflow:auto;display:grid;grid-template-columns:1fr 1fr;gap:10px 12px}
+.dl-c label{display:grid;gap:4px;font-size:13px;color:var(--mut);font-weight:600}.dl-c .full{grid-column:1/-1}
+.dl-c .info{grid-column:1/-1;font-size:13px;color:var(--mut);background:var(--bg);border-radius:10px;padding:8px 10px}
+.cols{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:4px 10px;max-height:180px;overflow:auto;border:1px solid var(--bd);border-radius:10px;padding:8px;color:var(--tx);font-weight:500}
+.cols label{display:flex;gap:6px;align-items:center;font-size:13px;color:var(--tx);font-weight:500}.cols input{min-height:auto}
+.dl-f{display:flex;gap:8px;justify-content:flex-end;padding:12px 16px;border-top:1px solid var(--bd);flex-wrap:wrap}
+@media (max-width:900px){.blocos{grid-template-columns:1fr}.kpis{grid-template-columns:1fr 1fr}}
+@media (max-width:640px){
+  .tab thead{display:none}.tab tr{display:grid;grid-template-columns:1fr auto;gap:2px 8px;padding:10px 0;border-bottom:1px solid var(--bd)}.tab td{border:0;padding:0}
+  .tab td{grid-column:1/-1}.tab td.c-data{grid-column:1;grid-row:1;color:var(--mut);font-size:12.5px}.tab td.v{grid-column:2;grid-row:1;font-size:15px}.tab td.c-acao{text-align:right}.quem{display:none}
+  .dl-c{grid-template-columns:1fr}.kpi b{font-size:20px}
+}
+</style>
+</head>
+<body>
+<header><div class="logo">HS</div><span class="nm">Despesas</span><span class="sp"></span><span class="quem" id="quem"></span><a class="btn ghost" href="/inicio/">← Início</a>
+  <a class="btn ghost" href="/gestao/">Autorizações</a><a class="btn ghost" href="/gestao/rdo/">RDOs</a><a class="btn ghost" href="/gestao/checklist/">Checklists</a><a class="btn ghost" href="/gestao/frota/">Frota</a></header>
+<div class="faixa"><i style="background:#00A0E7"></i><i style="background:#FE0000"></i><i style="background:#FFE500"></i></div>
+<main>
+  <div class="barra">
+    <label>De<input type="date" id="de"></label><label>Até<input type="date" id="ate"></label>
+    <label>Obra<select id="fObra"><option value="">Todas</option></select></label>
+    <label>Categoria<select id="fCat"><option value="">Todas</option></select></label>
+    <label>Colaborador<select id="fCol"><option value="">Todos</option></select></label>
+    <input class="busca" id="q" placeholder="Buscar fornecedor, NF, descrição, frota…"><button class="btn" type="button" id="btnBuscar">Buscar</button>
+  </div>
+  <div id="filtros"></div>
+  <div id="aviso"></div>
+  <div class="kpis" id="kpis"></div>
+  <div class="blocos">
+    <section class="card"><h2>Custo por obra</h2><div id="gObra"></div></section>
+    <section class="card"><h2>Custo por categoria</h2><div id="gCat"></div></section>
+    <section class="card"><h2>Custo por mês</h2><div id="gMes"></div></section>
+  </div>
+  <section class="card">
+    <div class="tit"><h2 id="tLanc">Lançamentos</h2><span class="sp"></span>
+      <a class="btn ghost pq" id="lnkRel" target="_blank" rel="noopener" href="#">Relatório (PDF)</a><a class="btn ghost pq" id="lnkCsv" href="#">Exportar CSV</a></div>
+    <div style="overflow-x:auto"><table class="tab"><thead><tr><th>Data</th><th>Obra</th><th>Tipo / fornecedor</th><th>Colaboradores</th><th class="v">Valor</th><th></th></tr></thead><tbody id="lista"></tbody></table></div>
+  </section>
+</main>
+
+<dialog id="dlg">
+  <form method="dialog" id="fEd">
+    <div class="dl-h"><b>Editar despesa</b><span class="sp"></span><button class="btn ghost pq" value="x" type="submit" aria-label="Fechar">✕</button></div>
+    <div class="dl-c">
+      <div class="info" id="edInfo"></div>
+      <label>Data da despesa<input type="date" id="eData" required></label>
+      <label>Nº da obra<input id="eObra" inputmode="numeric" pattern="\d{1,6}" list="lsObras" required></label>
+      <label class="full">Descrição da obra<input id="eObraDesc" maxlength="300"></label>
+      <label>Tipo de despesa<select id="eTipo"></select></label>
+      <label>Valor total (R$)<input id="eValor" inputmode="decimal" required></label>
+      <label>Fornecedor<input id="eForn" maxlength="300"></label>
+      <label>CNPJ<input id="eCnpj" maxlength="30"></label>
+      <label>NF / recibo<input id="eNf" maxlength="100"></label>
+      <label>Quantidade<input id="eQtd" inputmode="decimal" maxlength="20"></label>
+      <label>Frota<select id="eFrota"></select></label>
+      <label>Litros<input id="eLitros" inputmode="decimal" maxlength="20"></label>
+      <label class="full">Descrição do item<input id="eDesc" maxlength="300"></label>
+      <div class="full" style="font-size:13px;color:var(--mut);font-weight:600">Colaboradores envolvidos<div class="cols" id="eCols" style="margin-top:4px"></div></div>
+      <label class="full">Observação<textarea id="eObs" rows="2" maxlength="1000"></textarea></label>
+    </div>
+    <div id="edMsg" style="padding:0 16px"></div>
+    <div class="dl-f"><button class="btn ghost" value="x" type="submit">Cancelar</button><button class="btn" type="button" id="btnSalvar">Salvar no Jotform</button></div>
+  </form>
+</dialog>
+<datalist id="lsObras"></datalist>
+
+<script>
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+  var L = [], OPC = null, OBRAS = {}, atual = null;
+  function esc(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
+  function rs(v) { return (Number(v) || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }); }
+  function br(d) { var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(d || ""); return m ? m[3] + "/" + m[2] + "/" + m[1] : ""; }
+  function brH(iso) { var d = new Date(iso); return isNaN(d) ? "" : d.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }); }
+  function dia(d) { return new Date(d.getTime() - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 10); }
+  var MES = ["", "jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+  var hoje = new Date(); $("de").value = dia(new Date(hoje.getFullYear(), hoje.getMonth(), 1)); $("ate").value = dia(hoje);
+  fetch("/obras.json").then(function (r) { return r.json(); }).then(function (l) {
+    l.forEach(function (o) { OBRAS[String(o.n)] = o; });
+    $("lsObras").innerHTML = l.map(function (o) { return '<option value="' + esc(o.n) + '">' + esc(o.e + " · " + o.c + " · " + o.d) + "</option>"; }).join("");
+  }).catch(function () {});
+
+  function params() {
+    return "de=" + $("de").value + "&ate=" + $("ate").value + "&obra=" + encodeURIComponent($("fObra").value) + "&cat=" + encodeURIComponent($("fCat").value) +
+      "&colab=" + encodeURIComponent($("fCol").value) + "&q=" + encodeURIComponent($("q").value.trim());
+  }
+  function preencher(sel, vals, todos) {
+    var v = sel.value; sel.innerHTML = '<option value="">' + todos + "</option>" + vals.map(function (x) { return '<option value="' + esc(x) + '">' + esc(sel.id === "fObra" && OBRAS[x] ? x + " · " + OBRAS[x].c : x) + "</option>"; }).join("");
+    if (v && vals.indexOf(v) < 0) sel.insertAdjacentHTML("beforeend", '<option value="' + esc(v) + '">' + esc(v) + "</option>");
+    sel.value = v;
+  }
+  function buscar() {
+    var p = params();
+    $("lnkCsv").href = "/api/gestao/despesas?formato=csv&" + p; $("lnkRel").href = "/api/gestao/despesas?formato=relatorio&" + p;
+    $("aviso").innerHTML = ""; $("lista").innerHTML = '<tr><td colspan="6" class="vazio">Carregando…</td></tr>';
+    fetch("/api/gestao/despesas?" + p).then(function (r) { return r.json(); }).then(function (j) {
+      if (!j.ok) throw new Error(j.msg || j.erro || "erro");
+      if (j.quem) $("quem").textContent = j.quem;
+      preencher($("fObra"), j.facetas.obras, "Todas"); preencher($("fCat"), j.facetas.categorias, "Todas"); preencher($("fCol"), j.facetas.colaboradores, "Todos");
+      L = j.despesas || []; desenhar();
+    }).catch(function (e) { L = []; desenhar(); $("aviso").innerHTML = '<div class="msg">' + esc(e.message) + "</div>"; });
+    var f = [["fObra", "Obra"], ["fCat", "Categoria"], ["fCol", "Colaborador"]].filter(function (x) { return $(x[0]).value; });
+    $("filtros").innerHTML = f.map(function (x) { return '<span class="filtro">' + esc(x[1] + ": " + $(x[0]).value) + '<button type="button" data-limpa="' + x[0] + '" aria-label="Tirar filtro">×</button></span>'; }).join("");
+  }
+  function agrupa(k) {
+    var m = {}; L.forEach(function (x) { var c = k(x) || "—"; m[c] = m[c] || { n: 0, t: 0 }; m[c].n++; m[c].t += x.valor; });
+    return Object.keys(m).map(function (c) { return { c: c, n: m[c].n, t: m[c].t }; }).sort(function (a, b) { return b.t - a.t; });
+  }
+  function barras(el, g, rot, sub, filtro) {
+    var max = g.length ? g[0].t : 0, tot = L.reduce(function (s, x) { return s + x.valor; }, 0);
+    el.innerHTML = g.length ? g.slice(0, 12).map(function (o) {
+      var p = tot ? Math.round(o.t / tot * 100) : 0;
+      return '<div class="lin"' + (filtro ? ' data-f="' + filtro + '" data-v="' + esc(o.c) + '" title="Filtrar"' : "") + '><span class="nm2">' + esc(rot(o.c)) + '</span><span class="vl">' + rs(o.t) + "</span>" +
+        '<div class="bar"><i style="width:' + (max ? Math.max(2, o.t / max * 100) : 0) + '%"></i></div><span class="sub">' + esc((sub ? sub(o.c) + " · " : "") + o.n + " lanç. · " + p + "%") + "</span></div>";
+    }).join("") + (g.length > 12 ? '<div class="m" style="color:var(--mut);font-size:12.5px">+ ' + (g.length - 12) + " outros</div>" : "") : '<div class="vazio">Sem dados</div>';
+  }
+  function desenhar() {
+    var tot = L.reduce(function (s, x) { return s + x.valor; }, 0), obras = agrupa(function (x) { return x.obra; });
+    var ds = L.map(function (x) { return x.data; }).sort();
+    $("kpis").innerHTML = '<div class="kpi"><small>Total lançado</small><b>' + rs(tot) + "</b><span>" + (ds.length ? br(ds[0]) + " a " + br(ds[ds.length - 1]) : "no período") + "</span></div>" +
+      '<div class="kpi"><small>Lançamentos</small><b>' + L.length + "</b><span>despesas no filtro</span></div>" +
+      '<div class="kpi"><small>Obras com custo</small><b>' + obras.filter(function (o) { return o.c !== "—"; }).length + "</b><span>" + (obras[0] ? "maior: " + esc(obras[0].c) : "—") + "</span></div>" +
+      '<div class="kpi"><small>Ticket médio</small><b>' + rs(L.length ? tot / L.length : 0) + "</b><span>por lançamento</span></div>";
+    barras($("gObra"), obras, function (c) { return c === "—" ? "Sem obra" : "Obra " + c; }, function (c) { var o = OBRAS[c]; return o ? o.e + " · " + o.c : ""; }, "fObra");
+    barras($("gCat"), agrupa(function (x) { return x.categoria; }), function (c) { return c; }, null, "fCat");
+    barras($("gMes"), agrupa(function (x) { return x.data.slice(0, 7); }).sort(function (a, b) { return a.c < b.c ? -1 : 1; }), function (c) { var p = c.split("-"); return MES[+p[1]] + "/" + p[0]; }, null, null);
+    $("tLanc").textContent = "Lançamentos (" + L.length + ")";
+    $("lista").innerHTML = L.length ? L.map(function (x, i) {
+      var o = OBRAS[x.obra];
+      return '<tr><td class="c-data">' + esc(br(x.data)) + '</td><td><b>' + esc(x.obra || "—") + '</b><div class="m">' + esc(o ? o.c + " · " + o.d : x.obra_desc) + "</div></td>" +
+        "<td>" + esc(x.tipo || "—") + '<div class="m">' + esc([x.fornecedor, x.nf ? "NF " + x.nf : "", x.frota].filter(Boolean).join(" · ")) + "</div>" +
+        (x.editado_em ? '<span class="ed" title="' + esc(x.editado_por) + '">Editado em ' + esc(brH(x.editado_em)) + "</span>" : "") + "</td>" +
+        '<td class="m">' + esc(x.colaboradores.join(", ")) + '</td><td class="v">' + rs(x.valor) + '</td><td class="c-acao"><button class="btn ghost pq" type="button" data-ed="' + i + '">Editar</button>' +
+        (x.fotos.length ? ' <a class="btn ghost pq" target="_blank" rel="noopener" href="' + esc(x.fotos[0]) + '">Cupom</a>' : "") + "</td></tr>";
+    }).join("") : '<tr><td colspan="6" class="vazio">Nenhuma despesa no período.</td></tr>';
+  }
+
+  // ---- edição ----
+  function opcoes() {
+    if (OPC) return Promise.resolve(OPC);
+    return fetch("/api/gestao/despesas?opcoes=1&de=2999-01-01").then(function (r) { return r.json(); }).then(function (j) { OPC = j.opcoes || { tipo: [], placa: [], colaboradores: [] }; return OPC; });
+  }
+  function sel(el, vals, v, vazio) {
+    var l = vals.slice(); if (v && l.indexOf(v) < 0) l.unshift(v);
+    el.innerHTML = '<option value="">' + vazio + "</option>" + l.map(function (x) { return '<option value="' + esc(x) + '">' + esc(x) + "</option>"; }).join(""); el.value = v || "";
+  }
+  function abrir(x) {
+    atual = x; $("edMsg").innerHTML = ""; $("btnSalvar").disabled = true;
+    $("edInfo").innerHTML = "Lançada em " + esc(brH(x.enviado.replace(" ", "T") + "-03:00")) + " · ID " + esc(x.id) + (x.editado_em ? " · última edição: " + esc(x.editado_por) + " em " + esc(brH(x.editado_em)) : "");
+    $("eData").value = x.data; $("eObra").value = x.obra; $("eObraDesc").value = x.obra_desc; $("eValor").value = String(x.valor).replace(".", ",");
+    $("eForn").value = x.fornecedor; $("eCnpj").value = x.cnpj; $("eNf").value = x.nf; $("eQtd").value = x.qtd; $("eLitros").value = x.litros; $("eDesc").value = x.descricao; $("eObs").value = x.obs;
+    sel($("eTipo"), [], x.tipo, "—"); sel($("eFrota"), [], x.frota, "—"); $("eCols").innerHTML = '<span style="color:var(--mut)">Carregando…</span>';
+    $("dlg").showModal();
+    opcoes().then(function (o) {
+      sel($("eTipo"), o.tipo, x.tipo, "—"); sel($("eFrota"), o.placa, x.frota, "Sem frota");
+      var cs = o.colaboradores.slice(); x.colaboradores.forEach(function (c) { if (cs.indexOf(c) < 0) cs.push(c); });
+      $("eCols").innerHTML = cs.map(function (c) { return '<label><input type="checkbox" value="' + esc(c) + '"' + (x.colaboradores.indexOf(c) >= 0 ? " checked" : "") + "> " + esc(c) + "</label>"; }).join("") || '<span style="color:var(--mut)">Sem lista</span>';
+      $("btnSalvar").disabled = false;
+    }).catch(function () { $("btnSalvar").disabled = false; });
+  }
+  $("eObra").addEventListener("change", function () { var o = OBRAS[this.value.trim()]; if (o && !$("eObraDesc").value.trim()) $("eObraDesc").value = o.c + " - " + o.d; });
+  $("btnSalvar").addEventListener("click", function () {
+    var b = this, ob = $("eObra").value.trim(), v = $("eValor").value.trim();
+    if (!/^\d{1,6}$/.test(ob)) { $("edMsg").innerHTML = '<div class="msg">Nº da obra: só números.</div>'; return; }
+    if (!(Number(v.replace(/\./g, "").replace(",", ".")) > 0)) { $("edMsg").innerHTML = '<div class="msg">Informe o valor.</div>'; return; }
+    var c = { data: $("eData").value, obra: ob, obra_desc: $("eObraDesc").value, tipo: $("eTipo").value, valor: v, fornecedor: $("eForn").value, cnpj: $("eCnpj").value, nf: $("eNf").value,
+      qtd: $("eQtd").value, frota: $("eFrota").value, litros: $("eLitros").value, descricao: $("eDesc").value, obs: $("eObs").value };
+    var bx = $("eCols").querySelectorAll("input[type=checkbox]");
+    if (bx.length) c.colaboradores = Array.prototype.filter.call(bx, function (i) { return i.checked; }).map(function (i) { return i.value; });
+    b.disabled = true; b.textContent = "Salvando…";
+    fetch("/api/gestao/despesas", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: atual.id, campos: c }) })
+      .then(function (r) { return r.json(); }).then(function (j) {
+        if (j.sem_mudanca) { $("edMsg").innerHTML = '<div class="msg ok">Nada mudou.</div>'; return; }
+        if (!j.ok && !j.despesa) throw new Error(j.msg || j.erro);
+        if (j.despesa) { var i = L.indexOf(atual); if (i >= 0) L[i] = j.despesa; atual = j.despesa; desenhar(); }
+        $("edMsg").innerHTML = '<div class="msg' + (j.ok ? " ok" : "") + '">' + esc(j.msg) + "</div>";
+        if (j.ok) setTimeout(function () { $("dlg").close(); }, 1200);
+      }).catch(function (e) { $("edMsg").innerHTML = '<div class="msg">' + esc(e.message) + "</div>"; })
+      .then(function () { b.disabled = false; b.textContent = "Salvar no Jotform"; });
+  });
+
+  document.addEventListener("click", function (e) {
+    var t = e.target.closest ? e.target.closest("[data-ed],[data-f],[data-limpa]") : null; if (!t) return;
+    if (t.hasAttribute("data-ed")) abrir(L[+t.getAttribute("data-ed")]);
+    else if (t.hasAttribute("data-f")) { var s = $(t.getAttribute("data-f")), v = t.getAttribute("data-v"); if (v === "—") return; if (![].some.call(s.options, function (o) { return o.value === v; })) s.insertAdjacentHTML("beforeend", '<option value="' + esc(v) + '">' + esc(v) + "</option>"); s.value = v; buscar(); }
+    else { $(t.getAttribute("data-limpa")).value = ""; buscar(); }
+  });
+  ["fObra", "fCat", "fCol", "de", "ate"].forEach(function (id) { $(id).addEventListener("change", buscar); });
+  $("btnBuscar").addEventListener("click", buscar); $("q").addEventListener("keydown", function (e) { if (e.key === "Enter") buscar(); });
+  buscar();
+})();
+</script>
+<script src="/gestao/aviso-limites.js?v=3" defer></script>
+<script src="/icons/abertura.js?v=5" data-app="gdespesas"></script>
+</body>
+</html>

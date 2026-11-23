@@ -15,6 +15,8 @@
       itens: [["Segurança", "Marque o que está OK e o que tem problema"], ["Avarias", "Frente, laterais e traseira, com foto"], ["Oficina", "Os problemas vão direto para a manutenção"]] },
     gestao: { t: "Gestão · Escritório", lead: "Área do Suprimentos: revise, assine e acompanhe tudo o que vem do campo.",
       itens: [["Autorizações", "Aprove, assine e acompanhe os pedidos"], ["RDOs", "Revise, edite e assine para finalizar"], ["Checklists", "Problemas dos veículos e fotos"]] },
+    gdespesas: { t: "Despesas · Gestão", lead: "Custos lançados pelo campo, em um painel: por obra, categoria e mês, com edição das despesas.",
+      itens: [["Painel de custos", "Total por obra, categoria e mês"], ["Filtros", "Período, obra, categoria e colaborador"], ["Editar", "Corrija obra, tipo ou valor; fica registrado quem mudou"]] },
     frota: { t: "Frota", lead: "Manutenções, pendências da oficina e documentos dos veículos.",
       itens: [["Manutenções", "Registre com a NF e acompanhe os gastos"], ["Pendências", "O que a oficina precisa resolver"], ["Documentos", "Vencimentos com alerta"]] }
   };

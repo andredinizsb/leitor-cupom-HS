@@ -71,7 +71,7 @@ export async function onRequest({ request, env, params }) {
     try { d = await request.json(); } catch (e) { return resp({ ok: false, erro: "json_invalido" }, 400); }
     const H = { headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" } };
     if (d.tipo === "rdo") return new Response(relatorioHtml("rdo", regRdoJotform(d.reg || {}), { fotos: [], base: u.origin }), H);
-    if (d.tipo === "despesas-obra" || d.tipo === "obras-geral") return new Response(relatorioHtml(d.tipo, Object.assign({ empresa: "HS" }, d.reg || {}, { numero: d.tipo }), { base: u.origin }), H);
+    if (d.tipo === "despesas-obra" || d.tipo === "obras-geral" || d.tipo === "despesas-geral") return new Response(relatorioHtml(d.tipo, Object.assign({ empresa: "HS" }, d.reg || {}, { numero: d.tipo }), { base: u.origin }), H);
     const c = d.reg || {}, iso = /^(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2})/.exec(String(c.data || "")), itens = String(c.itens || "");
     const av = function (s) { const l = String(s || "").split(/,\s*/).map(function (x) { return x.trim(); }).filter(Boolean); return JSON.stringify(l); };
     const reg = { numero: txt(c.numero, 40) || "Jotform", data_check: iso ? iso[3] + "-" + iso[2] + "-" + iso[1] + "T" + iso[4] + ":" + iso[5] : "", frota: txt(c.frota, 80), condutor: txt(c.condutor, 120),
