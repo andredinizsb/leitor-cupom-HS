@@ -14,33 +14,20 @@
 <meta name="apple-mobile-web-app-title" content="Gestão HS">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/ds/hs.css?v=1">
 <style>
-:root{--bg:#F3F5F8;--card:#FFFFFF;--tx:#14171C;--mut:#5C6577;--bd:#DFE3EA;--pri:#0071A3;--pri-tx:#FFFFFF;--ok:#1B7F3A;--warn:#B26B00;--err:#E3262B;--in:#FFFFFF}
-@media (prefers-color-scheme:dark){:root{--bg:#0F1216;--card:#181C22;--tx:#EEF1F5;--mut:#9AA3B2;--bd:#2A303A;--pri:#33C0FF;--pri-tx:#06212E;--ok:#3DBE6B;--warn:#F0A43A;--err:#FF5A5F;--in:#11151A}}
-*{box-sizing:border-box}html,body{margin:0}body{background:var(--bg);color:var(--tx);font:15px/1.45 Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
-header{position:sticky;top:0;z-index:5;background:var(--card);border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:10px;padding:10px 16px;flex-wrap:wrap}
-header .logo{width:32px;height:32px;border-radius:8px;background:#00A0E7;display:grid;place-items:center;color:#fff;font-weight:800}
-header .nm{font-weight:700}header .sp{flex:1}.quem{color:var(--mut);font-size:13px}
-.faixa{display:flex;height:4px}.faixa i{flex:1}main{max-width:1100px;margin:0 auto;padding:16px}
-.barra{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-bottom:12px}.barra label{display:grid;gap:4px;font-size:13px;color:var(--mut);font-weight:600}
-input{min-height:40px;font:inherit;color:var(--tx);background:var(--in);border:1px solid var(--bd);border-radius:10px;padding:8px 10px}
-.busca{flex:1;min-width:200px}.btn{min-height:40px;border-radius:10px;border:0;background:var(--pri);color:var(--pri-tx);font:inherit;font-weight:700;padding:8px 14px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center}
-.btn.ghost{background:transparent;color:var(--pri);border:1px solid var(--bd)}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:12px}.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:14px}
-.topo{display:flex;justify-content:space-between;gap:8px;align-items:center}.num{font-weight:800;font-size:16px}
-.badge{display:inline-block;border-radius:999px;padding:3px 10px;font-size:12px;font-weight:700;color:#fff;background:var(--ok)}.badge.pb{background:var(--err)}
-dl{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;margin:10px 0;font-size:14px}dt{color:var(--mut)}dd{margin:0;font-weight:600;word-break:break-word;white-space:pre-line}dd.pb{color:var(--err)}
-.meta{color:var(--mut);font-size:13px}.msg{border-radius:10px;padding:10px 12px;margin:12px 0;background:color-mix(in srgb,var(--err) 14%,transparent);color:var(--err)}
-.fts{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px}.fts a{display:block;position:relative}.fts img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;display:block;background:#000}
-.fts a.arqv{aspect-ratio:1;border-radius:8px;border:1px dashed #8a95a3;display:grid;place-items:center;text-align:center;padding:4px;cursor:help}.fts a.arqv span{position:static;background:none;color:#8a95a3;font-size:11px;padding:0}.fts span{position:absolute;left:4px;bottom:4px;background:rgba(0,0,0,.6);color:#fff;font-size:11px;border-radius:6px;padding:1px 5px}
-.resumo{display:flex;gap:16px;flex-wrap:wrap;margin:0 0 12px;color:var(--mut);font-size:14px}.resumo b{color:var(--tx)}.vazio{color:var(--mut);text-align:center;padding:24px 8px}
+.badge{background:var(--success-subtle);color:var(--success-text);border-color:transparent}.badge.pb{background:var(--danger-subtle);color:var(--danger-text)}
+.card dd{white-space:pre-line}.card dd.pb{color:var(--danger-text)}
+.fts{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px}.fts a{display:block;position:relative}.fts img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:var(--r-sm);display:block;background:#000}
+.fts a.arqv{aspect-ratio:1;border-radius:var(--r-sm);border:1px dashed var(--border-control);display:grid;place-items:center;text-align:center;padding:4px;cursor:help}.fts a.arqv span{position:static;background:none;color:var(--text-muted);font-size:11px;padding:0}.fts span{position:absolute;left:4px;bottom:4px;background:rgba(0,0,0,.6);color:#fff;font-size:11px;border-radius:6px;padding:1px 5px}
 </style>
 </head>
-<body>
-<header><div class="logo">HS</div><span class="nm">Checklists da frota</span><span class="sp"></span><span class="quem" id="quem"></span><a class="btn ghost" href="/inicio/">← Início</a><a class="btn ghost" href="/gestao/despesas/">Despesas</a>
-  <a class="btn ghost" href="/gestao/">Autorizações</a><a class="btn ghost" href="/gestao/rdo/">RDOs</a><a class="btn ghost" href="/gestao/frota/#pend">Pendências da frota</a><a class="btn ghost" id="csv" href="/api/gestao/checklist?formato=csv">Exportar CSV</a></header>
-<div class="faixa"><i style="background:#00A0E7"></i><i style="background:#FE0000"></i><i style="background:#FFE500"></i></div>
+<body data-mod="checklist">
+<script src="/ds/shell.js?v=1"></script>
 <main>
+  <header class="hs-ph"><div class="tt"><div class="hs-crumbs"><a href="/gestao/painel/">Gestão</a> / Operação</div><h1>Checklists da frota</h1>
+    <p>Inspeções feitas antes da saída dos veículos. Os problemas viram pendências da oficina.</p></div>
+    <div class="acoes"><a class="btn ghost" href="/gestao/frota/#pend">Pendências da oficina</a><a class="btn ghost" id="csv" href="/api/gestao/checklist?formato=csv">Exportar CSV</a></div></header>
   <div class="barra"><label>De<input type="date" id="de"></label><label>Até<input type="date" id="ate"></label>
     <input class="busca" id="q" placeholder="Buscar por placa, frota, condutor, problema…"><button class="btn" type="button" id="btnBuscar">Buscar</button></div>
   <div class="resumo" id="resumo"></div><div id="aviso"></div><div class="grid" id="lista"></div>

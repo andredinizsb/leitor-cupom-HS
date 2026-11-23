@@ -14,30 +14,24 @@
 <meta name="apple-mobile-web-app-title" content="Checklist HS">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/ds/hs.css?v=1">
 <style>
-:root{--bg:#F3F5F8;--card:#FFFFFF;--tx:#14171C;--mut:#5C6577;--bd:#DFE3EA;--pri:#0071A3;--pri-tx:#FFFFFF;--ok:#1B7F3A;--warn:#B26B00;--err:#E3262B;--in:#FFFFFF}
-@media (prefers-color-scheme:dark){:root{--bg:#0F1216;--card:#181C22;--tx:#EEF1F5;--mut:#9AA3B2;--bd:#2A303A;--pri:#33C0FF;--pri-tx:#06212E;--ok:#3DBE6B;--warn:#F0A43A;--err:#FF5A5F;--in:#11151A}}
-*{box-sizing:border-box}html,body{margin:0}body{background:var(--bg);color:var(--tx);font:16px/1.45 Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
-header{position:sticky;top:0;z-index:5;background:var(--card);border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:10px;padding:10px 16px}
-header .logo{width:32px;height:32px;border-radius:8px;background:#00A0E7;display:grid;place-items:center;color:#fff;font-weight:800}
-header .nm{font-weight:700}header .sp{flex:1}header a{color:var(--pri);font-weight:600;text-decoration:none;min-height:44px;display:flex;align-items:center}
-.faixa{display:flex;height:4px}.faixa i{flex:1}main{max-width:640px;margin:0 auto;padding:16px 16px 96px}
-.tabs{display:flex;gap:8px;margin-bottom:12px}.tab{flex:1;min-height:44px;border-radius:10px;border:1px solid var(--bd);background:var(--card);color:var(--tx);font:inherit;font-weight:600}
-.tab.on{background:var(--pri);color:var(--pri-tx);border-color:var(--pri)}
-.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:16px;margin-bottom:12px}
+main{max-width:640px;margin:0 auto;padding:16px 16px 96px}
+.tabs{display:flex;gap:8px;margin-bottom:12px}.tab{flex:1;min-height:44px;border-radius:10px;border:1px solid var(--border-control);background:var(--card);color:var(--tx);font:inherit;font-weight:600}
+.tab.on{background:var(--primary-subtle);color:var(--primary-text);border-color:var(--primary)}
+.card{margin-bottom:12px}
 h2{font-size:18px;margin:0 0 4px}h3{font-size:15px;margin:0 0 6px;text-transform:uppercase;letter-spacing:.04em;color:var(--mut)}.lead{color:var(--mut);margin:0 0 4px;font-size:14px}
 label{display:block;font-weight:600;font-size:14px;margin:12px 0 4px}.opt{color:var(--mut);font-weight:400}
-input,select,textarea{width:100%;min-height:44px;font:inherit;font-size:16px;color:var(--tx);background:var(--in);border:1px solid var(--bd);border-radius:10px;padding:10px 12px}
-textarea{min-height:80px;resize:vertical}input:focus,select:focus,textarea:focus{outline:2px solid var(--pri);outline-offset:1px}
+input:not([type=checkbox]):not([type=radio]):not([type=file]),select,textarea{width:100%;min-height:48px;padding:10px 12px}
+textarea{min-height:80px;resize:vertical}
 .row{display:flex;gap:8px}.row>*{flex:1;min-width:0}
-.btn{min-height:44px;border-radius:10px;border:0;background:var(--pri);color:var(--pri-tx);font:inherit;font-weight:700;padding:10px 16px;cursor:pointer;width:100%}
-.btn.ghost{background:transparent;color:var(--pri);border:1px solid var(--bd)}.btn.sm{width:auto;min-height:40px;padding:8px 12px;font-size:14px}.btn:disabled{opacity:.6}
-.msg{border-radius:10px;padding:10px 12px;margin:12px 0;font-size:14px}.msg.ok{background:color-mix(in srgb,var(--ok) 14%,transparent);color:var(--ok)}.msg.err{background:color-mix(in srgb,var(--err) 14%,transparent);color:var(--err)}
+.btn{width:100%;min-height:48px;font-size:16px}
+.btn.sm{width:auto;min-height:40px;padding:8px 12px;font-size:14px}
 .chips{display:flex;flex-wrap:wrap;gap:8px}.chip{min-height:40px;border-radius:999px;border:1px solid var(--bd);background:var(--in);color:var(--tx);font:inherit;font-size:14px;font-weight:600;padding:6px 14px;cursor:pointer}
-.chip.on{background:var(--err);border-color:var(--err);color:#fff}.chip.nada.on{background:var(--ok);border-color:var(--ok)}
+.chip.on{background:var(--danger-subtle);border-color:var(--danger);color:var(--danger-text)}.chip.nada.on{background:var(--success-subtle);border-color:var(--success);color:var(--success-text)}
 .it{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--bd)}.it:last-child{border-bottom:0}.it .tx{flex:1;font-size:14px;font-weight:500}
 .it button{min-height:40px;min-width:76px;border-radius:10px;border:1px solid var(--bd);background:var(--in);color:var(--tx);font:inherit;font-size:14px;font-weight:700;cursor:pointer}
-.it button.ok.on{background:var(--ok);border-color:var(--ok);color:#fff}.it button.pb.on{background:var(--err);border-color:var(--err);color:#fff}
+.it button.ok.on{background:var(--success-subtle);border-color:var(--success);color:var(--success-text)}.it button.pb.on{background:var(--danger-subtle);border-color:var(--danger);color:var(--danger-text)}
 .fotos{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px;margin-top:8px}.fotos div{position:relative}.fotos img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;display:block;background:#000}
 .fotos button{position:absolute;top:4px;right:4px;min-height:28px;border-radius:8px;border:0;background:rgba(0,0,0,.6);color:#fff;font-weight:700;padding:2px 8px}
 .hide{display:none}.meta{color:var(--mut);font-size:14px}.num{font-weight:800;font-size:17px}.vazio{color:var(--mut);text-align:center;padding:24px 8px}
@@ -45,8 +39,7 @@ textarea{min-height:80px;resize:vertical}input:focus,select:focus,textarea:focus
 </style>
 </head>
 <body>
-<header><div class="logo">HS</div><span class="nm">Checklist do veículo</span><span class="sp"></span><a href="/inicio/">Todos os apps</a></header>
-<div class="faixa"><i style="background:#00A0E7"></i><i style="background:#FE0000"></i><i style="background:#FFE500"></i></div>
+<header class="hs-topbar"><img src="/icons/checklist.svg" alt=""><span class="nm">Checklist do veículo</span><span class="sp"></span><a class="apps" href="/inicio/"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg><span class="l">Todos os apps</span></a></header>
 <main>
   <div class="tabs"><button class="tab on" id="tNovo" type="button">Novo checklist</button><button class="tab" id="tEnviados" type="button">Enviados</button></div>
   <section id="pNovo">
@@ -202,7 +195,7 @@ textarea{min-height:80px;resize:vertical}input:focus,select:focus,textarea:focus
       avaria_frente: sel.frente, avaria_lat_esq: sel.lat_esq, avaria_traseira: sel.traseira, avaria_lat_dir: sel.lat_dir,
       itens_ok: vis.filter(function (i) { return resp[i] === "ok"; }), itens_problema: prob, obs: $("obs").value.trim(),
       lat: gps && gps.lat, lon: gps && gps.lon, precisao: gps && gps.precisao, fotos: fotos };
-    var postar = function () { + fotos.length + " foto(s)…" : "Enviando…";
+    var postar = function () { var b = $("btnEnviar"); b.disabled = true; b.textContent = fotos.length ? "Enviando checklist e " + fotos.length + " foto(s)…" : "Enviando…";
     fetch("/api/checklist/enviar", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(corpo) })
       .then(function (r) { return r.json().catch(function () { return { ok: false, erro: "http_" + r.status }; }); })
       .then(function (j) {

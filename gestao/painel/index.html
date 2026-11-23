@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Painel · Gestão HS</title>
+<link rel="icon" href="/icons/gestao.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/icons/gestao-apple.png">
+<link rel="manifest" href="/icons/gestao.webmanifest">
+<meta name="theme-color" content="#0E1217">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Gestão HS">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/ds/hs.css?v=1">
+<style>
+.att{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+.at-c{display:flex;flex-direction:column;gap:10px;padding:16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);box-shadow:var(--shadow-sm);color:var(--text);text-decoration:none;transition:border-color .15s}
+.at-c:hover{border-color:var(--primary)}
+.at-c .ic{width:36px;height:36px;border-radius:var(--r-md);display:grid;place-items:center;background:var(--surface-muted);color:var(--text-muted)}.at-c .ic svg{width:20px;height:20px}
+.at-c b{font-size:28px;line-height:32px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.at-c .rot{font-size:14px;font-weight:600}.at-c .det{font-size:13px;color:var(--text-muted);min-height:18px}
+.at-c.pend .ic{background:var(--warning-subtle);color:var(--warning-text)}
+.at-c.crit .ic{background:var(--danger-subtle);color:var(--danger-text)}
+.at-c.ok .ic{background:var(--success-subtle);color:var(--success-text)}
+.duas{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:16px;align-items:start}
+.card h2{margin:0;font-size:17px;line-height:24px;font-weight:600}
+.card .cab{display:flex;align-items:center;gap:12px;margin-bottom:14px}.card .cab .sp{flex:1}
+.card .cab a{font-size:14px;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:4px}.card .cab a svg{width:16px;height:16px}
+.tot{display:flex;gap:24px;flex-wrap:wrap;margin-bottom:16px}.tot div{display:grid}.tot small{font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted)}
+.tot b{font-size:24px;line-height:32px;font-weight:700;font-variant-numeric:tabular-nums}
+.lin{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;margin-bottom:12px;font-size:14px}
+.lin .n{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500}.lin .v{font-weight:600;font-variant-numeric:tabular-nums}
+.lin .bar{grid-column:1/-1;height:6px;border-radius:3px;background:var(--surface-muted);overflow:hidden}.lin .bar i{display:block;height:100%;background:var(--brand-blue)}
+.fila{list-style:none;margin:0;padding:0}
+.fila li a{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:2px 12px;align-items:center;padding:12px 8px;border-top:1px solid var(--border);color:var(--text);text-decoration:none;border-radius:var(--r-sm)}
+.fila li:first-child a{border-top:0}.fila li a:hover{background:var(--surface-muted)}
+.fila .ic{width:32px;height:32px;border-radius:var(--r-md);display:grid;place-items:center;background:var(--surface-muted);color:var(--text-muted);grid-row:1/3}.fila .ic svg{width:18px;height:18px}
+.fila .t{font-weight:600;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.fila .s{grid-column:2;font-size:13px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fila .badge{grid-row:1/3;grid-column:3}
+.erro{font-size:13px;color:var(--danger-text)}
+@media (max-width:1200px){.att{grid-template-columns:repeat(3,1fr)}}
+@media (max-width:900px){.duas{grid-template-columns:1fr}}
+@media (max-width:640px){.att{grid-template-columns:1fr 1fr}.at-c b{font-size:24px}.at-c:last-child{grid-column:1/-1}}
+</style>
+</head>
+<body data-mod="painel">
+<script src="/ds/shell.js?v=1"></script>
+<main>
+  <header class="hs-ph"><div class="tt"><div class="hs-crumbs">Gestão</div><h1>Painel</h1><p id="hoje"></p></div>
+    <div class="acoes"><button class="btn ghost" type="button" id="btnAtu">Atualizar</button></div></header>
+
+  <div class="hs-sec" style="margin-top:0"><h2>Precisa da sua atenção</h2></div>
+  <div class="att" id="att"></div>
+
+  <div class="duas" style="margin-top:24px">
+    <section class="card" aria-labelledby="tDesp">
+      <div class="cab"><h2 id="tDesp">Despesas do mês</h2><span class="sp"></span><a href="/gestao/despesas/">Abrir</a></div>
+      <div id="desp"><span class="hs-skel" style="height:64px"></span></div>
+    </section>
+    <section class="card" aria-labelledby="tFila">
+      <div class="cab"><h2 id="tFila">Fila de aprovação</h2><span class="sp"></span></div>
+      <ul class="fila" id="fila"><li><span class="hs-skel" style="height:48px"></span></li></ul>
+    </section>
+  </div>
+</main>
+<script>
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); }, I = window.HSIcone || function () { return ""; };
+  function esc(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
+  function rs(v) { return (Number(v) || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }); }
+  function dia(d) { return new Date(d.getTime() - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 10); }
+  function quando(iso) { var d = new Date(iso); return isNaN(d) ? "" : d.toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }); }
+  function api(u) { return fetch(u).then(function (r) { return r.json(); }).then(function (j) { if (!j.ok) throw new Error(j.msg || j.erro || "erro"); if (j.quem) $("quem").textContent = j.quem; return j; }); }
+  var hoje = new Date();
+  $("hoje").textContent = hoje.toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long", year: "numeric" }).replace(/^./, function (c) { return c.toUpperCase(); });
+
+  // cartões de atenção: [chave, ícone, rótulo, link]
+  var T = [["aut", "autorizacoes", "Autorizações pendentes", "/gestao/"], ["rdo", "rdo", "RDOs aguardando assinatura", "/gestao/rdo/"],
+    ["pend", "frota", "Pendências da oficina", "/gestao/frota/#pend"], ["docs", "documentos", "Documentos da frota", "/gestao/frota/documentos/"], ["chk", "checklist", "Checklists com problema", "/gestao/checklist/"]];
+  function tiles() {
+    $("att").innerHTML = T.map(function (t) { return '<a class="at-c" id="at-' + t[0] + '" href="' + t[3] + '"><span class="ic">' + I(t[1]) + '</span><b><span class="hs-skel" style="width:48px;height:28px"></span></b><span class="rot">' + t[2] + '</span><span class="det"></span></a>'; }).join("");
+  }
+  function tile(k, n, det, nivel) {
+    var a = $("at-" + k); if (!a) return;
+    a.classList.remove("pend", "crit", "ok"); a.classList.add(nivel || (n > 0 ? "pend" : "ok"));
+    a.querySelector("b").textContent = n; a.querySelector(".det").textContent = det || (n > 0 ? "" : "Tudo em dia");
+  }
+  function falhou(k) { var a = $("at-" + k); if (a) { a.querySelector("b").textContent = "—"; a.querySelector(".det").innerHTML = '<span class="erro">Não carregou</span>'; } }
+
+  var fila = [], filaPend = 2;
+  function desenharFila() {
+    if (--filaPend > 0) return;
+    fila.sort(function (a, b) { return a.quando < b.quando ? 1 : -1; });
+    $("fila").innerHTML = fila.length ? fila.slice(0, 8).map(function (f) {
+      return '<li><a href="' + f.link + '"><span class="ic">' + I(f.ic) + '</span><span class="t">' + esc(f.t) + '</span><span class="badge ' + f.cls + '">' + esc(f.st) + '</span><span class="s">' + esc(f.s) + "</span></a></li>";
+    }).join("") : '<li class="vazio" style="padding:24px 8px">Nada aguardando aprovação.</li>';
+  }
+
+  function carregar() {
+    tiles(); fila = []; filaPend = 2;
+    $("fila").innerHTML = '<li><span class="hs-skel" style="height:48px"></span></li>';
+    api("/api/gestao/autorizacoes?status=todas").then(function (j) {
+      var p = (j.autorizacoes || []).filter(function (a) { return a.status === "Pendente"; });
+      tile("aut", p.length, p.length ? "Aguardam assinatura" : "");
+      p.forEach(function (a) { fila.push({ quando: a.solicitado_em || "", link: "/gestao/", ic: "autorizacoes", t: a.numero + " · " + a.tipo, s: [a.colaborador, a.obra, quando(a.solicitado_em)].filter(Boolean).join(" · "), st: "Pendente", cls: "s-warn" }); });
+    }).catch(function () { falhou("aut"); }).then(desenharFila);
+    api("/api/gestao/rdo?de=" + dia(new Date(Date.now() - 60 * 864e5)) + "&ate=" + dia(hoje)).then(function (j) {
+      var p = (j.rdos || []).filter(function (r) { return r.status !== "Finalizado"; });
+      tile("rdo", p.length, p.length ? "Últimos 60 dias" : "");
+      p.forEach(function (r) { fila.push({ quando: r.criado_em || r.data_inicio || "", link: "/gestao/rdo/", ic: "rdo", t: r.numero + " · " + ([r.obra, r.cliente].filter(Boolean).join(" · ") || "RDO"), s: [r.responsavel, quando(r.data_inicio)].filter(Boolean).join(" · "), st: "Aguardando", cls: "s-warn" }); });
+    }).catch(function () { falhou("rdo"); }).then(desenharFila);
+    api("/api/gestao/frota-pend").then(function (j) {
+      var ab = (j.pendencias || []).filter(function (p) { return p.status !== "Resolvida" && p.status !== "Ciente - não corrigir"; });
+      var alta = ab.filter(function (p) { return p.prioridade === "Alta"; }).length;
+      tile("pend", ab.length, alta ? alta + " de prioridade alta" : (ab.length ? "Em aberto" : ""), alta ? "crit" : null);
+    }).catch(function () { falhou("pend"); });
+    api("/api/gestao/frota-docs").then(function (j) {
+      var h = j.hoje, lim = new Date(Date.parse(h) + 30 * 864e5).toISOString().slice(0, 10), v = 0, p = 0;
+      (j.documentos || []).forEach(function (d) { if (d.vencimento && d.vencimento < h) v++; else if (d.vencimento && d.vencimento <= lim) p++; });
+      tile("docs", v + p, v ? v + " vencido(s)" + (p ? " · " + p + " vencem em 30 dias" : "") : (p ? p + " vencem em 30 dias" : ""), v ? "crit" : null);
+    }).catch(function () { falhou("docs"); });
+    api("/api/gestao/checklist?de=" + dia(new Date(Date.now() - 7 * 864e5)) + "&ate=" + dia(hoje)).then(function (j) {
+      var L = j.checklists || [], pb = L.filter(function (c) { return c.itens_problema && c.itens_problema.length; }).length;
+      tile("chk", pb, L.length + " checklist(s) nos últimos 7 dias");
+    }).catch(function () { falhou("chk"); });
+    var ini = dia(new Date(hoje.getFullYear(), hoje.getMonth(), 1));
+    $("desp").innerHTML = '<span class="hs-skel" style="height:64px"></span>';
+    api("/api/gestao/despesas?de=" + ini + "&ate=" + dia(hoje)).then(function (j) {
+      var L = j.despesas || [], tot = 0, m = {};
+      L.forEach(function (x) { tot += x.valor; var k = x.obra || "Sem obra"; m[k] = m[k] || { t: 0, c: x.cliente }; m[k].t += x.valor; });
+      var g = Object.keys(m).map(function (k) { return [k, m[k].t, m[k].c]; }).sort(function (a, b) { return b[1] - a[1]; }), max = g.length ? g[0][1] : 0;
+      $("desp").innerHTML = '<div class="tot"><div><small>Total lançado</small><b>' + rs(tot) + '</b></div><div><small>Lançamentos</small><b>' + L.length + '</b></div><div><small>Obras</small><b>' + g.length + "</b></div></div>" +
+        (g.length ? g.slice(0, 5).map(function (o) { return '<div class="lin"><span class="n">' + esc(o[0] === "Sem obra" ? o[0] : "Obra " + o[0] + (o[2] ? " · " + o[2] : "")) + '</span><span class="v">' + rs(o[1]) + '</span><span class="bar"><i style="width:' + (max ? Math.max(2, o[1] / max * 100) : 0) + '%"></i></span></div>'; }).join("")
+          : '<div class="vazio" style="padding:16px 8px">Nenhuma despesa lançada neste mês.</div>');
+    }).catch(function (e) { $("desp").innerHTML = '<div class="msg">Não consegui ler as despesas: ' + esc(e.message) + "</div>"; });
+  }
+  $("btnAtu").addEventListener("click", carregar);
+  carregar();
+})();
+</script>
+<script src="/gestao/aviso-limites.js?v=4" defer></script>
+<script src="/icons/abertura.js?v=5" data-app="gestao"></script>
+</body>
+</html>
