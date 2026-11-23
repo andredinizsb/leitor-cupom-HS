@@ -652,7 +652,7 @@ function ligarObras(inp, desc) {
     if (connected === true || connected === false) srvOnline = connected;
     // Servidor fora, mas o envio de reserva (formulário) responde: o app segue funcionando, só sem ler a nota.
     var semServidor = !SERVER_URL || srvOnline === false;
-    if (semServidor && reservaOk) { chip.classList.add("warn"); txt.textContent = "Modo manual"; chip.title = "Servidor NFC-e fora do ar: digite os dados; o envio ao Jotform funciona."; setChipIcon(chip, "wifi-off"); return; }
+    if (semServidor && reservaOk) { chip.classList.add("warn"); txt.textContent = "Modo manual"; chip.title = "Servidor NFC-e fora do ar: digite os dados; o envio continua funcionando."; setChipIcon(chip, "wifi-off"); return; }
     if (!SERVER_URL) { chip.classList.add("warn"); txt.textContent = "Só QR"; setChipIcon(chip, "wifi-off"); return; }
     if (srvOnline === false) { chip.classList.add("warn"); txt.textContent = "Sem resposta"; setChipIcon(chip, "wifi-off"); return; }
     if (srvOnline === true) { chip.classList.add("ok"); txt.textContent = "Conectado"; chip.title = "Servidor NFC-e no ar"; setChipIcon(chip, "wifi"); return; }

@@ -8,7 +8,9 @@
 //   POST apagar  {tipo, pasta, itens:[{id, bytes}]} -> apaga do app só as fotos cujo tamanho confere (a linha do RDO fica)
 import { resp, semBanco, ERRO_BANCO, txt, agora } from "../../../lib/aut.js";
 import { tokenOk, b64ParaBytes } from "../../../lib/rdo.js";
-import { TABELAS, SQL_BYTES, DIAS_CHECKLIST, nomeFoto, tsv, resumoHtml, uso, situacao, comR2Contado } from "../../../lib/fotos.js";
+import { TABELAS, SQL_BYTES, DIAS_CHECKLIST, DIAS_FROTA, nomeFoto, nomeArquivoFrota, tsv, resumoHtml, resumoFrotaHtml, uso, situacao, comR2Contado } from "../../../lib/fotos.js";
+//   GET  listar?tipo=frota&dias=180              -> id, ref, arquivo, bytes, frota, data (NF/PDF/fotos da frota; o último arquivo de cada documento fica)
+//   GET  resumo?tipo=frota&numero=MAN:MAN-2026-000001 (ou DOC:12)
 //   GET  uso                                     -> "maior <pct>" (maior % de espaço usado, D1 ou R2) e cada teto: nome, usado, teto, pct
 //   GET  listar?tipo=rdo&dias=180                -> RDOs de qualquer obra com mais de N dias (limpeza por espaço; a macro decide N pelo uso)
 
@@ -69,6 +71,15 @@ export async function onRequest({ request, env, params }) {
       if (obra) rs = await db.prepare(sel + "r.obra = ?1 AND coalesce(r.empresa, '') = ?2 ORDER BY f.numero, f.ordem").bind(obra, txt(q.get("empresa"), 4)).all();
       else if (diasR > 0) rs = await db.prepare(sel + "r.data_inicio < ?1 ORDER BY f.numero, f.ordem LIMIT 2000").bind(new Date(Date.now() - diasR * 864e5).toISOString().slice(0, 10)).all();
       else return resp({ ok: false, erro: "sem_obra_ou_dias" }, 400);
+    } else if (tipo === "frota") {
+      // NF/PDF/fotos da frota com mais de N dias; o arquivo mais recente de cada DOCUMENTO (CRLV etc.) fica no app
+      const dias = Math.max(1, parseInt(q.get("dias") || DIAS_FROTA, 10) || DIAS_FROTA);
+      rs = await db.prepare("SELECT a.id, a.ref AS numero, a.nome, a.tipo, a.r2_key, " + SQL_BYTES.replace(/\b(dados|tamanho)\b/g, "a.$1") + " AS bytes, " +
+        "coalesce(m.frota, d.frota, '') AS frota, substr(a.criado_em, 1, 10) AS data FROM frota_arquivos a " +
+        "LEFT JOIN frota_manut m ON a.ref = 'MAN:' || m.numero LEFT JOIN frota_docs d ON a.ref = 'DOC:' || d.id " +
+        "WHERE (a.dados IS NOT NULL OR a.r2_key IS NOT NULL) AND a.criado_em < ?1 " +
+        "AND NOT (a.ref LIKE 'DOC:%' AND a.id = (SELECT max(x.id) FROM frota_arquivos x WHERE x.ref = a.ref)) ORDER BY a.ref, a.id LIMIT 2000")
+        .bind(new Date(Date.now() - dias * 864e5).toISOString().slice(0, 10)).all();
     } else {
       const dias = Math.max(1, parseInt(q.get("dias") || DIAS_CHECKLIST, 10) || DIAS_CHECKLIST);
       const corte = new Date(Date.now() - dias * 864e5).toISOString().slice(0, 10);
@@ -77,8 +88,8 @@ export async function onRequest({ request, env, params }) {
     }
     const out = [];
     for (const f of rs.results || []) {
-      const l = [f.id, f.numero, nomeFoto(f, t.grupo), await bytesR2(env, f)];
-      if (tipo === "checklist") l.push(f.frota, f.data); else l.push(f.empresa, f.obra);
+      const l = [f.id, f.numero, tipo === "frota" ? nomeArquivoFrota(f) : nomeFoto(f, t.grupo), await bytesR2(env, f)];
+      if (tipo === "rdo") l.push(f.empresa, f.obra); else l.push(f.frota, f.data);
       out.push(l);
     }
     return tsv(out);
@@ -96,6 +107,14 @@ export async function onRequest({ request, env, params }) {
     return new Response(b64ParaBytes(f.dados), { headers: h });
   }
 
+  if (acao === "resumo" && tipo === "frota") {
+    const ref = txt(q.get("numero"), 60), m = /^(MAN|DOC):(.+)$/.exec(ref);
+    if (!m) return resp({ ok: false, erro: "ref_invalida" }, 400);
+    const det = m[1] === "MAN" ? await db.prepare("SELECT * FROM frota_manut WHERE numero = ?1").bind(m[2]).first()
+      : await db.prepare("SELECT * FROM frota_docs WHERE id = ?1").bind(parseInt(m[2], 10) || 0).first();
+    const fs = await db.prepare("SELECT id, nome, tipo FROM frota_arquivos WHERE ref = ?1 ORDER BY id").bind(ref).all();
+    return new Response(resumoFrotaHtml(ref, det, fs.results || []), { headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" } });
+  }
   if (acao === "resumo") {
     const numero = txt(q.get("numero"), 30);
     const r = await db.prepare("SELECT * FROM " + t.pai + " WHERE numero = ?1").bind(numero).first();

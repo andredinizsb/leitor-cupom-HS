@@ -21,8 +21,8 @@ export async function onRequestGet({ request, env, data }) {
   }
   const fotos = {};
   if (L.length) {
-    const f = await env.DB.prepare("SELECT id, numero, secao, legenda FROM checklist_fotos WHERE numero IN (SELECT numero FROM checklist WHERE data_check >= ?1 AND data_check < ?2) ORDER BY numero, ordem").bind(de, ate).all();
-    (f.results || []).forEach(function (x) { (fotos[x.numero] = fotos[x.numero] || []).push({ id: x.id, secao: x.secao, legenda: x.legenda }); });
+    const f = await env.DB.prepare("SELECT id, numero, secao, legenda, arquivo FROM checklist_fotos WHERE numero IN (SELECT numero FROM checklist WHERE data_check >= ?1 AND data_check < ?2) ORDER BY numero, ordem").bind(de, ate).all();
+    (f.results || []).forEach(function (x) { (fotos[x.numero] = fotos[x.numero] || []).push({ id: x.id, secao: x.secao, legenda: x.legenda, arquivo: x.arquivo || null }); });
   }
   return resp({ ok: true, quem: data && data.quem, checklists: L.map(function (x) {
     return Object.assign({}, x, { avaria_frente: lista(x.avaria_frente), avaria_lat_esq: lista(x.avaria_lat_esq), avaria_traseira: lista(x.avaria_traseira), avaria_lat_dir: lista(x.avaria_lat_dir),

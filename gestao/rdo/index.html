@@ -33,7 +33,7 @@ input,select{min-height:40px;font:inherit;color:var(--tx);background:var(--in);b
 dl{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;margin:10px 0;font-size:14px}dt{color:var(--mut)}dd{margin:0;font-weight:600;word-break:break-word;white-space:pre-line}
 .meta{color:var(--mut);font-size:13px}.msg{border-radius:10px;padding:10px 12px;margin:12px 0;background:color-mix(in srgb,var(--err) 14%,transparent);color:var(--err)}
 .fts{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px}.fts a{display:block;position:relative}.fts img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;display:block;background:#000}
-.fts span{position:absolute;left:4px;bottom:4px;background:rgba(0,0,0,.6);color:#fff;font-size:11px;border-radius:6px;padding:1px 5px}
+.fts a.arqv{aspect-ratio:1;border-radius:8px;border:1px dashed #8a95a3;display:grid;place-items:center;text-align:center;padding:4px;cursor:help}.fts a.arqv span{position:static;background:none;color:#8a95a3;font-size:11px;padding:0}.fts span{position:absolute;left:4px;bottom:4px;background:rgba(0,0,0,.6);color:#fff;font-size:11px;border-radius:6px;padding:1px 5px}
 .resumo{display:flex;gap:16px;flex-wrap:wrap;margin:0 0 12px;color:var(--mut);font-size:14px}.resumo b{color:var(--tx)}
 .vazio{color:var(--mut);text-align:center;padding:24px 8px}
 </style>
@@ -93,7 +93,7 @@ dl{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;margin:10px 0;font-s
     h += '<dt>Lançado por</dt><dd>' + esc(r.responsavel) + '</dd>';
     if (r.lat != null && r.lon != null) h += '<dt>Local</dt><dd><a href="https://www.google.com/maps?q=' + r.lat + ',' + r.lon + '" target="_blank" rel="noopener">ver no mapa</a> <span class="meta">±' + esc(r.precisao) + ' m</span></dd>';
     h += '</dl>';
-    if (r.fotos.length) h += '<div class="fts">' + r.fotos.map(function (f) { var u = "/api/gestao/rdo-foto?id=" + f.id; return '<a href="' + u + '" target="_blank" rel="noopener" title="' + esc([f.etapa, f.legenda].filter(Boolean).join(" - ")) + '"><img loading="lazy" src="' + u + '" alt="' + esc(f.legenda || f.etapa || "foto") + '">' + (f.etapa ? '<span>' + esc(f.etapa) + '</span>' : '') + '</a>'; }).join("") + '</div>';
+    if (r.fotos.length) h += '<div class="fts">' + r.fotos.map(function (f) { var u = "/api/gestao/rdo-foto?id=" + f.id; if (f.arquivo) return '<a class="arqv" title="' + esc(f.arquivo) + '"><span>' + esc(f.etapa || "Foto") + ' · no servidor</span></a>'; return '<a href="' + u + '" target="_blank" rel="noopener" title="' + esc([f.etapa, f.legenda].filter(Boolean).join(" - ")) + '"><img loading="lazy" src="' + u + '" alt="' + esc(f.legenda || f.etapa || "foto") + '">' + (f.etapa ? '<span>' + esc(f.etapa) + '</span>' : '') + '</a>'; }).join("") + '</div>';
     return h + '<div class="meta" style="margin-top:8px">Enviado em ' + esc(new Date(r.criado_em).toLocaleString("pt-BR")) + '</div></div>';
   }
   $("btnBuscar").addEventListener("click", buscar);
@@ -102,5 +102,6 @@ dl{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;margin:10px 0;font-s
 })();
 </script>
 <script src="/gestao/aviso-limites.js" defer></script>
+<script src="/icons/abertura.js" data-app="gestao"></script>
 </body>
 </html>

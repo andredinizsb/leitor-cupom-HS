@@ -20,8 +20,8 @@ export async function onRequestGet({ request, env, data }) {
   }
   const fotos = {};
   if (rdos.length) {
-    const f = await env.DB.prepare("SELECT id, numero, ordem, etapa, legenda FROM rdo_fotos WHERE numero IN (SELECT numero FROM rdo WHERE data_inicio >= ?1 AND data_inicio < ?2) ORDER BY numero, ordem").bind(de, ate + "T99").all();
-    (f.results || []).forEach(function (x) { (fotos[x.numero] = fotos[x.numero] || []).push({ id: x.id, etapa: x.etapa, legenda: x.legenda }); });
+    const f = await env.DB.prepare("SELECT id, numero, ordem, etapa, legenda, arquivo FROM rdo_fotos WHERE numero IN (SELECT numero FROM rdo WHERE data_inicio >= ?1 AND data_inicio < ?2) ORDER BY numero, ordem").bind(de, ate + "T99").all();
+    (f.results || []).forEach(function (x) { (fotos[x.numero] = fotos[x.numero] || []).push({ id: x.id, etapa: x.etapa, legenda: x.legenda, arquivo: x.arquivo || null }); });
   }
   return resp({ ok: true, quem: data && data.quem, rdos: rdos.map(function (r) {
     return Object.assign({}, r, { chave: undefined, colaboradores: lista(r.colaboradores), materiais: lista(r.materiais), seguranca: objeto(r.seguranca), fotos: fotos[r.numero] || [] });

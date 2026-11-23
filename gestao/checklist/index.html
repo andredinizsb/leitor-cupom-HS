@@ -32,7 +32,7 @@ input{min-height:40px;font:inherit;color:var(--tx);background:var(--in);border:1
 dl{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;margin:10px 0;font-size:14px}dt{color:var(--mut)}dd{margin:0;font-weight:600;word-break:break-word;white-space:pre-line}dd.pb{color:var(--err)}
 .meta{color:var(--mut);font-size:13px}.msg{border-radius:10px;padding:10px 12px;margin:12px 0;background:color-mix(in srgb,var(--err) 14%,transparent);color:var(--err)}
 .fts{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px}.fts a{display:block;position:relative}.fts img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;display:block;background:#000}
-.fts span{position:absolute;left:4px;bottom:4px;background:rgba(0,0,0,.6);color:#fff;font-size:11px;border-radius:6px;padding:1px 5px}
+.fts a.arqv{aspect-ratio:1;border-radius:8px;border:1px dashed #8a95a3;display:grid;place-items:center;text-align:center;padding:4px;cursor:help}.fts a.arqv span{position:static;background:none;color:#8a95a3;font-size:11px;padding:0}.fts span{position:absolute;left:4px;bottom:4px;background:rgba(0,0,0,.6);color:#fff;font-size:11px;border-radius:6px;padding:1px 5px}
 .resumo{display:flex;gap:16px;flex-wrap:wrap;margin:0 0 12px;color:var(--mut);font-size:14px}.resumo b{color:var(--tx)}.vazio{color:var(--mut);text-align:center;padding:24px 8px}
 </style>
 </head>
@@ -76,7 +76,7 @@ dl{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;margin:10px 0;font-s
     if (c.obs) h += '<dt>Obs.</dt><dd>' + esc(c.obs) + '</dd>';
     if (c.lat != null && c.lon != null) h += '<dt>Local</dt><dd><a href="https://www.google.com/maps?q=' + c.lat + ',' + c.lon + '" target="_blank" rel="noopener">ver no mapa</a></dd>';
     h += '</dl>';
-    if (c.fotos.length) h += '<div class="fts">' + c.fotos.map(function (f) { var u = "/api/gestao/checklist-foto?id=" + f.id; return '<a href="' + u + '" target="_blank" rel="noopener"><img loading="lazy" src="' + u + '" alt="' + esc(f.secao) + '"><span>' + esc(f.secao) + '</span></a>'; }).join("") + '</div>';
+    if (c.fotos.length) h += '<div class="fts">' + c.fotos.map(function (f) { var u = "/api/gestao/checklist-foto?id=" + f.id; if (f.arquivo) return '<a class="arqv" title="' + esc(f.arquivo) + '"><span>' + esc(f.secao || "Foto") + ' · no servidor</span></a>'; return '<a href="' + u + '" target="_blank" rel="noopener"><img loading="lazy" src="' + u + '" alt="' + esc(f.secao) + '"><span>' + esc(f.secao) + '</span></a>'; }).join("") + '</div>';
     return h + '</div>';
   }
   $("btnBuscar").addEventListener("click", buscar); $("q").addEventListener("keydown", function (e) { if (e.key === "Enter") buscar(); });
@@ -84,5 +84,6 @@ dl{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;margin:10px 0;font-s
 })();
 </script>
 <script src="/gestao/aviso-limites.js" defer></script>
+<script src="/icons/abertura.js" data-app="gestao"></script>
 </body>
 </html>

@@ -45,7 +45,7 @@ video{width:100%;border-radius:10px;background:#000;max-height:46vh;object-fit:c
 </style>
 </head>
 <body>
-<header><div class="logo">HS</div><span class="nm">Autorizações</span><span class="sp"></span><a href="/">Despesas</a></header>
+<header><div class="logo">HS</div><span class="nm">Autorizações</span><span class="sp"></span><a href="/inicio/">Todos os apps</a></header>
 <div class="faixa"><i style="background:#00A0E7"></i><i style="background:#FE0000"></i><i style="background:#FFE500"></i></div>
 <main>
   <div class="tabs"><button class="tab on" id="tPedir" type="button">Pedir autorização</button><button class="tab" id="tMinhas" type="button">Minhas</button></div>
@@ -53,7 +53,7 @@ video{width:100%;border-radius:10px;background:#000;max-height:46vh;object-fit:c
   <section id="pPedir">
     <div class="card">
       <h2>Pedir autorização de compra</h2>
-      <p class="lead">Substitui o canhoto de papel. O escritório aprova e assina, e o canhoto aparece aqui no seu celular para mostrar ou enviar em PDF.</p>
+      <p class="lead">O escritório aprova e assina, e o canhoto aparece aqui no seu celular para mostrar ou enviar em PDF.</p>
       <form id="fPedir" autocomplete="off">
         <label for="colab">Colaborador</label>
         <select id="colab" required><option value="">Carregando a lista…</option></select>
@@ -342,5 +342,6 @@ video{width:100%;border-radius:10px;background:#000;max-height:46vh;object-fit:c
   });
 })();
 </script>
+<script src="/icons/abertura.js" data-app="autorizacao"></script>
 </body>
 </html>
