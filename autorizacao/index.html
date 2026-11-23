@@ -4,14 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex">
-<title>Autorizações · HS</title>
+<title>Compras · HS</title>
 <link rel="icon" href="/icons/autorizacao.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="/icons/autorizacao-apple.png">
 <link rel="manifest" href="/icons/autorizacao.webmanifest">
 <meta name="theme-color" content="#0E1217">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Autorização">
+<meta name="apple-mobile-web-app-title" content="Compras">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/ds/hs.css?v=1">
@@ -35,15 +35,63 @@ textarea{min-height:76px;resize:vertical}
 .sheet .box{position:absolute;left:0;right:0;bottom:0;max-height:92vh;overflow:auto;background:var(--card);border-radius:20px 20px 0 0;padding:16px 16px 24px;max-width:640px;margin:0 auto}
 video{width:100%;border-radius:10px;background:#000;max-height:46vh;object-fit:cover}.hide{display:none}
 .lista-itens{font-size:14px;margin:6px 0 0;padding-left:18px}
+.opcoes{display:grid;gap:8px;margin-top:12px}
+.op{display:grid;gap:2px;text-align:left;min-height:56px;padding:10px 14px;border-radius:var(--r-md);border:1px solid var(--border-control);background:var(--surface);color:var(--text);font:inherit;cursor:pointer}
+.op b{font-size:16px;font-weight:600}.op span{font-size:14px;color:var(--text-muted)}
+.op.on{background:var(--primary-subtle);border-color:var(--primary)}.op.on b{color:var(--primary-text)}
+.s-Nova,.s-Em,.s-Aguardando{background:var(--warning-subtle);color:var(--warning-text);border-color:transparent}
+.s-Pedido{background:var(--primary-subtle);color:var(--primary-text);border-color:transparent}
+.s-Entregue{background:var(--success-subtle);color:var(--success-text);border-color:transparent}.s-Cancelada{background:var(--danger-subtle);color:var(--danger-text);border-color:transparent}
+.linha{display:flex;flex-wrap:wrap;gap:4px 6px;margin:10px 0 2px;font-size:12.5px;color:var(--text-muted)}.linha span{display:inline-flex;align-items:center;gap:4px}
+.linha span::after{content:"›";margin-left:2px}.linha span:last-child::after{content:""}.linha span:last-child{color:var(--text);font-weight:600}
+.aviso-sup{margin-top:10px;padding:10px 12px;border-radius:var(--r-md);background:var(--surface-muted);font-size:14px}
+.sec-t{font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);margin:16px 0 8px}
 </style>
 </head>
 <body>
-<header class="hs-topbar"><img src="/icons/autorizacao.svg" alt=""><span class="nm">Autorizações</span><span class="sp"></span><a class="apps" href="/inicio/"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg><span class="l">Todos os apps</span></a></header>
+<header class="hs-topbar"><img src="/icons/autorizacao.svg" alt=""><span class="nm">Compras</span><span class="sp"></span><a class="apps" href="/inicio/"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg><span class="l">Todos os apps</span></a></header>
 <main>
-  <div class="tabs"><button class="tab on" id="tPedir" type="button">Pedir autorização</button><button class="tab" id="tMinhas" type="button">Minhas</button></div>
+  <div class="tabs"><button class="tab on" id="tPedir" type="button">Pedir</button><button class="tab" id="tMinhas" type="button">Minhas</button></div>
 
   <section id="pPedir">
     <div class="card">
+      <h2>O que você precisa?</h2>
+      <div class="opcoes" role="radiogroup" aria-label="Tipo de pedido">
+        <button type="button" class="op" role="radio" data-modo="abast"><b>Abastecimento</b><span>Canhoto para o posto</span></button>
+        <button type="button" class="op" role="radio" data-modo="balcao"><b>Material urgente</b><span>Compra no balcão, com canhoto</span></button>
+        <button type="button" class="op" role="radio" data-modo="req"><b>Material para a obra</b><span>Suprimentos cota e compra</span></button>
+      </div>
+    </div>
+
+    <div class="card hide" id="cardReq">
+      <h2>Requisição de material</h2>
+      <p class="lead">Suprimentos faz a cotação e a compra. Você acompanha tudo em Minhas: cotação, pedido, previsão de entrega.</p>
+      <form id="fReq" autocomplete="off" novalidate>
+        <label for="rColab">Quem está pedindo</label>
+        <select id="rColab"><option value="">Carregando a lista…</option></select>
+        <label>Empresa</label>
+        <div class="seg"><button type="button" class="tab on" data-remp="HS">HS</button><button type="button" class="tab" data-remp="MC">MC</button></div>
+        <label>O material é para</label>
+        <div class="seg"><button type="button" class="tab on" data-dest="Obra">Obra</button><button type="button" class="tab" data-dest="Frota">Veículo</button><button type="button" class="tab" data-dest="Estoque">Estoque</button></div>
+        <div id="rBlObra"><label for="rObra">Obra</label><input id="rObra" placeholder="Toque para ver a lista ou digite o nº / cliente"><div id="rObraInfo" class="opt" style="margin-top:4px"></div></div>
+        <div id="rBlFrota" class="hide"><label for="rFrota">Veículo</label><select id="rFrota"><option value="">Carregando a lista…</option></select></div>
+        <label>Itens</label>
+        <div id="rItens"></div>
+        <button class="btn ghost sm" type="button" id="rAddItem" style="margin-top:8px">+ Adicionar item</button>
+        <div class="row">
+          <div><label for="rData">Para quando</label><input id="rData" type="date"></div>
+          <div><label for="rPrio">Prioridade</label><select id="rPrio"><option>Normal</option><option>Alta</option><option>Urgente</option></select></div>
+        </div>
+        <label for="rJust">Para que é</label><textarea id="rJust" placeholder="Ex.: troca do painel da casa de bombas, etapa 2"></textarea>
+        <label for="rLocal">Onde entregar <span class="opt">(opcional)</span></label><input id="rLocal" placeholder="Obra, escritório, almoxarifado…">
+        <label for="rArq">Foto ou lista <span class="opt">(opcional: foto do material, da lista do projeto ou PDF)</span></label>
+        <input type="file" id="rArq" accept="image/*,application/pdf"><div class="opt" id="rArqInfo" style="margin-top:4px"></div>
+        <div id="msgReq"></div>
+        <button class="btn" type="submit" id="btnReq" style="margin-top:12px">Enviar requisição</button>
+      </form>
+    </div>
+
+    <div class="card" id="cardAut">
       <h2>Pedir autorização de compra</h2>
       <p class="lead">O escritório aprova e assina, e o canhoto aparece aqui no seu celular para mostrar ou enviar em PDF.</p>
       <form id="fPedir" autocomplete="off">
@@ -78,6 +126,8 @@ video{width:100%;border-radius:10px;background:#000;max-height:46vh;object-fit:c
 
   <section id="pMinhas" class="hide">
     <div class="row" style="margin-bottom:12px"><button class="btn ghost" type="button" id="btnAtualizar">Atualizar</button></div>
+    <div id="listaReq"></div>
+    <div class="sec-t" id="tituloAut" hidden>Autorizações (canhotos)</div>
     <div id="lista"></div>
   </section>
 </main>
@@ -335,6 +385,166 @@ video{width:100%;border-radius:10px;background:#000;max-height:46vh;object-fit:c
         fecharCupom(); carregarMinhas();
       }).catch(function () { $("btnSalvaCupom").disabled = false; msg("msgCupom", "Sem conexão. Tente de novo."); });
   });
+})();
+</script>
+<script>
+// ===== HS Compras · fase C1: requisição de material (o canhoto continua no script acima) =====
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+  var LS_REQ = "hsReqMinhas", LS_MODO = "hsCompModo", LS_COLAB = "hsAutColab";
+  var remp = "HS", dest = "Obra", anexo = null, OBRAS = [];
+  function esc(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
+  function msg(t, tipo) { $("msgReq").innerHTML = t ? '<div class="msg ' + (tipo || "err") + '">' + esc(t) + "</div>" : ""; }
+  function ler() { try { return JSON.parse(localStorage.getItem(LS_REQ) || "[]"); } catch (e) { return []; } }
+  function guardar(n, k) { var l = ler().filter(function (x) { return x.n !== n; }); l.unshift({ n: n, k: k }); try { localStorage.setItem(LS_REQ, JSON.stringify(l.slice(0, 40))); } catch (e) {} }
+  function dataBR(d) { var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(d || ""); return m ? m[3] + "/" + m[2] + "/" + m[1] : ""; }
+  function quando(iso) { var d = new Date(iso); return isNaN(d) ? "" : d.toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }); }
+  function numBR(s) { s = String(s || "").trim(); if (!s) return null; if (s.indexOf(",") >= 0) s = s.replace(/\./g, "").replace(",", "."); var n = Number(s.replace(/[^0-9.\-]/g, "")); return isFinite(n) ? n : null; }
+  function hojeMais(d) { var x = new Date(Date.now() + d * 864e5 - new Date().getTimezoneOffset() * 6e4); return x.toISOString().slice(0, 10); }
+
+  // ---- o que você precisa? ----
+  function modo(m) {
+    document.querySelectorAll(".op").forEach(function (b) { var on = b.getAttribute("data-modo") === m; b.classList.toggle("on", on); b.setAttribute("aria-checked", on ? "true" : "false"); });
+    $("cardReq").classList.toggle("hide", m !== "req"); $("cardAut").classList.toggle("hide", m === "req");
+    if (m !== "req") { $("tipo").value = m === "abast" ? "Abastecimento" : "Material"; $("tipo").dispatchEvent(new Event("change")); }
+    try { localStorage.setItem(LS_MODO, m); } catch (e) {}
+  }
+  document.querySelectorAll(".op").forEach(function (b) { b.addEventListener("click", function () { modo(b.getAttribute("data-modo")); }); });
+  var m0 = "abast"; try { m0 = localStorage.getItem(LS_MODO) || "abast"; } catch (e) {}
+  modo(m0);
+
+  // ---- listas ----
+  function preencher(id, lista, rotulo, salvo) {
+    var s = $(id); s.innerHTML = '<option value="">' + esc(rotulo) + "</option>" + lista.map(function (c) { return "<option>" + esc(c) + "</option>"; }).join("");
+    if (salvo && lista.indexOf(salvo) >= 0) s.value = salvo;
+  }
+  function virarTexto(id, dica) { var s = $(id), i = document.createElement("input"); i.id = id; i.placeholder = dica; s.parentNode.replaceChild(i, s); }
+  var salvo = ""; try { salvo = localStorage.getItem(LS_COLAB) || ""; } catch (e) {}
+  fetch("/api/opcoes").then(function (r) { return r.json(); }).then(function (j) {
+    if (!j || !j.ok || !(j.colaboradores || []).length) throw new Error("sem_lista");
+    preencher("rColab", j.colaboradores, "Selecione…", salvo);
+    if ((j.placa || []).length) preencher("rFrota", j.placa.map(function (p) { return String(p).replace(/\s+/g, " ").trim(); }), "Selecione o veículo…"); else virarTexto("rFrota", "Frota ou placa");
+  }).catch(function () { virarTexto("rColab", "Seu nome"); virarTexto("rFrota", "Frota ou placa"); try { $("rColab").value = salvo; } catch (e) {} });
+  document.querySelectorAll("[data-remp]").forEach(function (b) { b.addEventListener("click", function () { remp = b.getAttribute("data-remp"); document.querySelectorAll("[data-remp]").forEach(function (x) { x.classList.toggle("on", x === b); }); }); });
+  document.querySelectorAll("[data-dest]").forEach(function (b) { b.addEventListener("click", function () {
+    dest = b.getAttribute("data-dest"); document.querySelectorAll("[data-dest]").forEach(function (x) { x.classList.toggle("on", x === b); });
+    $("rBlObra").classList.toggle("hide", dest !== "Obra"); $("rBlFrota").classList.toggle("hide", dest !== "Frota");
+  }); });
+  HSObras.carregar().then(function (j) { OBRAS = j; });
+  HSObras.ligar($("rObra"));
+  function infoObra() {
+    var v = $("rObra").value.trim(), o = OBRAS.filter(function (x) { return String(x.n) === v; })[0];
+    $("rObraInfo").textContent = o ? [o.e, o.c, o.d].filter(Boolean).join(" · ") : (v && OBRAS.length ? "Obra fora do cadastro oficial: confira o número." : "");
+    if (o && (o.e === "HS" || o.e === "MC") && o.e !== remp) { var b = document.querySelector('[data-remp="' + o.e + '"]'); if (b) b.click(); }
+    return o;
+  }
+  $("rObra").addEventListener("input", infoObra); $("rObra").addEventListener("change", infoObra);
+  $("rData").value = hojeMais(3); $("rData").min = hojeMais(0);
+
+  // ---- itens ----
+  var UN = ["UN", "PC", "M", "M²", "M³", "KG", "L", "CX", "RL", "PAR", "JG", "KIT", "SC"];
+  function novoItem() {
+    var d = document.createElement("div"); d.className = "item";
+    d.innerHTML = '<input class="iDesc" placeholder="O que precisa (material, medida, marca se tiver)" aria-label="Descrição do item">' +
+      '<div class="row"><input class="iQtd" inputmode="decimal" placeholder="Qtd" aria-label="Quantidade"><select class="iUn" aria-label="Unidade">' + UN.map(function (u) { return "<option>" + u + "</option>"; }).join("") + "</select>" +
+      '<button type="button" class="btn ghost sm iDel" aria-label="Remover item">Remover</button></div>';
+    d.querySelector(".iDel").addEventListener("click", function () { d.remove(); if (!$("rItens").children.length) novoItem(); });
+    $("rItens").appendChild(d); return d;
+  }
+  $("rAddItem").addEventListener("click", function () { novoItem().querySelector(".iDesc").focus(); }); novoItem();
+
+  // ---- anexo (foto reduzida no celular ou PDF pequeno) ----
+  function reduzir(file) {
+    return new Promise(function (ok, falha) {
+      var url = URL.createObjectURL(file), img = new Image();
+      img.onload = function () {
+        var M = 1600, f = Math.min(1, M / Math.max(img.naturalWidth, img.naturalHeight)), c = document.createElement("canvas");
+        c.width = Math.round(img.naturalWidth * f); c.height = Math.round(img.naturalHeight * f); c.getContext("2d").drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(url);
+        var q = 0.8, d = c.toDataURL("image/jpeg", q); while (d.length > 600000 && q > 0.35) { q -= 0.1; d = c.toDataURL("image/jpeg", q); } ok(d);
+      };
+      img.onerror = function () { URL.revokeObjectURL(url); falha(new Error("Não consegui abrir a imagem.")); }; img.src = url;
+    });
+  }
+  $("rArq").addEventListener("change", function () {
+    var f = this.files && this.files[0]; anexo = null; $("rArqInfo").textContent = ""; if (!f) return;
+    if (!/^image\//.test(f.type) && f.type !== "application/pdf") { $("rArqInfo").textContent = "Use foto ou PDF."; this.value = ""; return; }
+    $("rArqInfo").textContent = "Preparando…";
+    (/^image\//.test(f.type) ? reduzir(f) : new Promise(function (ok, falha) { var r = new FileReader(); r.onload = function () { ok(r.result); }; r.onerror = falha; r.readAsDataURL(f); }))
+      .then(function (d) {
+        if (d.length > 680000) { $("rArqInfo").textContent = "Arquivo grande demais (máx. ~500 KB). Mande uma foto."; $("rArq").value = ""; return; }
+        anexo = { nome: f.name, dados: d }; $("rArqInfo").textContent = f.name + " · " + Math.round(d.length * 0.75 / 1024) + " KB";
+      }).catch(function () { $("rArqInfo").textContent = "Não consegui ler o arquivo."; });
+  });
+
+  // ---- enviar ----
+  $("fReq").addEventListener("submit", function (ev) {
+    ev.preventDefault(); msg("");
+    var itens = [], semQtd = false;
+    document.querySelectorAll("#rItens .item").forEach(function (d) {
+      var desc = d.querySelector(".iDesc").value.trim(); if (!desc) return;
+      var q = numBR(d.querySelector(".iQtd").value); if (!(q > 0)) semQtd = true;
+      itens.push({ descricao: desc, qtd: q, unidade: d.querySelector(".iUn").value });
+    });
+    var o = infoObra();
+    var corpo = { solicitante: $("rColab").value.trim(), empresa: remp, destino: dest, obra: dest === "Obra" ? $("rObra").value.trim() : "", obra_desc: o ? [o.c, o.d].filter(Boolean).join(" - ") : "",
+      frota: dest === "Frota" ? $("rFrota").value.trim() : "", prioridade: $("rPrio").value, data_necessaria: $("rData").value, justificativa: $("rJust").value.trim(), local_entrega: $("rLocal").value.trim(), itens: itens, anexo: anexo };
+    if (!corpo.solicitante) return msg("Selecione quem está pedindo.");
+    if (dest === "Obra" && !corpo.obra) return msg("Informe a obra.");
+    if (dest === "Frota" && !corpo.frota) return msg("Escolha o veículo.");
+    if (!itens.length) return msg("Informe ao menos um item.");
+    if (semQtd) return msg("Informe a quantidade de cada item.");
+    if (!corpo.data_necessaria) return msg("Informe para quando precisa.");
+    if (!corpo.justificativa) return msg("Diga para que é o material.");
+    var b = $("btnReq"); b.disabled = true; b.textContent = "Enviando…";
+    fetch("/api/compras/requisicao", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(corpo) })
+      .then(function (r) { return r.json().catch(function () { return { ok: false, erro: "http_" + r.status }; }); })
+      .then(function (j) {
+        if (!j.ok) throw new Error(j.msg || "Não foi possível enviar (" + (j.erro || "erro") + ").");
+        guardar(j.numero, j.chave); try { localStorage.setItem(LS_COLAB, corpo.solicitante); } catch (e) {}
+        $("rItens").innerHTML = ""; novoItem(); $("rJust").value = ""; $("rLocal").value = ""; $("rArq").value = ""; $("rArqInfo").textContent = ""; anexo = null; $("rData").value = hojeMais(3); $("rPrio").value = "Normal";
+        var info = [["Para", dest === "Obra" ? "Obra " + corpo.obra : dest === "Frota" ? corpo.frota : "Estoque"], ["Itens", itens.length], ["Para quando", dataBR(corpo.data_necessaria)], ["Prioridade", corpo.prioridade]];
+        if (window.hsEnviado) hsEnviado({ app: "autorizacao", titulo: "Requisição enviada", numero: j.numero, sub: "Suprimentos recebeu. Acompanhe a cotação, o pedido e a previsão de entrega em Minhas.", linhas: info,
+          compartilhar: "Requisição " + j.numero + " · " + info[0][1] + " · " + itens.length + " item(ns) para " + dataBR(corpo.data_necessaria) + " · app HS Gestão",
+          botoes: [{ txt: "Acompanhar em Minhas", primario: true, fn: function () { $("tMinhas").click(); } }, { txt: "Fazer outra requisição" }] });
+        else { msg("Requisição " + j.numero + " enviada.", "ok"); }
+      })
+      .catch(function (e) { msg((e && e.message) || "Sem conexão. Tente de novo quando tiver sinal."); })
+      .then(function () { b.disabled = false; b.textContent = "Enviar requisição"; });
+  });
+
+  // ---- minhas requisições ----
+  var ETAPAS = ["Nova", "Em cotação", "Aguardando aprovação", "Pedido emitido", "Entregue"];
+  function cartao(r) {
+    if (r.nao_encontrada) return '<div class="card"><span class="num">' + esc(r.numero) + '</span><div class="meta">Não encontrada.</div></div>';
+    var cls = "s-" + String(r.status).split(" ")[0], h = '<div class="card"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><span class="num">' + esc(r.numero) + '</span><span class="badge ' + cls + '">' + esc(r.status) + "</span></div>";
+    h += '<div class="meta">' + esc(r.destino === "Frota" ? r.frota : r.destino === "Estoque" ? "Estoque" : (r.empresa ? r.empresa + " · " : "") + "Obra " + r.obra) + " · para " + esc(dataBR(r.data_necessaria)) + (r.prioridade !== "Normal" ? " · " + esc(r.prioridade) : "") + "</div>";
+    h += '<ul class="lista-itens">' + (r.itens || []).map(function (x) { return "<li>" + esc(x.descricao) + " — " + esc(String(x.qtd).replace(".", ",")) + " " + esc(x.unidade || "") + "</li>"; }).join("") + "</ul>";
+    if (r.status !== "Cancelada") {
+      var passos = []; (r.eventos || []).forEach(function (e) { if (e.para && passos.indexOf(e.para) < 0) passos.push(e.para); });
+      if (!passos.length) passos = [r.status];
+      h += '<div class="linha" aria-label="Andamento">' + passos.map(function (e) { return "<span>" + esc(e) + "</span>"; }).join("") + "</div>";
+    }
+    var inf = [];
+    if (r.previsao) inf.push("Previsão de entrega: <b>" + esc(dataBR(r.previsao)) + "</b>");
+    if (r.pedido) inf.push("Pedido de compra nº " + esc(r.pedido));
+    if (r.comprador) inf.push("Comprador: " + esc(r.comprador));
+    if (r.obs_suprimentos) inf.push(esc(r.obs_suprimentos));
+    if (r.status === "Cancelada" && r.motivo) inf.push("Cancelada: " + esc(r.motivo));
+    if (inf.length) h += '<div class="aviso-sup">' + inf.join("<br>") + "</div>";
+    return h + '<div class="meta" style="margin-top:8px">Enviada em ' + esc(quando(r.criado_em)) + (r.atualizado_em && r.atualizado_em !== r.criado_em ? " · atualizada em " + esc(quando(r.atualizado_em)) : "") + "</div></div>";
+  }
+  function carregar() {
+    var l = ler();
+    if (!l.length) { $("listaReq").innerHTML = ""; $("tituloAut").hidden = true; return; }
+    $("tituloAut").hidden = false;
+    $("listaReq").innerHTML = '<div class="sec-t">Requisições de material</div><div class="vazio">Carregando…</div>';
+    fetch("/api/compras/requisicao?l=" + encodeURIComponent(l.map(function (x) { return x.n + ":" + x.k; }).join(","))).then(function (r) { return r.json(); }).then(function (j) {
+      if (!j.ok) throw new Error();
+      $("listaReq").innerHTML = '<div class="sec-t">Requisições de material</div>' + j.requisicoes.map(cartao).join("");
+    }).catch(function () { $("listaReq").innerHTML = '<div class="sec-t">Requisições de material</div><div class="msg err">Sem conexão para ver as requisições.</div>'; });
+  }
+  $("tMinhas").addEventListener("click", carregar); $("btnAtualizar").addEventListener("click", carregar);
 })();
 </script>
 <script src="/icons/enviado.js?v=3"></script>

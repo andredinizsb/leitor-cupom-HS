@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Requisições · Gestão HS</title>
+<link rel="icon" href="/icons/gestao.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/icons/gestao-apple.png">
+<link rel="manifest" href="/icons/gestao.webmanifest">
+<meta name="theme-color" content="#0E1217">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Gestão HS">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/ds/hs.css?v=1">
+<style>
+.filtros{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.s-Nova{background:var(--warning-subtle);color:var(--warning-text);border-color:transparent}
+.s-Em,.s-Aguardando{background:var(--primary-subtle);color:var(--primary-text);border-color:transparent}
+.s-Pedido{background:var(--primary-subtle);color:var(--primary-text);border-color:transparent}
+.s-Entregue{background:var(--success-subtle);color:var(--success-text);border-color:transparent}
+.s-Cancelada{background:var(--surface-muted);color:var(--text-muted)}
+.p-Urgente{background:var(--danger-subtle);color:var(--danger-text);border-color:transparent}.p-Alta{background:var(--warning-subtle);color:var(--warning-text);border-color:transparent}
+.wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);box-shadow:var(--shadow-sm);overflow:hidden}
+.tabela tbody tr{cursor:pointer}.tabela .m{color:var(--text-muted);font-size:13px}.tabela .n{font-weight:600;white-space:nowrap}
+.atr{color:var(--danger-text);font-weight:600}
+dialog{padding:0;width:min(760px,calc(100vw - 24px))}
+.dh{display:flex;align-items:center;gap:10px;padding:16px 20px;border-bottom:1px solid var(--border);flex-wrap:wrap}.dh b{font-size:18px}.dh .sp{flex:1}
+.dc{padding:16px 20px;max-height:calc(100vh - 210px);overflow:auto}
+.dc dl{display:grid;grid-template-columns:150px 1fr;gap:6px 14px;margin:0 0 16px;font-size:14px}.dc dt{color:var(--text-muted)}.dc dd{margin:0;font-weight:500;white-space:pre-line}
+.dc h3{font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);margin:18px 0 8px}
+.its{width:100%;border-collapse:collapse;font-size:14px}.its td,.its th{padding:8px;border-bottom:1px solid var(--border);text-align:left}.its th{font-size:12px;color:var(--text-muted);font-weight:600}.its td.q{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.form{display:grid;grid-template-columns:1fr 1fr;gap:12px 16px}.form label{display:grid;gap:6px;font-size:14px;font-weight:500}.form .larga{grid-column:1/-1}
+.form :is(input,select,textarea){width:100%;min-height:44px;padding:8px 12px}.form textarea{min-height:64px;resize:vertical}
+.hist{list-style:none;margin:0;padding:0;font-size:13.5px}.hist li{display:grid;grid-template-columns:120px 1fr;gap:8px;padding:6px 0;border-bottom:1px dashed var(--border)}.hist li span{color:var(--text-muted)}
+.anx{display:flex;gap:8px;flex-wrap:wrap}.anx a img{width:120px;height:90px;object-fit:cover;border-radius:var(--r-sm);border:1px solid var(--border);display:block}
+.df{display:flex;gap:8px;justify-content:flex-end;padding:14px 20px;border-top:1px solid var(--border);flex-wrap:wrap}
+@media (max-width:760px){
+  .tabela thead{display:none}.tabela tr{display:grid;grid-template-columns:1fr auto;gap:2px 8px;padding:12px 14px;border-bottom:1px solid var(--border)}.tabela td{border:0;padding:0;grid-column:1/-1}
+  .tabela td.c-st{grid-column:2;grid-row:1}.tabela td.c-n{grid-column:1;grid-row:1}
+  .dc dl,.form{grid-template-columns:1fr}.dc dt{margin-top:6px}
+}
+</style>
+</head>
+<body data-mod="compras">
+<script src="/ds/shell.js?v=2"></script>
+<main>
+  <header class="hs-ph"><div class="tt"><div class="hs-crumbs"><a href="/gestao/painel/">Gestão</a> / Compras</div><h1>Requisições de material</h1>
+    <p>Pedidos de material feitos pelas equipes no app Compras. Assuma, cote e informe a previsão: o solicitante acompanha pelo celular.</p></div>
+    <div class="acoes"><button class="btn ghost" type="button" id="btnAtu">Atualizar</button></div></header>
+  <div class="filtros" id="chips" role="group" aria-label="Filtrar por situação"></div>
+  <div class="barra"><input class="busca" id="q" placeholder="Buscar por nº, solicitante, obra, item, pedido…" aria-label="Buscar"></div>
+  <div class="resumo" id="resumo"></div>
+  <div id="aviso"></div>
+  <div class="wrap"><table class="tabela"><thead><tr><th>Requisição</th><th>Solicitante</th><th>Para</th><th>Itens</th><th>Para quando</th><th>Situação</th></tr></thead><tbody id="lista"></tbody></table></div>
+</main>
+
+<dialog id="dlg" aria-labelledby="dTit">
+  <div class="dh"><b id="dTit">Requisição</b><span class="badge" id="dSt"></span><span class="sp"></span><button class="btn ghost pq" type="button" id="dX" aria-label="Fechar">✕</button></div>
+  <div class="dc">
+    <dl id="dInfo"></dl>
+    <h3>Itens</h3><table class="its"><thead><tr><th>#</th><th>Descrição</th><th style="text-align:right">Qtd</th></tr></thead><tbody id="dItens"></tbody></table>
+    <div id="dAnx"></div>
+    <h3>Andamento da compra</h3>
+    <div class="form">
+      <label>Situação<select id="fSt"></select></label>
+      <label>Previsão de entrega<input type="date" id="fPrev"></label>
+      <label>Nº do pedido de compra<input id="fPed" maxlength="60" placeholder="Quando o pedido for emitido"></label>
+      <label>Comprador<input id="fComp" disabled></label>
+      <label class="larga">Recado para o solicitante<textarea id="fObs" maxlength="500" placeholder="Aparece no celular de quem pediu (ex.: cotação com 3 fornecedores, entrega na obra)"></textarea></label>
+      <label class="larga hide" id="lMot">Motivo do cancelamento<input id="fMot" maxlength="300"></label>
+    </div>
+    <div id="dMsg"></div>
+    <h3>Histórico</h3><ul class="hist" id="dHist"></ul>
+  </div>
+  <div class="df"><button class="btn ghost" type="button" id="dAssumir">Assumir a compra</button><button class="btn" type="button" id="dSalvar">Salvar</button></div>
+</dialog>
+
+<script>
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+  var L = [], STATUS = [], sit = "abertas", hoje = "", atual = null;
+  function esc(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
+  function br(d) { var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(d || ""); return m ? m[3] + "/" + m[2] + "/" + m[1] : ""; }
+  function quando(iso) { var d = new Date(iso); return isNaN(d) ? "" : d.toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" }); }
+  function cls(s) { return "s-" + String(s || "").split(" ")[0]; }
+  function aberta(r) { return ["Entregue", "Cancelada"].indexOf(r.status) < 0; }
+  function para(r) { return r.destino === "Frota" ? r.frota || "Veículo" : r.destino === "Estoque" ? "Estoque" : (r.empresa ? r.empresa + " · " : "") + "Obra " + (r.obra || "—"); }
+
+  function carregar() {
+    $("aviso").innerHTML = ""; $("lista").innerHTML = '<tr><td colspan="6"><span class="hs-skel" style="height:40px"></span></td></tr>';
+    fetch("/api/gestao/compras?situacao=todas").then(function (r) { return r.json(); }).then(function (j) {
+      if (!j.ok) throw new Error(j.msg || j.erro || "erro");
+      if (j.quem) $("quem").textContent = j.quem;
+      L = j.requisicoes || []; STATUS = j.status || []; hoje = j.hoje; desenhar();
+    }).catch(function (e) { L = []; desenhar(); $("aviso").innerHTML = '<div class="msg">' + esc(e.message) + "</div>"; });
+  }
+  function desenhar() {
+    var cont = { abertas: L.filter(aberta).length, todas: L.length };
+    STATUS.forEach(function (s) { cont[s] = L.filter(function (r) { return r.status === s; }).length; });
+    var F = [["abertas", "Em aberto"]].concat(STATUS.map(function (s) { return [s, s]; })).concat([["todas", "Todas"]]);
+    $("chips").innerHTML = F.map(function (f) { return '<button type="button" class="chip' + (f[0] === sit ? " on" : "") + '" data-f="' + esc(f[0]) + '">' + esc(f[1]) + "<b>" + (cont[f[0]] || 0) + "</b></button>"; }).join("");
+    var q = $("q").value.trim().toLowerCase();
+    var V = L.filter(function (r) { return sit === "todas" ? true : sit === "abertas" ? aberta(r) : r.status === sit; }).filter(function (r) {
+      return !q || [r.numero, r.solicitante, r.obra, r.obra_desc, r.frota, r.justificativa, r.pedido, r.comprador, r.itens.map(function (x) { return x.descricao; }).join(" ")].join(" ").toLowerCase().indexOf(q) >= 0;
+    });
+    var ab = L.filter(aberta), atr = ab.filter(function (r) { return r.data_necessaria && r.data_necessaria < hoje; }).length;
+    $("resumo").innerHTML = "<span><b>" + (cont["Nova"] || 0) + "</b> novas, sem comprador</span><span><b>" + ab.length + "</b> em aberto</span><span><b>" + atr + "</b> com a data vencida</span><span><b>" + ab.filter(function (r) { return r.prioridade === "Urgente"; }).length + "</b> urgentes</span>";
+    $("lista").innerHTML = V.length ? V.map(function (r, i) {
+      var venc = aberta(r) && r.data_necessaria && r.data_necessaria < hoje;
+      return '<tr data-i="' + L.indexOf(r) + '" tabindex="0"><td class="c-n"><span class="n">' + esc(r.numero) + '</span><div class="m">' + esc(quando(r.criado_em)) + "</div></td>" +
+        "<td>" + esc(r.solicitante) + (r.comprador ? '<div class="m">Comprador: ' + esc(String(r.comprador).split("@")[0]) + "</div>" : "") + "</td>" +
+        "<td>" + esc(para(r)) + '<div class="m">' + esc(r.obra_desc || r.justificativa || "") + "</div></td>" +
+        "<td>" + esc(r.itens.length + " item(ns)") + '<div class="m">' + esc(r.itens.slice(0, 2).map(function (x) { return x.descricao; }).join("; ") + (r.itens.length > 2 ? "…" : "")) + "</div></td>" +
+        '<td><span class="' + (venc ? "atr" : "") + '">' + esc(br(r.data_necessaria)) + (venc ? " · vencida" : "") + "</span>" + (r.prioridade !== "Normal" ? ' <span class="badge p-' + esc(r.prioridade) + '">' + esc(r.prioridade) + "</span>" : "") +
+        (r.previsao ? '<div class="m">Previsão ' + esc(br(r.previsao)) + "</div>" : "") + "</td>" +
+        '<td class="c-st"><span class="badge ' + cls(r.status) + '">' + esc(r.status) + "</span>" + (r.pedido ? '<div class="m">PC ' + esc(r.pedido) + "</div>" : "") + "</td></tr>";
+    }).join("") : '<tr><td colspan="6" class="vazio">' + (L.length ? "Nenhuma requisição nesta situação." : "Nenhuma requisição ainda. Elas chegam pelo app Compras (Pedir · Material para a obra).") + "</td></tr>";
+  }
+  $("chips").addEventListener("click", function (e) { var b = e.target.closest("[data-f]"); if (!b) return; sit = b.getAttribute("data-f"); desenhar(); });
+  $("q").addEventListener("input", desenhar);
+  function abrirLinha(e) { var tr = e.target.closest("tr[data-i]"); if (tr) abrir(L[+tr.getAttribute("data-i")]); }
+  $("lista").addEventListener("click", abrirLinha);
+  $("lista").addEventListener("keydown", function (e) { if (e.key === "Enter") abrirLinha(e); });
+
+  function abrir(r) {
+    atual = r; $("dMsg").innerHTML = "";
+    $("dTit").textContent = r.numero; $("dSt").className = "badge " + cls(r.status); $("dSt").textContent = r.status;
+    var info = [["Solicitante", r.solicitante], ["Para", para(r)], ["Obra", r.obra_desc], ["Para quando", br(r.data_necessaria) + (r.prioridade !== "Normal" ? " · " + r.prioridade : "")], ["Para que é", r.justificativa], ["Onde entregar", r.local_entrega], ["Enviada em", quando(r.criado_em)]];
+    $("dInfo").innerHTML = info.filter(function (x) { return x[1]; }).map(function (x) { return "<dt>" + esc(x[0]) + "</dt><dd>" + esc(x[1]) + "</dd>"; }).join("");
+    $("dItens").innerHTML = r.itens.map(function (x) { return "<tr><td>" + x.item + "</td><td>" + esc(x.descricao) + '</td><td class="q">' + esc(String(x.qtd).replace(".", ",")) + " " + esc(x.unidade || "") + "</td></tr>"; }).join("");
+    $("dAnx").innerHTML = r.anexos.length ? "<h3>Anexo</h3><div class=\"anx\">" + r.anexos.map(function (a) {
+      var u = "/api/gestao/compras-anexo?id=" + a.id;
+      if (!a.tem) return '<span class="meta">Guardado no servidor: ' + esc(a.arquivo || "") + "</span>";
+      return /^image\//.test(a.tipo) ? '<a href="' + u + '" target="_blank" rel="noopener"><img src="' + u + '" alt="' + esc(a.nome) + '"></a>' : '<a class="btn ghost pq" href="' + u + '" target="_blank" rel="noopener">Abrir ' + esc(a.nome) + "</a>";
+    }).join("") + "</div>" : "";
+    $("fSt").innerHTML = STATUS.map(function (s) { return "<option" + (s === r.status ? " selected" : "") + ">" + esc(s) + "</option>"; }).join("");
+    $("fPrev").value = r.previsao || ""; $("fPed").value = r.pedido || ""; $("fObs").value = r.obs_suprimentos || ""; $("fMot").value = r.motivo || "";
+    $("fComp").value = r.comprador ? String(r.comprador) : "Ninguém assumiu ainda";
+    $("dAssumir").hidden = !!r.comprador && r.comprador === $("quem").textContent;
+    $("dAssumir").textContent = r.comprador ? "Assumir no meu nome" : "Assumir a compra";
+    $("lMot").classList.toggle("hide", r.status !== "Cancelada");
+    $("dHist").innerHTML = r.eventos.slice().reverse().map(function (e) {
+      return "<li><span>" + esc(quando(e.em)) + "</span><div>" + (e.para ? "<b>" + esc(e.para) + "</b>" : "") + (e.obs ? (e.para ? " · " : "") + esc(e.obs) : "") + ' <span>· ' + esc(String(e.por || "").split("@")[0]) + "</span></div></li>";
+    }).join("");
+    if (!$("dlg").open) $("dlg").showModal();
+  }
+  $("fSt").addEventListener("change", function () { $("lMot").classList.toggle("hide", this.value !== "Cancelada"); });
+  $("dX").addEventListener("click", function () { $("dlg").close(); });
+  function salvar(assumir) {
+    if (!atual) return;
+    var c = { numero: atual.numero, status: $("fSt").value, previsao: $("fPrev").value || null, pedido: $("fPed").value.trim(), obs_suprimentos: $("fObs").value.trim(), motivo: $("fMot").value.trim(), assumir: !!assumir };
+    if (c.status === "Cancelada" && !c.motivo && atual.status !== "Cancelada") { $("dMsg").innerHTML = '<div class="msg">Informe o motivo do cancelamento.</div>'; $("fMot").focus(); return; }
+    if (assumir && c.status === "Nova") c.status = "Em cotação";
+    var b = assumir ? $("dAssumir") : $("dSalvar"); b.disabled = true;
+    fetch("/api/gestao/compras", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(c) })
+      .then(function (r) { return r.json(); }).then(function (j) {
+        if (!j.ok) throw new Error(j.msg || j.erro);
+        if (j.requisicao) { var i = L.indexOf(atual); var n = j.requisicao; if (i >= 0) L[i] = n; desenhar(); abrir(n); }
+        $("dMsg").innerHTML = '<div class="msg ok">' + (j.sem_mudanca ? "Nada mudou." : "Salvo. O solicitante já vê a atualização no celular.") + "</div>";
+      }).catch(function (e) { $("dMsg").innerHTML = '<div class="msg">' + esc(e.message || "Sem conexão.") + "</div>"; })
+      .then(function () { b.disabled = false; });
+  }
+  $("dSalvar").addEventListener("click", function () { salvar(false); });
+  $("dAssumir").addEventListener("click", function () { salvar(true); });
+  $("btnAtu").addEventListener("click", carregar);
+  carregar();
+})();
+</script>
+<script src="/gestao/aviso-limites.js?v=4" defer></script>
+<script src="/icons/abertura.js?v=5" data-app="gestao"></script>
+</body>
+</html>

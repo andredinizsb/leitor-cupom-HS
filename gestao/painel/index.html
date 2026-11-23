@@ -16,7 +16,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/ds/hs.css?v=1">
 <style>
-.att{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+.att{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
 .at-c{display:flex;flex-direction:column;gap:10px;padding:16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);box-shadow:var(--shadow-sm);color:var(--text);text-decoration:none;transition:border-color .15s}
 .at-c:hover{border-color:var(--primary)}
 .at-c .ic{width:36px;height:36px;border-radius:var(--r-md);display:grid;place-items:center;background:var(--surface-muted);color:var(--text-muted)}.at-c .ic svg{width:20px;height:20px}
@@ -41,9 +41,9 @@
 .fila .t{font-weight:600;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.fila .s{grid-column:2;font-size:13px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .fila .badge{grid-row:1/3;grid-column:3}
 .erro{font-size:13px;color:var(--danger-text)}
-@media (max-width:1200px){.att{grid-template-columns:repeat(3,1fr)}}
+
 @media (max-width:900px){.duas{grid-template-columns:1fr}}
-@media (max-width:640px){.att{grid-template-columns:1fr 1fr}.at-c b{font-size:24px}.at-c:last-child{grid-column:1/-1}}
+@media (max-width:640px){.att{grid-template-columns:1fr 1fr}.at-c b{font-size:24px}}
 </style>
 </head>
 <body data-mod="painel">
@@ -61,7 +61,7 @@
       <div id="desp"><span class="hs-skel" style="height:64px"></span></div>
     </section>
     <section class="card" aria-labelledby="tFila">
-      <div class="cab"><h2 id="tFila">Fila de aprovação</h2><span class="sp"></span></div>
+      <div class="cab"><h2 id="tFila">Fila de trabalho</h2><span class="sp"></span></div>
       <ul class="fila" id="fila"><li><span class="hs-skel" style="height:48px"></span></li></ul>
     </section>
   </div>
@@ -79,7 +79,7 @@
   $("hoje").textContent = hoje.toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long", year: "numeric" }).replace(/^./, function (c) { return c.toUpperCase(); });
 
   // cartões de atenção: [chave, ícone, rótulo, link]
-  var T = [["aut", "autorizacoes", "Autorizações pendentes", "/gestao/"], ["rdo", "rdo", "RDOs aguardando assinatura", "/gestao/rdo/"],
+  var T = [["req", "compras", "Requisições novas", "/gestao/compras/"], ["aut", "autorizacoes", "Autorizações pendentes", "/gestao/"], ["rdo", "rdo", "RDOs aguardando assinatura", "/gestao/rdo/"],
     ["pend", "frota", "Pendências da oficina", "/gestao/frota/#pend"], ["docs", "documentos", "Documentos da frota", "/gestao/frota/documentos/"], ["chk", "checklist", "Checklists com problema", "/gestao/checklist/"]];
   function tiles() {
     $("att").innerHTML = T.map(function (t) { return '<a class="at-c" id="at-' + t[0] + '" href="' + t[3] + '"><span class="ic">' + I(t[1]) + '</span><b><span class="hs-skel" style="width:48px;height:28px"></span></b><span class="rot">' + t[2] + '</span><span class="det"></span></a>'; }).join("");
@@ -91,23 +91,28 @@
   }
   function falhou(k) { var a = $("at-" + k); if (a) { a.querySelector("b").textContent = "—"; a.querySelector(".det").innerHTML = '<span class="erro">Não carregou</span>'; } }
 
-  var fila = [], filaPend = 2;
+  var fila = [], filaPend = 3;
   function desenharFila() {
     if (--filaPend > 0) return;
     fila.sort(function (a, b) { return a.quando < b.quando ? 1 : -1; });
     $("fila").innerHTML = fila.length ? fila.slice(0, 8).map(function (f) {
       return '<li><a href="' + f.link + '"><span class="ic">' + I(f.ic) + '</span><span class="t">' + esc(f.t) + '</span><span class="badge ' + f.cls + '">' + esc(f.st) + '</span><span class="s">' + esc(f.s) + "</span></a></li>";
-    }).join("") : '<li class="vazio" style="padding:24px 8px">Nada aguardando aprovação.</li>';
+    }).join("") : '<li class="vazio" style="padding:24px 8px">Nada aguardando você.</li>';
   }
 
   function carregar() {
-    tiles(); fila = []; filaPend = 2;
+    tiles(); fila = []; filaPend = 3;
     $("fila").innerHTML = '<li><span class="hs-skel" style="height:48px"></span></li>';
     api("/api/gestao/autorizacoes?status=todas").then(function (j) {
       var p = (j.autorizacoes || []).filter(function (a) { return a.status === "Pendente"; });
       tile("aut", p.length, p.length ? "Aguardam assinatura" : "");
       p.forEach(function (a) { fila.push({ quando: a.solicitado_em || "", link: "/gestao/", ic: "autorizacoes", t: a.numero + " · " + a.tipo, s: [a.colaborador, a.obra, quando(a.solicitado_em)].filter(Boolean).join(" · "), st: "Pendente", cls: "s-warn" }); });
     }).catch(function () { falhou("aut"); }).then(desenharFila);
+    api("/api/gestao/compras?situacao=abertas").then(function (j) {
+      var L = j.requisicoes || [], nv = L.filter(function (r) { return r.status === "Nova"; }), venc = L.filter(function (r) { return r.data_necessaria && r.data_necessaria < j.hoje; }).length;
+      tile("req", nv.length, (L.length ? L.length + " em aberto" : "") + (venc ? " · " + venc + " com data vencida" : ""), venc ? "crit" : null);
+      nv.forEach(function (r) { fila.push({ quando: r.criado_em || "", link: "/gestao/compras/", ic: "compras", t: r.numero + " · " + (r.destino === "Obra" ? "Obra " + r.obra : r.frota || r.destino), s: [r.solicitante, r.itens.length + " item(ns)", "para " + (r.data_necessaria || "").split("-").reverse().join("/")].join(" · "), st: "Nova", cls: "s-warn" }); });
+    }).catch(function () { falhou("req"); }).then(desenharFila);
     api("/api/gestao/rdo?de=" + dia(new Date(Date.now() - 60 * 864e5)) + "&ate=" + dia(hoje)).then(function (j) {
       var p = (j.rdos || []).filter(function (r) { return r.status !== "Finalizado"; });
       tile("rdo", p.length, p.length ? "Últimos 60 dias" : "");

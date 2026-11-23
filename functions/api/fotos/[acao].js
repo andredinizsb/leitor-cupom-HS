@@ -10,6 +10,7 @@ import { resp, semBanco, ERRO_BANCO, txt, agora } from "../../../lib/aut.js";
 import { tokenOk, b64ParaBytes, brData } from "../../../lib/rdo.js";
 import { relatorioHtml, dadosRelatorio, dataUri, regRdoJotform } from "../../../lib/relatorio.js";
 import { ITENS } from "../../../lib/checklist.js";
+import { garantir as garantirCompras } from "../../../lib/compras.js";
 import { TABELAS, SQL_BYTES, DIAS_CHECKLIST, DIAS_FROTA, nomeFoto, nomeArquivoFrota, tsv, resumoHtml, resumoFrotaHtml, uso, situacao, comR2Contado } from "../../../lib/fotos.js";
 //   GET  listar?tipo=frota&dias=180              -> id, ref, arquivo, bytes, frota, data (NF/PDF/fotos da frota; o último arquivo de cada documento fica)
 //   GET  resumo?tipo=frota&numero=MAN:MAN-2026-000001 (ou DOC:12)
@@ -38,6 +39,17 @@ export async function onRequest({ request, env, params }) {
   env = comR2Contado(env);
   const db = env.DB, u = new URL(request.url), q = u.searchParams, acao = String(params.acao || "");
   const tipo = (acao === "apagar" ? null : q.get("tipo")) || "rdo";
+  //   GET  requisicoes -> HS Compras: 1 linha por item (mesmas colunas da tRequisicoes da planilha)
+  if (acao === "requisicoes") {
+    await garantirCompras(db);
+    const rs = await db.prepare("SELECT r.*, i.item, i.codigo_fx, i.descricao, i.qtd, i.unidade FROM compras_req r JOIN compras_req_itens i ON i.numero = r.numero ORDER BY r.numero, i.item").all();
+    const local = function (iso) { return iso ? new Date(Date.parse(iso) - 3 * 3600e3).toISOString().slice(0, 10) : ""; };
+    return tsv((rs.results || []).map(function (r) {
+      return [r.numero, local(r.criado_em), r.solicitante, r.empresa || "", r.obra || "", r.frota || "", r.prioridade || "", r.data_necessaria || "", "", r.justificativa || "",
+        r.item, r.codigo_fx || "", r.descricao, r.qtd == null ? "" : r.qtd, r.unidade || "", r.pedido || "", r.status === "Cancelada" ? "Sim" : "",
+        "App: " + r.status + (r.previsao ? " · previsão " + r.previsao : "") + (r.comprador ? " · " + String(r.comprador).split("@")[0] : "") + (r.obs_suprimentos ? " · " + r.obs_suprimentos : "") + (r.motivo ? " · motivo: " + r.motivo : "")];
+    }));
+  }
   // tabela dos relatórios salvos no servidor (cria sozinha na 1ª vez; nas outras não faz nada)
   if (/^(relatorios|relatorio-salvo|listar)$/.test(acao)) await db.prepare("CREATE TABLE IF NOT EXISTS relatorios (tipo TEXT NOT NULL, numero TEXT NOT NULL, salvo_em TEXT, arquivo TEXT, estado TEXT, PRIMARY KEY (tipo, numero))").run();
 

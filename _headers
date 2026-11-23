@@ -3,3 +3,5 @@
   Cache-Control: no-cache
 /gestao/*.js
   Cache-Control: no-cache
+/ds/*
+  Cache-Control: no-cache
