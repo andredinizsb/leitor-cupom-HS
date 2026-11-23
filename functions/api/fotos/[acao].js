@@ -58,6 +58,22 @@ export async function onRequest({ request, env, params }) {
     if (st.length) await db.batch(st);
     return tsv([["gravadas", st.length]]);
   }
+  //   GET  cotacoes -> HS Compras C2: 1 linha por fornecedor × item respondido (mesmas 23 colunas da aba BaseCotacoes)
+  if (acao === "cotacoes") {
+    await garantirCompras(db);
+    const rs = await db.prepare("SELECT c.*, x.item, x.preco, x.impostos, x.disponivel, x.obs AS obs_item, i.descricao, i.qtd, i.unidade, i.codigo_fx, i.escolha_cot, i.justificativa, i.preco_negociado, " +
+      "r.destino, r.obra, r.frota, r.excecao, f.nome AS nome_oficial FROM compras_cot c JOIN compras_cot_itens x ON x.cot_id = c.id JOIN compras_req r ON r.numero = c.numero " +
+      "JOIN compras_req_itens i ON i.numero = c.numero AND i.item = x.item LEFT JOIN compras_forn f ON f.cnpj = c.cnpj WHERE c.respondida_em IS NOT NULL ORDER BY c.numero, x.item, c.id").all();
+    const local = function (iso) { return iso ? new Date(Date.parse(iso) - 3 * 3600e3).toISOString().slice(0, 10) : ""; };
+    return tsv((rs.results || []).map(function (r) {
+      const esc = r.escolha_cot === r.id;
+      return [local(r.respondida_em), r.codigo_fx || "", r.descricao, r.fornecedor, r.telefone || "", "", r.unidade || "", r.disponivel ? (r.preco == null ? "" : r.preco) : "",
+        [r.disponivel ? "" : "não tem o item", r.obs_item, r.obs, esc && r.preco_negociado ? "negociado " + r.preco_negociado : "", esc && r.excecao ? "exceção: " + r.excecao : ""].filter(Boolean).join(" · "),
+        r.cond_pagto || "", r.prazo_dias == null ? "" : r.prazo_dias + " dias", r.frete_tipo || "", r.destino === "Obra" ? "Obra " + (r.obra || "") : r.destino === "Frota" ? r.frota || "" : "Estoque",
+        r.cnpj || "", r.nome_oficial || "", r.contato || "", r.numero, r.qtd == null ? "" : r.qtd, r.impostos == null ? "" : r.impostos, r.frete_tipo === "FOB" && r.frete_valor != null ? r.frete_valor : "",
+        r.validade || "", esc ? "Sim" : "", esc ? (r.justificativa || "") : ""];
+    }));
+  }
   //   GET  requisicoes -> HS Compras: 1 linha por item (mesmas colunas da tRequisicoes da planilha)
   if (acao === "requisicoes") {
     await garantirCompras(db);
