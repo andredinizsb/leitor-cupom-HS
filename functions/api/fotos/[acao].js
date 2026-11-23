@@ -8,7 +8,7 @@
 //   POST apagar  {tipo, pasta, itens:[{id, bytes}]} -> apaga do app só as fotos cujo tamanho confere (a linha do RDO fica)
 import { resp, semBanco, ERRO_BANCO, txt, agora } from "../../../lib/aut.js";
 import { tokenOk, b64ParaBytes, brData } from "../../../lib/rdo.js";
-import { relatorioHtml, dadosRelatorio, dataUri } from "../../../lib/relatorio.js";
+import { relatorioHtml, dadosRelatorio, dataUri, regRdoJotform } from "../../../lib/relatorio.js";
 import { ITENS } from "../../../lib/checklist.js";
 import { TABELAS, SQL_BYTES, DIAS_CHECKLIST, DIAS_FROTA, nomeFoto, nomeArquivoFrota, tsv, resumoHtml, resumoFrotaHtml, uso, situacao, comR2Contado } from "../../../lib/fotos.js";
 //   GET  listar?tipo=frota&dias=180              -> id, ref, arquivo, bytes, frota, data (NF/PDF/fotos da frota; o último arquivo de cada documento fica)
@@ -69,6 +69,9 @@ export async function onRequest({ request, env, params }) {
     // checklist do histórico do Jotform (vem da planilha): só gera o relatório, nada é gravado no app
     let d;
     try { d = await request.json(); } catch (e) { return resp({ ok: false, erro: "json_invalido" }, 400); }
+    const H = { headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" } };
+    if (d.tipo === "rdo") return new Response(relatorioHtml("rdo", regRdoJotform(d.reg || {}), { fotos: [], base: u.origin }), H);
+    if (d.tipo === "despesas-obra" || d.tipo === "obras-geral") return new Response(relatorioHtml(d.tipo, Object.assign({ empresa: "HS" }, d.reg || {}, { numero: d.tipo }), { base: u.origin }), H);
     const c = d.reg || {}, iso = /^(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2})/.exec(String(c.data || "")), itens = String(c.itens || "");
     const av = function (s) { const l = String(s || "").split(/,\s*/).map(function (x) { return x.trim(); }).filter(Boolean); return JSON.stringify(l); };
     const reg = { numero: txt(c.numero, 40) || "Jotform", data_check: iso ? iso[3] + "-" + iso[2] + "-" + iso[1] + "T" + iso[4] + ":" + iso[5] : "", frota: txt(c.frota, 80), condutor: txt(c.condutor, 120),
@@ -88,6 +91,11 @@ export async function onRequest({ request, env, params }) {
     if (!sql) return resp({ ok: false, erro: "tipo_invalido" }, 400);
     const rs = await db.prepare(sql + " LIMIT " + Math.min(200, Math.max(1, parseInt(q.get("max") || "60", 10) || 60))).all();
     return tsv((rs.results || []).map(function (x) { return [x.numero, x.a, x.b, x.d]; }));
+  }
+  if (acao === "chaves-rdo") {
+    // RDOs feitos no app ("dd/mm/aaaa hh:mm|obra"): a planilha pula estes ao gerar os relatórios do histórico do Jotform
+    const rs = await db.prepare("SELECT data_inicio, obra FROM rdo").all();
+    return tsv((rs.results || []).map(function (r) { return [brData(r.data_inicio) + "|" + (r.obra || "")]; }));
   }
   if (acao === "chaves-checklist") {
     // checklists feitos no app ("dd/mm/aaaa hh:mm|frota"): a planilha pula estes ao gerar os relatórios do histórico do Jotform
