@@ -350,6 +350,7 @@
     <p class="w-lead">Lance as despesas da obra a partir do cupom fiscal, sem papel e sem digitar tudo de novo.</p>
     <div class="w-list" id="wList"></div>
     <button class="btn" id="btnWelcome" type="button">Começar</button>
+    <a class="btn sub" href="/inicio/" style="margin-top:var(--s2);text-decoration:none">← Voltar ao início</a>
     <div class="w-foot">Leitor de Cupom · Lançamento de Despesa de Obra</div>
   </div>
 </section>
@@ -1039,7 +1040,8 @@ function ligarObras(inp, desc) {
     if (total) h += '<div class="big hs-num">' + esc(total) + '</div>';
     h += '<p>Enviada' + (n > 1 ? "s" : "") + ' com sucesso para o formulário de despesas, obra ' + esc(obra) + '.' + (viaReserva ? ' <br><span class="t-small">(Gravado pelo envio direto, sem o servidor NFC-e.)</span>' : '') + '</p>';
     h += '<button class="btn" id="btnNova" type="button">' + ic("camera") + '<span>Ler próxima nota</span></button>';
-    h += '<button class="btn sub" id="btnNovaManual" type="button" style="margin-top:var(--s2)">' + ic("keyboard") + '<span>Digitar outra</span></button></div>';
+    h += '<button class="btn sub" id="btnNovaManual" type="button" style="margin-top:var(--s2)">' + ic("keyboard") + '<span>Digitar outra</span></button>';
+    h += '<a class="btn sub" href="/inicio/" style="margin-top:var(--s2);text-decoration:none"><span>← Voltar ao início</span></a></div>';
     resultEl.innerHTML = h;
     resultEl.classList.remove("loading");
     document.getElementById("btnNova").addEventListener("click", function () { resultEl.classList.remove("on"); startCamera(); });

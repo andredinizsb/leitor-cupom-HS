@@ -46,14 +46,14 @@
     ".hs-ab .n{width:36px;height:36px;border-radius:10px;background:var(--ab-pri-sub);color:var(--ab-pri);display:grid;place-items:center;font-weight:700;flex:0 0 auto}" +
     ".hs-ab .it b{display:block;font-size:15px;line-height:20px}.hs-ab .it span{font-size:14px;line-height:20px;color:var(--ab-sub)}" +
     ".hs-ab button{width:100%;min-height:52px;border:0;border-radius:10px;background:var(--ab-pri);color:#fff;font:600 17px Inter,system-ui,sans-serif;cursor:pointer}" +
-    ".hs-ab .ft{margin-top:20px;font-size:12px;color:var(--ab-sub)}";
+    ".hs-ab a.vi{display:block;width:100%;min-height:48px;line-height:48px;margin-top:8px;border-radius:10px;border:1px solid var(--ab-borda);background:var(--ab-card);color:var(--ab-pri);font-weight:600;font-size:16px;text-decoration:none}" +
   document.head.appendChild(css);
   function esc(x) { return String(x).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
   var d = document.createElement("section");
   d.className = "hs-ab"; d.setAttribute("role", "dialog"); d.setAttribute("aria-label", a.t);
   d.innerHTML = '<div class="in"><img class="ico" src="' + ico + '" alt=""><div class="br">HS Eletricidade · MC Manutenções</div><h1>' + esc(a.t) + '</h1><p class="ld">' + esc(a.lead) + "</p>" +
     (a.itens ? '<div class="ls">' + a.itens.map(function (x, i) { return '<div class="it"><div class="n">' + (i + 1) + "</div><div><b>" + esc(x[0]) + "</b><span>" + esc(x[1]) + "</span></div></div>"; }).join("") + "</div>" : "") +
-    (a.rapida ? "" : '<button type="button">Começar</button>') + '<div class="ft">HS Gestão</div></div>';
+    (a.rapida ? "" : '<button type="button">Começar</button><a class="vi" href="/inicio/">← Voltar ao início</a>') + '<div class="ft">HS Gestão</div></div>';
   var raiz = document.documentElement, ov = raiz.style.overflow;
   raiz.style.overflow = "hidden";
   document.body.appendChild(d);

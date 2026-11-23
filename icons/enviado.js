@@ -37,7 +37,7 @@
       (o.sub ? '<p class="sub">' + esc(o.sub) + "</p>" : '<p class="sub"></p>') +
       (linhas.length ? "<dl>" + linhas.map(function (l) { return "<div><dt>" + esc(l[0]) + "</dt><dd>" + esc(val(l[1])) + "</dd></div>"; }).join("") + "</dl>" : "") +
       (o.aviso ? '<div class="av">' + esc(o.aviso) + "</div>" : "") +
-      '<div class="bts"></div><a class="todos" href="/inicio/">Todos os apps</a></div>';
+      '<div class="bts"></div><a class="bt" href="/inicio/">← Voltar ao início</a></div>';
     var bts = d.querySelector(".bts");
     function fechar() { if (d.parentNode) d.parentNode.removeChild(d); document.documentElement.style.overflow = ""; window.scrollTo(0, 0); }
     (o.botoes || [{ txt: "Fechar", primario: true }]).forEach(function (b) {
