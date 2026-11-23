@@ -1,0 +1,5 @@
+# Cloudflare Pages: os scripts comuns são conferidos a cada abertura (o celular não fica com versão velha guardada)
+/icons/*.js
+  Cache-Control: no-cache
+/gestao/*.js
+  Cache-Control: no-cache
