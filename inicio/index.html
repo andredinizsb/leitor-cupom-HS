@@ -48,7 +48,7 @@ footer{margin-top:28px;color:var(--sub);font-size:12px;text-align:center}
 
   <h2>Campo</h2>
   <div class="grade">
-    <a class="app" id="lnkDespesas" href="https://despesas.hsgestao.app/"><img src="/icons/favicon.svg" alt=""><b>Despesas</b><span>Lê o cupom e lança a despesa da obra.</span></a>
+    <a class="app" id="lnkDespesas" href="/despesas/"><img src="/icons/favicon.svg" alt=""><b>Despesas</b><span>Lê o cupom e lança a despesa da obra.</span></a>
     <a class="app" href="/autorizacao/"><img src="/icons/autorizacao.svg" alt=""><b>Autorização</b><span>Pede autorização de abastecimento ou material.</span></a>
     <a class="app" href="/rdo/"><img src="/icons/rdo.svg" alt=""><b>RDO</b><span>Relatório diário da obra, com fotos.</span></a>
     <a class="app" href="/checklist/"><img src="/icons/checklist.svg" alt=""><b>Checklist</b><span>Checklist do veículo antes de sair.</span></a>
@@ -64,10 +64,6 @@ footer{margin-top:28px;color:var(--sub);font-size:12px;text-align:center}
 
   <footer>Dica: no celular, abra o app que você usa e toque em “Adicionar à tela inicial”.</footer>
 </main>
-<script>
-  // testando no PC (localhost), o app de despesas está na raiz deste mesmo servidor
-  if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) document.getElementById("lnkDespesas").href = "/";
-</script>
 <script src="/icons/abertura.js" data-app="hub"></script>
 </body>
 </html>

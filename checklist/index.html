@@ -209,7 +209,12 @@ textarea{min-height:80px;resize:vertical}input:focus,select:focus,textarea:focus
         if (!j.ok) throw new Error(j.msg || "Não foi possível enviar (" + (j.erro || "erro") + ").");
         var l = lsGet(LS_ENV, []); l.unshift({ n: j.numero, quando: corpo.data_check, frota: corpo.frota, km: corpo.hodometro, prob: prob.length }); lsSet(LS_ENV, l.slice(0, 60));
         lsSet(LS_ULT, { frota: corpo.frota, condutor: corpo.condutor });
-        msg("Checklist " + j.numero + " enviado." + (prob.length ? " " + prob.length + " problema(s) vão para a oficina." : "") + (j.aviso ? " " + j.aviso : ""), j.aviso ? "warn" : "ok");
+        if (window.hsEnviado) { msg(""); hsEnviado({ app: "checklist", titulo: prob.length ? "Checklist enviado com problemas" : "Checklist enviado", numero: j.numero, alerta: prob.length > 0 || !!j.aviso,
+          sub: prob.length ? prob.length + " item(ns) com problema já foram para a oficina. Avise o escritório se o veículo não puder sair." : "Veículo conferido. Boa viagem!",
+          linhas: [["Veículo", corpo.frota], ["Condutor", corpo.condutor], ["Hodômetro", corpo.hodometro ? corpo.hodometro + " km" : ""], ["Com problema", prob.length ? prob.join("; ") : "Nenhum"], ["Fotos", j.fotos || 0]],
+          aviso: j.aviso, compartilhar: "Checklist " + j.numero + " · " + corpo.frota + " · " + (prob.length ? prob.length + " problema(s)" : "sem problemas") + " · app HS Gestão",
+          botoes: [{ txt: "Novo checklist", primario: true }, { txt: "Ver enviados", fn: function () { aba("enviados"); } }] }); }
+        else msg("Checklist " + j.numero + " enviado." + (prob.length ? " " + prob.length + " problema(s) vão para a oficina." : "") + (j.aviso ? " " + j.aviso : ""), j.aviso ? "warn" : "ok");
         fotos = []; desenharFotos(); resp = {}; desenharItens(); SEC.forEach(function (s) { sel[s[0]] = []; }); document.querySelectorAll(".chip.on").forEach(function (c) { c.classList.remove("on"); });
         $("hodo").value = ""; $("kmOleo").value = ""; $("obs").value = ""; gps = null; $("gpsInfo").textContent = ""; inicio = new Date(); $("quando").textContent = "Data e hora do checklist: " + br(inicio);
       })
@@ -222,6 +227,7 @@ textarea{min-height:80px;resize:vertical}input:focus,select:focus,textarea:focus
   }
 })();
 </script>
+<script src="/icons/enviado.js"></script>
 <script src="/icons/abertura.js" data-app="checklist"></script>
 </body>
 </html>
