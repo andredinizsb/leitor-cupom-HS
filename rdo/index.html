@@ -372,7 +372,12 @@ textarea{min-height:96px;resize:vertical}input:focus,select:focus,textarea:focus
         var l = lsGet(LS_ENV, []); l.unshift({ n: j.numero, quando: new Date().toISOString(), ini: corpo.data_inicio, obra: corpo.obra, cliente: corpo.cliente, fotos: j.fotos || 0, frota: corpo.frota }); lsSet(LS_ENV, l.slice(0, 60));
         lsSet(LS_RESP, corpo.responsavel); lsSet(LS_COLAB, colabs);
         try { localStorage.removeItem(LS_RASC); } catch (e) {}
-        limpar(); msg("RDO " + j.numero + " enviado" + (j.fotos ? " com " + j.fotos + " foto(s)" : "") + "." + (j.aviso ? " " + j.aviso : ""), j.aviso ? "warn" : "ok"); window.scrollTo(0, document.body.scrollHeight);
+        limpar();
+        if (window.hsEnviado) { msg(""); hsEnviado({ app: "rdo", titulo: "RDO enviado", numero: j.numero, sub: "O escritório já recebeu o relatório do dia.", alerta: !!j.aviso,
+          linhas: [["Obra", [corpo.obra, corpo.obra_desc].filter(Boolean).join(" · ")], ["Cliente", corpo.cliente], ["Início", corpo.data_inicio], ["Fim", corpo.data_fim], ["Colaboradores", corpo.colaboradores.length], ["Fotos", j.fotos || 0]],
+          aviso: j.aviso, compartilhar: "RDO " + j.numero + " enviado · Obra " + corpo.obra + (corpo.cliente ? " · " + corpo.cliente : "") + " · " + (j.fotos || 0) + " foto(s) · app HS Gestão",
+          botoes: [{ txt: "Novo RDO", primario: true }, { txt: "Ver enviados", fn: function () { aba("enviados"); } }] }); }
+        else msg("RDO " + j.numero + " enviado" + (j.fotos ? " com " + j.fotos + " foto(s)" : "") + "." + (j.aviso ? " " + j.aviso : ""), j.aviso ? "warn" : "ok"); window.scrollTo(0, document.body.scrollHeight);
       })
       .catch(function (e) { msg((e && e.message) || "Sem conexão. O rascunho continua salvo; tente de novo quando tiver sinal."); })
       .then(function () { enviando = false; b.disabled = false; b.textContent = "Enviar RDO"; });
@@ -395,6 +400,7 @@ textarea{min-height:96px;resize:vertical}input:focus,select:focus,textarea:focus
   }
 })();
 </script>
+<script src="/icons/enviado.js"></script>
 <script src="/icons/abertura.js" data-app="rdo"></script>
 </body>
 </html>

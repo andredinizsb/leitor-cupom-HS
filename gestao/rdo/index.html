@@ -80,7 +80,7 @@ dl{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;margin:10px 0;font-s
     var s = r.seguranca || {}, seg = [s.dds ? "DDS" : "", s.apr ? "APR" : "", s.pt ? "PT" : ""].filter(Boolean).join(" · ");
     var exec = r.mesma_frota ? "" : (r.frota_exec || "Sem veículo") + (r.km_exec_final != null ? " · " + (r.km_exec_final - r.km_exec_inicial) + " km" : "");
     var mats = (r.materiais || []).map(function (m) { return [m.qtd, m.unidade, m.descricao].filter(function (x) { return x != null && x !== ""; }).join(" "); }).join("\n");
-    var h = '<div class="card"><div class="topo"><span class="num">' + esc(r.numero) + '</span>' + (r.empresa ? '<span class="badge b-' + esc(r.empresa) + '">' + esc(r.empresa) + '</span>' : "") + '</div>';
+    var h = '<div class="card"><div class="topo"><span class="num">' + esc(r.numero) + '</span>' + (r.empresa ? '<span class="badge b-' + esc(r.empresa) + '">' + esc(r.empresa) + '</span>' : "") + '<a class="btn ghost" style="margin-left:auto;min-height:34px;padding:5px 12px;font-size:13px;text-decoration:none" target="_blank" rel="noopener" href="/api/gestao/relatorio?tipo=rdo&numero=' + encodeURIComponent(r.numero) + '">Relatório</a></div>';
     h += '<div class="meta">' + esc(br(r.data_inicio)) + ' até ' + esc(br(r.data_fim).slice(11) || br(r.data_fim)) + ' · ' + esc(horas(r.data_inicio, r.data_fim)) + '</div><dl>';
     h += '<dt>Obra</dt><dd>' + esc([r.obra, r.obra_desc].filter(Boolean).join(" - ") || "-") + '</dd><dt>Cliente</dt><dd>' + esc(r.cliente) + '</dd>';
     h += '<dt>Equipe</dt><dd>' + esc((r.colaboradores || []).join("\n")) + '</dd><dt>Atividades</dt><dd>' + esc(r.descricao) + '</dd>';

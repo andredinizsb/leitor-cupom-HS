@@ -182,7 +182,7 @@ h2{font-size:18px;margin:22px 0 10px}.abas{display:flex;gap:8px;flex-wrap:wrap;m
     if (m.valor_servico != null) h += '<dt>Serviço (R$)</dt><dd>' + rs(m.valor_servico) + '</dd>';
     if (m.valor_total != null) h += '<dt>Total</dt><dd>' + rs(m.valor_total) + '</dd>';
     if (m.obs) h += '<dt>Obs.</dt><dd>' + esc(m.obs) + '</dd>';
-    h += '</dl><div class="acoes">' + (m.arquivo ? '<a class="btn ghost peq" target="_blank" rel="noopener" href="/api/gestao/frota-arquivo?id=' + m.arquivo.id + '">Ver NF</a>' : '<span class="arq">Sem NF anexada</span>');
+    h += '</dl><div class="acoes"><a class="btn ghost peq" target="_blank" rel="noopener" href="/api/gestao/relatorio?tipo=frota&numero=' + encodeURIComponent(m.numero) + '">Relatório</a>' + (m.arquivo ? '<a class="btn ghost peq" target="_blank" rel="noopener" href="/api/gestao/frota-arquivo?id=' + m.arquivo.id + '">Ver NF</a>' : '<span class="arq">Sem NF anexada</span>');
     return h + '<button class="btn ghost peq" type="button" data-excluir="' + esc(m.numero) + '">Excluir</button></div></div>';
   }
   $("lista").addEventListener("click", function (ev) {

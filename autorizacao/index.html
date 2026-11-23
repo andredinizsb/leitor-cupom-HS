@@ -232,6 +232,9 @@ video{width:100%;border-radius:10px;background:#000;max-height:46vh;object-fit:c
       $("fPedir").reset(); $("colab").value = corpo.colaborador; $("tipo").value = tipo; $("itens").innerHTML = ""; novoItem(); $("tipo").dispatchEvent(new Event("change"));
       aba("minhas");
       msg("msgPedir", "");
+      if (window.hsEnviado) hsEnviado({ app: "autorizacao", titulo: "Pedido enviado", numero: j.numero, sub: "Aguardando a aprovação do escritório. Quando for liberado, o canhoto aparece em Minhas.",
+        linhas: [["Tipo", tipo], ["Empresa", empresa], ["Obra", corpo.obra], ["Colaborador", corpo.colaborador], ["Veículo", corpo.veiculo]],
+        botoes: [{ txt: "Acompanhar em Minhas", primario: true }, { txt: "Fazer outro pedido", fn: function () { aba("pedir"); } }] });
     }).catch(function () { $("btnEnviar").disabled = false; $("btnEnviar").textContent = "Enviar pedido"; msg("msgPedir", "Sem conexão. Tente de novo."); });
   });
 
@@ -342,6 +345,7 @@ video{width:100%;border-radius:10px;background:#000;max-height:46vh;object-fit:c
   });
 })();
 </script>
+<script src="/icons/enviado.js"></script>
 <script src="/icons/abertura.js" data-app="autorizacao"></script>
 </body>
 </html>

@@ -94,6 +94,9 @@
   .appicon { width:32px; height:32px; border-radius:8px; flex:0 0 auto; display:block; }
   .topbar .name { font-size:17px; line-height:24px; font-weight:600; letter-spacing:-.01em; white-space:nowrap; }
   .topbar .spacer { flex:1 1 auto; }
+  .topbar .todos-apps { font-size:14px; font-weight:600; color:var(--primary-text); text-decoration:none; white-space:nowrap; min-height:44px; display:flex; align-items:center; padding:0 4px; }
+  .topbar .todos-apps .ta-c { display:none; }
+  @media (max-width:420px) { .topbar .todos-apps .ta-l { display:none; } .topbar .todos-apps .ta-c { display:inline; } }
   .srv-chip {
     display:inline-flex; align-items:center; gap:6px; height:32px; padding:0 10px;
     border-radius:var(--r-full); border:1px solid var(--border);
@@ -352,8 +355,9 @@
 </section>
 <header class="topbar">
   <img class="appicon" id="appIcon" alt="HS Despesas" src="data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='116' fill='%2300A0E7'/%3E%3Cpath d='M156 88H340L376 124V424L356 404L336 424L316 404L296 424L276 404L256 424L236 404L216 424L196 404L176 424L156 404L136 424V108Q136 88 156 88Z' fill='%23fff'/%3E%3Cpath d='M312 150H236A36 36 0 0 0 200 186V188A36 36 0 0 0 236 224H276A36 36 0 0 1 312 260V262A36 36 0 0 1 276 298H200' fill='none' stroke='%23FE0000' stroke-width='34'/%3E%3Cpath d='M206 342H329' stroke='%23FE0000' stroke-width='10'/%3E%3Ccircle cx='200' cy='342' r='13' fill='%23FE0000'/%3E%3Cpath d='M186 370H329' stroke='%2300A0E7' stroke-width='10'/%3E%3Ccircle cx='180' cy='370' r='13' fill='%2300A0E7'/%3E%3C/svg%3E">
-  <span class="name">Leitor de Cupom</span>
+  <span class="name">Despesas</span>
   <span class="spacer"></span>
+  <a class="todos-apps" href="/inicio/" aria-label="Todos os apps"><span class="ta-l">Todos os apps</span><span class="ta-c">Apps</span></a>
   <button class="srv-chip" id="srvChip" type="button" aria-label="Status do servidor"><span class="dot"></span><span id="srvTxt">Servidor</span></button>
   <button class="iconbtn" id="btnGear" type="button" title="Ajustes" aria-label="Ajustes"></button>
 </header>
@@ -379,7 +383,6 @@
     <div class="status" id="status" role="status" aria-live="polite"></div>
   </section>
 
-  <a href="/autorizacao/" style="display:block;text-align:center;margin:12px 0;font-weight:600;color:var(--primary-text);text-decoration:none;min-height:44px;line-height:44px">Pedir autorização de compra (substitui o canhoto) →</a>
 
   <section class="result" id="result"></section>
 </main>
