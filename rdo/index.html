@@ -364,7 +364,7 @@ textarea{min-height:96px;resize:vertical}input:focus,select:focus,textarea:focus
       responsavel: $("resp").value.trim(), lat: gps && gps.lat, lon: gps && gps.lon, precisao: gps && gps.precisao,
       fotos: fotos.map(function (f) { return { dados: f.dados, etapa: f.etapa, legenda: f.legenda }; })
     };
-    var b = $("btnEnviar"); b.disabled = true; b.textContent = fotos.length ? "Enviando RDO e " + fotos.length + " foto(s)…" : "Enviando…"; enviando = true;
+    var postar = function () { + fotos.length + " foto(s)…" : "Enviando…"; enviando = true;
     fetch("/api/rdo/enviar", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(corpo) })
       .then(function (r) { return r.json().catch(function () { return { ok: false, erro: "http_" + r.status }; }); })
       .then(function (j) {
@@ -381,6 +381,13 @@ textarea{min-height:96px;resize:vertical}input:focus,select:focus,textarea:focus
       })
       .catch(function (e) { msg((e && e.message) || "Sem conexão. O rascunho continua salvo; tente de novo quando tiver sinal."); })
       .then(function () { enviando = false; b.disabled = false; b.textContent = "Enviar RDO"; });
+    };
+    // assinatura do responsável = confirmação do RDO (pode voltar e editar antes de assinar)
+    if (!window.hsAssinar) { msg("Atualize o app (feche e abra de novo) para assinar o RDO."); return; }
+    hsAssinar({ app: "rdo", titulo: "Assine para confirmar o RDO", sub: "Confira o resumo. Para mudar algo, toque em Voltar e editar.", nome: corpo.responsavel,
+      linhas: [["Obra", [corpo.obra, corpo.obra_desc].filter(Boolean).join(" · ")], ["Cliente", corpo.cliente], ["Início", corpo.data_inicio], ["Fim", corpo.data_fim],
+        ["Colaboradores", colabs.length], ["Veículo", corpo.frota + " · " + (Number(kmF) - Number(kmI)) + " km"], ["Fotos", fotos.length]],
+      confirmar: "Assinar e enviar RDO", ok: function (png) { corpo.assinatura_resp = png; postar(); } });
   });
   function limpar() {
     ["obra", "cliente", "desc", "kmI", "kmF", "kmEI", "kmEF", "ocor", "climaM", "climaT"].forEach(function (id) { $(id).value = ""; });
@@ -400,6 +407,7 @@ textarea{min-height:96px;resize:vertical}input:focus,select:focus,textarea:focus
   }
 })();
 </script>
+<script src="/icons/assinatura.js"></script>
 <script src="/icons/enviado.js"></script>
 <script src="/icons/abertura.js" data-app="rdo"></script>
 </body>
