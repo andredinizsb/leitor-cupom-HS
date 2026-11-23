@@ -1,8 +1,8 @@
 {
   "id": "/autorizacao/",
-  "name": "HS Autorização",
-  "short_name": "Autorização",
-  "description": "Pede autorização de abastecimento ou material.",
+  "name": "HS Compras",
+  "short_name": "Compras",
+  "description": "Abastecimento, material de balcão e requisição de material para a obra.",
   "lang": "pt-BR",
   "start_url": "/autorizacao/",
   "scope": "/autorizacao/",

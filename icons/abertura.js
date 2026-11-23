@@ -7,8 +7,8 @@
   var A = {
     hub: { t: "HS Gestão", lead: "Os apps da HS Eletricidade e da MC Manutenções em um só lugar: campo e escritório.", entrar: "Entrar", inicio: true,
       itens: [["Campo", "Despesas, autorização, RDO e checklist do veículo"], ["Escritório", "Autorizações, RDOs, checklists e frota"], ["Tudo guardado", "Relatórios em PDF no servidor da empresa"]] },
-    autorizacao: { t: "Autorização", lead: "Peça autorização de abastecimento ou material e receba o canhoto no celular.",
-      itens: [["Peça", "Abastecimento ou material, com a obra e o motivo"], ["Acompanhe", "Veja na hora quando for liberada"], ["Canhoto", "Baixe o PDF ou envie pelo WhatsApp"]] },
+    autorizacao: { t: "Compras", lead: "Peça abastecimento, material de balcão ou material para a obra e acompanhe tudo pelo celular.",
+      itens: [["Peça", "Abastecimento, material urgente ou requisição para a obra"], ["Acompanhe", "Cotação, pedido e previsão de entrega"], ["Canhoto", "Mostre no posto ou na loja, em PDF ou na tela"]] },
     rdo: { t: "RDO · Diário de Obra", lead: "Lance o relatório do dia da obra: equipe, veículo, atividades e fotos.",
       itens: [["Equipe e veículo", "Colaboradores, veículo e km do dia"], ["Atividades", "O que foi feito, materiais e ocorrências"], ["Fotos", "Antes, durante e depois, com data e obra na foto"]] },
     checklist: { t: "Checklist do veículo", lead: "Confira o veículo antes de sair: itens de segurança, avarias e fotos.",
