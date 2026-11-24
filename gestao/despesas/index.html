@@ -70,6 +70,17 @@ dialog{padding:0;width:min(680px,calc(100vw - 24px))}
     <section class="card"><h2>Custo por categoria</h2><div id="gCat"></div></section>
     <section class="card"><h2>Custo por mês</h2><div id="gMes"></div></section>
   </div>
+  <div class="hs-sec" style="margin-top:8px"><h2>Onde estamos gastando mais</h2></div>
+  <div class="blocos">
+    <section class="card"><h2>Por tipo de despesa</h2><div id="gTipo"></div></section>
+    <section class="card"><h2>Consumo por colaborador</h2><p class="m" style="margin:-8px 0 10px;font-size:12.5px;color:var(--text-muted)">Despesa com vários colaboradores é dividida entre eles</p><div id="gColab"></div></section>
+    <section class="card"><h2>Maiores fornecedores</h2><div id="gForn"></div></section>
+  </div>
+  <section class="card" style="margin-bottom:16px">
+    <div class="tit"><h2>Mapa do que ficou sem amarrar</h2><span class="sp"></span><span class="m" style="font-size:13px;color:var(--text-muted)">Clique num quadro para ver os lançamentos e corrigir</span></div>
+    <div class="kpis" id="amarrar" style="margin-bottom:12px"></div>
+    <div id="amarrarLista"></div>
+  </section>
   <section class="card">
     <div class="tit"><h2 id="tLanc">Lançamentos</h2></div>
     <div style="overflow-x:auto"><table class="tab"><thead><tr><th>Data</th><th>Obra</th><th>Tipo / fornecedor</th><th>Colaboradores</th><th class="v">Valor</th><th></th></tr></thead><tbody id="lista"></tbody></table></div>
@@ -153,6 +164,38 @@ dialog{padding:0;width:min(680px,calc(100vw - 24px))}
         '<div class="bar"><i style="width:' + (max ? Math.max(2, o.t / max * 100) : 0) + '%"></i></div><span class="sub">' + esc((sub ? sub(o.c) + " · " : "") + o.n + " lanç. · " + p + "%") + "</span></div>";
     }).join("") + (g.length > 12 ? '<div class="m" style="color:var(--mut);font-size:12.5px">+ ' + (g.length - 12) + " outros</div>" : "") : '<div class="vazio">Sem dados</div>';
   }
+  // ---- mapa do que ficou sem amarrar (sem dono, sem obra, sem nota, alimento fora de refeição) ----
+  var amSel = null;
+  function grupos() {
+    var refDia = {}; L.forEach(function (x) { if (/refei/i.test(x.tipo)) x.colaboradores.concat(["*"]).forEach(function (c) { refDia[x.data + "|" + c] = 1; }); });
+    function alimentoSolto(x) {
+      if (!/mercado|aliment|água|agua|bebida/i.test(x.tipo)) return false;
+      if (!x.colaboradores.length) return !refDia[x.data + "|*"];
+      return !x.colaboradores.some(function (c) { return refDia[x.data + "|" + c]; });
+    }
+    return [
+      ["semColab", "Sem colaborador", "não dá para saber quem consumiu", function (x) { return !x.colaboradores.length; }],
+      ["alimSolto", "Alimento fora de refeição", "mercado/água num dia sem refeição dos mesmos colaboradores", alimentoSolto],
+      ["semObra", "Sem obra", "custo que não cai em nenhuma obra", function (x) { return !x.obra; }],
+      ["semNota", "Sem nota ou recibo", "sem nº de NF/recibo para conferir", function (x) { return !x.nf; }]
+    ];
+  }
+  function mapaAmarrar() {
+    var G = grupos(), tot = L.reduce(function (s, x) { return s + x.valor; }, 0);
+    $("amarrar").innerHTML = G.map(function (g) {
+      var l = L.filter(g[3]), t = l.reduce(function (s, x) { return s + x.valor; }, 0);
+      return '<button type="button" class="kpi" data-am="' + g[0] + '" style="text-align:left;cursor:pointer;font:inherit;' + (amSel === g[0] ? "border-color:var(--primary);background:var(--primary-subtle)" : "") + '"><small>' + esc(g[1]) + '</small><b style="' + (l.length ? "color:var(--warning-text)" : "") + '">' + rs(t) + "</b><span>" + l.length + " lanç. · " + (tot ? Math.round(t / tot * 100) : 0) + "% do total · " + esc(g[2]) + "</span></button>";
+    }).join("");
+    var sel = G.filter(function (g) { return g[0] === amSel; })[0];
+    if (!sel) { $("amarrarLista").innerHTML = ""; return; }
+    var l = L.filter(sel[3]);
+    $("amarrarLista").innerHTML = l.length ? '<div style="overflow-x:auto"><table class="tab"><thead><tr><th>Data</th><th>Tipo / fornecedor</th><th>Obra</th><th>Colaboradores</th><th class="v">Valor</th><th></th></tr></thead><tbody>' + l.map(function (x) {
+      return "<tr><td>" + esc(br(x.data)) + "</td><td>" + esc(x.tipo || "—") + '<div class="m">' + esc([x.fornecedor, x.obs].filter(Boolean).join(" · ")) + "</div></td><td>" + esc(x.obra || "—") + '</td><td class="m">' + esc(x.colaboradores.join(", ") || "—") +
+        '</td><td class="v">' + rs(x.valor) + '</td><td><button class="btn ghost pq" type="button" data-ed="' + L.indexOf(x) + '">Corrigir</button></td></tr>';
+    }).join("") + "</tbody></table></div>" : '<div class="vazio">Nada aqui no período.</div>';
+  }
+  document.addEventListener("click", function (e) { var b = e.target.closest && e.target.closest("[data-am]"); if (!b) return; amSel = amSel === b.getAttribute("data-am") ? null : b.getAttribute("data-am"); mapaAmarrar(); });
+
   function desenhar() {
     var tot = L.reduce(function (s, x) { return s + x.valor; }, 0), obras = agrupa(function (x) { return x.obra; });
     var ds = L.map(function (x) { return x.data; }).sort();
@@ -163,6 +206,12 @@ dialog{padding:0;width:min(680px,calc(100vw - 24px))}
     barras($("gObra"), obras, function (c) { return c === "—" ? "Sem obra" : "Obra " + c; }, function (c) { var o = OBRAS[c]; return o ? o.e + " · " + o.c : ""; }, "fObra");
     barras($("gCat"), agrupa(function (x) { return x.categoria; }), function (c) { return c; }, null, "fCat");
     barras($("gMes"), agrupa(function (x) { return x.data.slice(0, 7); }).sort(function (a, b) { return a.c < b.c ? -1 : 1; }), function (c) { var p = c.split("-"); return MES[+p[1]] + "/" + p[0]; }, null, null);
+    barras($("gTipo"), agrupa(function (x) { return x.tipo || "Sem tipo"; }), function (c) { return c; }, null, null);
+    // consumo por colaborador: cada despesa dividida igualmente entre os colaboradores marcados
+    var mc = {}; L.forEach(function (x) { var cs = x.colaboradores.length ? x.colaboradores : ["Sem colaborador marcado"]; cs.forEach(function (c) { var k = c.replace(/^\d+\s+/, ""); mc[k] = mc[k] || { n: 0, t: 0 }; mc[k].n++; mc[k].t += x.valor / cs.length; }); });
+    barras($("gColab"), Object.keys(mc).map(function (c) { return { c: c, n: mc[c].n, t: mc[c].t }; }).sort(function (a, b) { return b.t - a.t; }), function (c) { return c; }, null, null);
+    barras($("gForn"), agrupa(function (x) { return x.fornecedor || "Sem fornecedor"; }), function (c) { return c; }, null, null);
+    mapaAmarrar();
     $("tLanc").textContent = "Lançamentos (" + L.length + ")";
     $("lista").innerHTML = L.length ? L.map(function (x, i) {
       var o = OBRAS[x.obra];
