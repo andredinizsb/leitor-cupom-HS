@@ -18,8 +18,10 @@ async function pedidos(db, where, bind) {
   const rs = await db.prepare("SELECT * FROM compras_pc " + where + " ORDER BY criado_em DESC LIMIT 300").bind(...bind).all(), L = rs.results || [];
   if (!L.length) return L;
   const it = await db.prepare("SELECT * FROM compras_pc_itens WHERE numero IN (" + L.map(function (_, i) { return "?" + (i + 1); }).join(",") + ") ORDER BY numero, item").bind(...L.map(function (p) { return p.numero; })).all();
-  const rc = await db.prepare("SELECT * FROM compras_receb WHERE pc IN (" + L.map(function (_, i) { return "?" + (i + 1); }).join(",") + ") ORDER BY id").bind(...L.map(function (p) { return p.numero; })).all();
-  const I = {}, R = {}; (rc.results || []).forEach(function (x) { (R[x.pc] = R[x.pc] || []).push(x); });
+  const ph = L.map(function (_, i) { return "?" + (i + 1); }).join(","), ns = L.map(function (p) { return p.numero; });
+  const [rc, nf] = await db.batch([db.prepare("SELECT * FROM compras_receb WHERE pc IN (" + ph + ") ORDER BY id").bind(...ns), db.prepare("SELECT * FROM compras_nf WHERE pc IN (" + ph + ")").bind(...ns)]);
+  const I = {}, R = {}, NF = {}; (rc.results || []).forEach(function (x) { (R[x.pc] = R[x.pc] || []).push(x); }); (nf.results || []).forEach(function (x) { NF[x.pc + "|" + x.item] = x; });
+  (it.results || []).forEach(function (x) { x.nf = NF[x.numero + "|" + x.item] || null; });
   (it.results || []).forEach(function (x) { x.recebido = (R[x.numero] || []).filter(function (r) { return r.item === x.item; }).reduce(function (s, r) { return s + Number(r.qtd); }, 0); (I[x.numero] = I[x.numero] || []).push(x); });
   return L.map(function (p) { p.itens = I[p.numero] || []; p.recebimentos = R[p.numero] || []; p.tem_assinatura = !!p.assinatura; delete p.assinatura; return p; });
 }

@@ -32,7 +32,15 @@
       (atras ? '<span class="badge s-danger">Atrasado</span>' : "") + '<span style="flex:1"></span><b>' + rs(p.total) + "</b></div>";
     h += '<div class="meta" style="margin:4px 0 8px">' + esc(p.fornecedor) + " · " + esc(p.cond_pagto || "pagamento a combinar") + (p.frete_tipo ? " · frete " + esc(p.frete_tipo) : "") +
       ' · <a href="/gestao/compras/cotacao/?n=' + encodeURIComponent(p.req) + '">' + esc(p.req) + "</a></div>";
-    h += '<ul style="margin:0 0 8px;padding-left:18px;font-size:14px">' + p.itens.map(function (x) { return "<li>" + esc(x.descricao) + " — " + esc(String(x.qtd).replace(".", ",")) + " " + esc(x.unidade || "") + " · " + rs(x.total) + "</li>"; }).join("") + "</ul>";
+    h += '<ul style="margin:0 0 8px;padding-left:18px;font-size:14px">' + p.itens.map(function (x) {
+      var nf = x.nf, s = "";
+      if (nf && nf.qtd_nf) {
+        var dq = Number(nf.qtd_nf) - Number(x.qtd), dp = nf.preco_nf != null && x.preco ? Math.abs(Number(nf.preco_nf) - Number(x.preco)) / Number(x.preco) : 0;
+        s = '<div class="meta">NF do FX: ' + esc(String(nf.qtd_nf).replace(".", ",")) + " " + esc(x.unidade || "") + " · NF " + esc(nf.nfs || "") + " · " + esc(br(nf.ultima)) + (nf.preco_nf != null ? " · " + rs(nf.preco_nf) + "/un" : "") +
+          (dq > 0.0001 ? ' <span class="badge s-danger">NF acima do pedido</span>' : dq < -0.0001 ? ' <span class="badge s-warn">falta faturar ' + esc(String(-dq).replace(".", ",")) + "</span>" : ' <span class="badge s-ok">quantidade confere</span>') +
+          (dp > 0.02 ? ' <span class="badge s-danger">preço diferente do pedido</span>' : "") + "</div>";
+      } else if (["Aprovado", "Enviado", "Confirmado", "Recebido parcial", "Recebido"].indexOf(p.status) >= 0) s = '<div class="meta">' + (x.codigo_fx ? "NF do FX: ainda não chegou" : "Sem código do FX: confira a NF manualmente") + "</div>";
+      return "<li>" + esc(x.descricao) + " — " + esc(String(x.qtd).replace(".", ",")) + " " + esc(x.unidade || "") + " · " + rs(x.total) + s + "</li>"; }).join("") + "</ul>";
     var inf = [];
     if (p.aprovado_em) inf.push("Aprovado por " + esc(p.aprovador_nome || "") + " em " + esc(br(p.aprovado_em)));
     if (p.enviado_em) inf.push("Enviado ao fornecedor em " + esc(br(p.enviado_em)));

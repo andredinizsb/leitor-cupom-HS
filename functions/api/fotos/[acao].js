@@ -18,7 +18,7 @@ import { TABELAS, SQL_BYTES, DIAS_CHECKLIST, DIAS_FROTA, nomeFoto, nomeArquivoFr
 //   GET  listar?tipo=rdo&dias=180                -> RDOs de qualquer obra com mais de N dias (limpeza por espaço; a macro decide N pelo uso)
 
 const GUARDADA = "(dados IS NOT NULL OR r2_key IS NOT NULL)";
-const TIPOS_REL = ["rdo", "checklist", "frota", "autorizacao", "frota-docs", "frota-pend", "jotform"];
+const TIPOS_REL = ["rdo", "checklist", "frota", "autorizacao", "frota-docs", "frota-pend", "jotform", "pedido"];
 // só arquiva (e apaga do app) o que já tem o relatório final salvo no servidor
 const COM_RELATORIO = (tipo, col) => "EXISTS (SELECT 1 FROM relatorios x WHERE x.tipo = '" + tipo + "' AND x.numero = " + col + ")";
 //   GET  relatorios?tipo=rdo|checklist|frota    -> registros sem relatório salvo: numero, empresa|frota, obra, data
@@ -52,6 +52,8 @@ export async function onRequest({ request, env, params }) {
       .bind(S(l[0], 20), S(l[1]) || "", S(l[2], 60), S(l[3], 60), S(l[4], 10), normCompras([l[0], l[1], l[2]].join(" "))));
     else if (t === "forn") st = L.filter((l) => S(l[0])).map((l) => db.prepare("INSERT INTO compras_forn (cnpj, nome, fantasia, contato, telefone, email, cidade, uf, busca) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9) ON CONFLICT(cnpj) DO UPDATE SET nome = ?2, fantasia = ?3, contato = ?4, telefone = ?5, email = coalesce(?6, email), cidade = ?7, uf = ?8, busca = ?9")
       .bind(S(l[0], 20), S(l[1]) || "", S(l[2], 120), S(l[3], 80), S(l[4], 40), S(l[5], 120), S(l[6], 60), S(l[7], 2), normCompras([l[0], l[1], l[2], l[6]].join(" "))));
+    else if (t === "nf") st = L.filter((l) => S(l[0]) && N(l[1]) != null).map((l) => db.prepare("INSERT INTO compras_nf (pc, item, qtd_nf, nfs, ultima, preco_nf) VALUES (?1, ?2, ?3, ?4, ?5, ?6) ON CONFLICT(pc, item) DO UPDATE SET qtd_nf = ?3, nfs = ?4, ultima = ?5, preco_nf = ?6")
+      .bind(S(l[0], 20), N(l[1]), N(l[2]), S(l[3], 120), S(l[4], 10), N(l[5])));
     else if (t === "config") st = L.filter((l) => /^(LimiteAprovacao|Aprovadores)$/.test(String(l[0]))).map((l) => db.prepare("INSERT INTO compras_config (chave, valor) VALUES (?1, ?2) ON CONFLICT(chave) DO UPDATE SET valor = ?2").bind(String(l[0]), S(l[1], 500)));
     else if (t === "precos") st =L.filter((l) => S(l[0]) && S(l[1])).map((l) => db.prepare("INSERT INTO compras_precos (id_fx, cnpj, data, preco, qtd, nf, vezes) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7) ON CONFLICT(id_fx, cnpj) DO UPDATE SET data = ?3, preco = ?4, qtd = ?5, nf = ?6, vezes = ?7")
       .bind(S(l[0], 20), S(l[1], 20), S(l[2], 10), N(l[3]), N(l[4]), S(l[5], 20), N(l[6])));
@@ -151,11 +153,13 @@ export async function onRequest({ request, env, params }) {
   }
   if (request.method !== "GET") return resp({ ok: false, erro: "metodo" }, 405);
   if (acao === "relatorios") {
+    if (tipo === "pedido") await garantirCompras(db);
     // registros que ainda não têm o relatório salvo no servidor: numero, a, b, data (rdo: empresa, obra | checklist/frota: frota)
     const sql = {
       rdo: "SELECT r.numero, coalesce(r.empresa, '') AS a, coalesce(r.obra, '') AS b, substr(r.data_inicio, 1, 10) AS d FROM rdo r WHERE r.status = 'Finalizado' AND NOT EXISTS (SELECT 1 FROM relatorios x WHERE x.tipo = 'rdo' AND x.numero = r.numero) ORDER BY r.numero",
       checklist: "SELECT c.numero, coalesce(c.frota, '') AS a, '' AS b, substr(c.data_check, 1, 10) AS d FROM checklist c WHERE NOT EXISTS (SELECT 1 FROM relatorios x WHERE x.tipo = 'checklist' AND x.numero = c.numero) ORDER BY c.numero",
       autorizacao: "SELECT a.numero, coalesce(a.empresa, '') AS a, a.status AS b, substr(a.solicitado_em, 1, 10) AS d FROM autorizacoes a WHERE a.status <> 'Pendente' AND NOT EXISTS (SELECT 1 FROM relatorios x WHERE x.tipo = 'autorizacao' AND x.numero = a.numero AND coalesce(x.estado, '') = a.status) ORDER BY a.numero",
+      pedido: "SELECT p.numero, coalesce(p.fornecedor, '') AS a, p.status AS b, substr(p.criado_em, 1, 10) AS d FROM compras_pc p WHERE p.status <> 'Aguardando aprovação' AND NOT EXISTS (SELECT 1 FROM relatorios x WHERE x.tipo = 'pedido' AND x.numero = p.numero AND coalesce(x.estado, '') = p.status) ORDER BY p.numero",
       frota: "SELECT m.numero, coalesce(m.frota, '') AS a, '' AS b, substr(m.data, 1, 10) AS d FROM frota_manut m WHERE m.excluido = 0 AND NOT EXISTS (SELECT 1 FROM relatorios x WHERE x.tipo = 'frota' AND x.numero = m.numero) ORDER BY m.numero"
     }[tipo];
     if (!sql) return resp({ ok: false, erro: "tipo_invalido" }, 400);
