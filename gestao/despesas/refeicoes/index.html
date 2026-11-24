@@ -55,6 +55,42 @@ dialog{padding:0;width:min(860px,calc(100vw - 24px))}.dh{display:flex;align-item
   $("regra").textContent = "Teto de " + rs(TETO) + " por refeição (almoço e janta), conferido pela MÉDIA de cada colaborador no período: total gasto ÷ nº de refeições. Quem economiza numa refeição pode gastar um pouco mais em outra. Despesa lançada para vários colaboradores é dividida igualmente (R$ 200,00 com 5 colaboradores = R$ 40,00 por pessoa). Café e lanche entram no total, mas não na média.";
 
   // uma despesa de refeição -> parte de cada colaborador
+  // ---- junta os lançamentos numa refeição de verdade ----
+  // 1) itens da mesma nota (mesmo dia + fornecedor + nº da NF, ou lançados no mesmo minuto) = uma refeição só
+  // 2) bebida / alimento (tipo Mercado-alimentício ou Água) da mesma nota, ou de outra nota no mesmo dia e dos mesmos colaboradores,
+  //    entra na refeição daquele dia lançada mais perto no horário. O Jotform não guarda a hora da nota: vale a hora do lançamento.
+  var ALIM = /agua|água|coca|refri|refrigerante|suco|salgad|lanche|cafe|café|pao|pão|biscoit|bolach|chocolate|sorvete|energetic|cha |chá|leite|iogurte|fruta|bala|doce|cerveja|guarana|guaraná|sanduiche|pastel|coxinha|bolo/i;
+  function nota(x) { return x.data + "|" + (x.fornecedor || "").toLowerCase() + "|" + (x.nf ? "nf" + x.nf : String(x.enviado || "").slice(0, 16)); }
+  function minutos(x) { var t = Date.parse(String(x.enviado || "").replace(" ", "T")); return isNaN(t) ? 0 : t / 6e4; }
+  function mesmaTurma(a, b) { if (!a.length || !b.length) return true; return a.some(function (c) { return b.indexOf(c) >= 0; }); }
+  function montar(todas) {
+    var R = {}, refs = [], alim = [];
+    todas.forEach(function (x) {
+      if (/refei/i.test(x.tipo)) {
+        var k = nota(x) + "|" + x.colaboradores.slice().sort().join(",");
+        if (!R[k]) { R[k] = Object.assign({}, x, { valor: 0, linhas: [], extras: [], colaboradores: x.colaboradores.slice() }); refs.push(R[k]); }
+        R[k].valor += x.valor; R[k].linhas.push(x);
+        if (/almo|jant/i.test(x.tipo) && !/almo|jant/i.test(R[k].tipo)) R[k].tipo = x.tipo;
+      } else if (/mercado|aliment|água|agua|bebida/i.test(x.tipo)) alim.push(x);
+    });
+    refs.forEach(function (m) { if (m.linhas.length > 1) m.qtd = ""; });   // vários itens de uma nota: a quantidade de cada item não é nº de refeições
+    var soltos = [];
+    alim.forEach(function (a) {
+      var mesmaNota = refs.filter(function (m) { return nota(m) === nota(a); })[0];
+      var alvo = mesmaNota;
+      if (!alvo && ALIM.test((a.obs || "") + " " + (a.descricao || "") + " " + a.tipo)) {
+        var dia = refs.filter(function (m) { return m.data === a.data && mesmaTurma(m.colaboradores, a.colaboradores); });
+        dia.sort(function (p, q) { return Math.abs(minutos(p) - minutos(a)) - Math.abs(minutos(q) - minutos(a)); });
+        alvo = dia[0];
+      }
+      if (alvo) { alvo.valor += a.valor; alvo.extras.push(Object.assign({ mesmaNota: !!mesmaNota }, a)); }
+      else if (ALIM.test((a.obs || "") + " " + (a.descricao || "") + " " + a.tipo)) soltos.push(a);
+    });
+    // alimento sem refeição no dia: entra no total do colaborador, fora da média (não é refeição)
+    soltos.forEach(function (a) { refs.push(Object.assign({}, a, { tipo: "Alimento sem refeição no dia", linhas: [a], extras: [], solto: true })); });
+    return refs;
+  }
+
   function dividir(x) {
     var nc = x.colaboradores.length, q = parseFloat(String(x.qtd || "").replace(",", ".")) || 1;
     // quantidade com o valor digitado no lugar (ex.: 259,5) ou fora de proporção: vale o nº de colaboradores
@@ -64,7 +100,8 @@ dialog{padding:0;width:min(860px,calc(100vw - 24px))}.dh{display:flex;align-item
     else if (q > nc && Math.abs(q / nc - Math.round(q / nc)) < 0.001) porPessoa = Math.round(q / nc);
     else if (Math.abs(q - nc) > 0.001 && q > 1) problema = "Quantidade (" + n1(q) + ") não fecha com " + nc + " colaborador(es)";
     var parte = x.valor / pessoas, porRef = parte / porPessoa;
-    return { parte: parte, porRef: porRef, refeicoes: porPessoa, comTeto: comTeto, acima: comTeto && porRef > TETO + 0.005, excesso: comTeto ? Math.max(0, porRef - TETO) * porPessoa : 0, pessoas: pessoas, problema: problema };
+    if (x.solto) { problema = ""; porRef = parte; }
+    return { parte: parte, porRef: porRef, refeicoes: x.solto ? 0 : porPessoa, comTeto: comTeto && !x.solto, acima: comTeto && porRef > TETO + 0.005, excesso: comTeto ? Math.max(0, porRef - TETO) * porPessoa : 0, pessoas: pessoas, problema: problema };
   }
   function carregar() {
     $("aviso").innerHTML = ""; $("lista").innerHTML = '<tr><td colspan="7"><span class="hs-skel" style="height:40px"></span></td></tr>';
@@ -73,7 +110,7 @@ dialog{padding:0;width:min(860px,calc(100vw - 24px))}.dh{display:flex;align-item
         if (!j.ok) throw new Error(j.msg || j.erro);
         if (j.quem) $("quem").textContent = j.quem;
         var v = $("fObra").value; $("fObra").innerHTML = '<option value="">Todas</option>' + j.facetas.obras.map(function (o) { return "<option" + (o === v ? " selected" : "") + ">" + esc(o) + "</option>"; }).join("");
-        D = j.despesas.filter(function (x) { return /refei/i.test(x.tipo); }); calcular();
+        D = montar(j.despesas); calcular();
       }).catch(function (e) { $("lista").innerHTML = ""; $("aviso").innerHTML = '<div class="msg">' + esc(e.message) + "</div>"; });
   }
   function calcular() {
@@ -122,6 +159,7 @@ dialog{padding:0;width:min(860px,calc(100vw - 24px))}.dh{display:flex;align-item
         var l = por[d], s = l.reduce(function (a, i) { return a + i.d.parte; }, 0);
         return '<tr class="dia"><td colspan="5">' + esc(br(d)) + " · " + rs(s) + "</td></tr>" + l.map(function (i) {
           return "<tr><td>" + esc(i.x.tipo) + '<div class="m">' + esc([i.x.fornecedor, i.x.obra ? "Obra " + i.x.obra : "", i.x.nf ? "NF " + i.x.nf : ""].filter(Boolean).join(" · ")) + "</div>" +
+            ((i.x.linhas && i.x.linhas.length > 1) || (i.x.extras && i.x.extras.length) ? '<div class="m">Soma: ' + esc((i.x.linhas || []).map(function (l) { return (l.obs || l.tipo) + " " + rs(l.valor); }).concat((i.x.extras || []).map(function (e) { return "+ " + (e.obs || e.tipo) + " " + rs(e.valor) + (e.mesmaNota ? "" : " (outra nota, " + (e.fornecedor || "") + ")"); })).join(" · ")) + "</div>" : "") +
             (i.x.colaboradores.length > 1 ? '<div class="m">Dividida entre: ' + esc(i.x.colaboradores.map(function (c) { return c.replace(/^\d+\s+/, ""); }).join(", ")) + "</div>" : '<div class="m">Só este colaborador marcado na despesa</div>') + '</td><td class="q">' + rs(i.x.valor) + '</td><td class="q">' + i.d.pessoas + (i.d.refeicoes > 1 ? " × " + i.d.refeicoes : "") +
             '</td><td class="q">' + rs(i.d.porRef) + "</td><td>" + (!i.d.comTeto ? '<span class="badge">fora da média</span>' : i.d.acima ? '<span class="badge s-warn">' + rs(i.d.porRef - TETO) + " acima</span>" : '<span class="badge s-ok">' + rs(TETO - i.d.porRef) + " abaixo</span>") + "</td></tr>";
         }).join("");
