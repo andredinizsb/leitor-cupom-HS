@@ -166,8 +166,7 @@ video{width:100%;border-radius:10px;background:#000;max-height:46vh;object-fit:c
 (function () {
   "use strict";
   var API = "/api";
-  var SERVIDOR = "https://nfce.hsgestao.app";               // o mesmo servidor do app de despesas (lê o cupom na SEFAZ)
-  var HS_TOKEN = "8d5c9fe3668fd08f303ba8f2eeb71996b21374117c93b93b";
+  var SERVIDOR = "/api";                                    // lê o cupom na SEFAZ pela rota /api/nota (o token fica no Cloudflare)
   var LS = "hsAutMinhas", LS_COLAB = "hsAutColab";
   var $ = function (id) { return document.getElementById(id); };
   var empresa = "HS", atual = null, leitor = null, cupom = { itens: [] };
@@ -350,7 +349,7 @@ video{width:100%;border-radius:10px;background:#000;max-height:46vh;object-fit:c
     if (!/^https?:\/\//i.test(txt)) { $("cInfo").textContent = ident + " — só com a chave não dá para buscar os itens: preencha o valor."; return; }
     $("cInfo").textContent = ident + " — buscando os itens na SEFAZ…";
     var ctrl = ("AbortController" in window) ? new AbortController() : null; var to = setTimeout(function () { if (ctrl) ctrl.abort(); }, 45000);
-    fetch(SERVIDOR + "/nota?u=" + encodeURIComponent(txt), { headers: { "X-HS-Token": HS_TOKEN }, signal: ctrl ? ctrl.signal : undefined })
+    fetch(SERVIDOR + "/nota?u=" + encodeURIComponent(txt), { signal: ctrl ? ctrl.signal : undefined })
       .then(function (r) { return r.json(); }).then(function (j) {
         clearTimeout(to);
         if (!j || !j.ok || !j.dados) { $("cInfo").textContent = "Cupom lido. A SEFAZ não respondeu — preencha o valor."; return; }

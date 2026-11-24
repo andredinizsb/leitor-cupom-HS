@@ -457,9 +457,8 @@
   var SERVIDOR_PADRAO = "https://nfce.hsgestao.app";
   var SERVER_URL = SERVIDOR_PADRAO;
   var OPT = { tipo: [], placa: [], colaboradores: [] };
-  // Token que o servidor NFC-e exige no header X-HS-Token (barra uso de fora do app).
-  var HS_TOKEN = "8d5c9fe3668fd08f303ba8f2eeb71996b21374117c93b93b";
-  var HDR = { "X-HS-Token": HS_TOKEN };
+  // A leitura da nota passa por /api/nota (o token do servidor NFC-e fica no Cloudflare, não aqui).
+  var HDR = {};
   // Caminho de reserva (mesmo site, Cloudflare Pages): grava no formulário público do Jotform
   // quando o servidor NFC-e está fora do ar. Não usa chave nenhuma.
   var API_RESERVA = "/api";
@@ -1127,7 +1126,7 @@ function ligarObras(inp, desc) {
     if (SERVER_URL) {
       var ctrl = ("AbortController" in window) ? new AbortController() : null;
       var to = setTimeout(function () { if (ctrl) ctrl.abort(); }, 45000);
-      fetch(SERVER_URL.replace(/\/+$/, "") + "/nota?u=" + encodeURIComponent(text), { headers: HDR, signal: ctrl ? ctrl.signal : undefined })
+      fetch(API_RESERVA + "/nota?u=" + encodeURIComponent(text), { signal: ctrl ? ctrl.signal : undefined })
         .then(function (r) { return r.json().catch(function () { return { ok: false }; }); })
         .then(function (j) { clearTimeout(to); var carry = capturarEntrada(); if (j && j.ok && j.dados) render(ch, j.dados, false); else { render(ch, null, false); setStatus("QR lido. Detalhes da nota não vieram — preencha manualmente.", "err"); } restaurarEntrada(carry); })
         .catch(function () { clearTimeout(to); var carry = capturarEntrada(); render(ch, null, false); restaurarEntrada(carry); setStatus("QR lido. Servidor não respondeu — confira os Ajustes ou preencha manualmente.", "err"); });
