@@ -88,7 +88,7 @@ dialog{padding:0;width:min(760px,calc(100vw - 24px))}
   function quando(iso) { var d = new Date(iso); return isNaN(d) ? "" : d.toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" }); }
   function cls(s) { return "s-" + String(s || "").split(" ")[0]; }
   function aberta(r) { return ["Entregue", "Cancelada"].indexOf(r.status) < 0; }
-  function para(r) { return r.destino === "Frota" ? r.frota || "Veículo" : r.destino === "Estoque" ? "Estoque" : (r.empresa ? r.empresa + " · " : "") + "Obra " + (r.obra || "—"); }
+  function para(r) { return r.destino === "Frota" ? r.frota || "Veículo" : r.destino === "Estoque" ? "Estoque" : (r.empresa ? r.empresa + " · " : "") + "Obra" + (r.obra ? " " + r.obra : "") + (r.orcamento ? " · orç. " + r.orcamento : ""); }
 
   function carregar() {
     $("aviso").innerHTML = ""; $("lista").innerHTML = '<tr><td colspan="6"><span class="hs-skel" style="height:40px"></span></td></tr>';
@@ -129,7 +129,7 @@ dialog{padding:0;width:min(760px,calc(100vw - 24px))}
   function abrir(r) {
     atual = r; $("dMsg").innerHTML = "";
     $("dTit").textContent = r.numero; $("dSt").className = "badge " + cls(r.status); $("dSt").textContent = r.status;
-    var info = [["Solicitante", r.solicitante], ["Para", para(r)], ["Obra", r.obra_desc], ["Para quando", br(r.data_necessaria) + (r.prioridade !== "Normal" ? " · " + r.prioridade : "")], ["Para que é", r.justificativa], ["Onde entregar", r.local_entrega], ["Enviada em", quando(r.criado_em)]];
+    var info = [["Solicitante", r.solicitante], ["Para", para(r)], ["Obra", r.obra_desc], ["Orçamento / proposta", r.orcamento], ["Para quando", br(r.data_necessaria) + (r.prioridade !== "Normal" ? " · " + r.prioridade : "")], ["Para que é", r.justificativa], ["Onde entregar", r.local_entrega], ["Enviada em", quando(r.criado_em)]];
     $("dInfo").innerHTML = info.filter(function (x) { return x[1]; }).map(function (x) { return "<dt>" + esc(x[0]) + "</dt><dd>" + esc(x[1]) + "</dd>"; }).join("");
     $("dItens").innerHTML = r.itens.map(function (x) { return "<tr><td>" + x.item + "</td><td>" + esc(x.descricao) + '</td><td class="q">' + esc(String(x.qtd).replace(".", ",")) + " " + esc(x.unidade || "") + "</td></tr>"; }).join("");
     $("dAnx").innerHTML = r.anexos.length ? "<h3>Anexo</h3><div class=\"anx\">" + r.anexos.map(function (a) {

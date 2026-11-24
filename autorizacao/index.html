@@ -39,6 +39,11 @@ video{width:100%;border-radius:10px;background:#000;max-height:46vh;object-fit:c
 .op{display:grid;gap:2px;text-align:left;min-height:56px;padding:10px 14px;border-radius:var(--r-md);border:1px solid var(--border-control);background:var(--surface);color:var(--text);font:inherit;cursor:pointer}
 .op b{font-size:16px;font-weight:600}.op span{font-size:14px;color:var(--text-muted)}
 .op.on{background:var(--primary-subtle);border-color:var(--primary)}.op.on b{color:var(--primary-text)}
+.ou{display:flex;align-items:center;gap:10px;margin:12px 0;color:var(--text-muted);font-size:13px}.ou::before,.ou::after{content:"";flex:1;height:1px;background:var(--border)}
+.op-cot{display:flex;align-items:center;gap:12px;width:100%;border-style:dashed;border-color:var(--primary)}.op-cot .ico{width:40px;height:40px;border-radius:10px;background:var(--primary);color:var(--on-primary);display:grid;place-items:center;flex:none}
+.op-cot .ico svg{width:22px;height:22px}.op-cot>span:last-child{display:grid;gap:2px}.op-cot b{color:var(--primary-text)}.op-cot.on{border-style:solid}
+.zap{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:48px;margin-top:8px;border-radius:var(--r-md);border:1px solid #1DA851;background:#E8F8EE;color:#0B6B33;font:600 16px var(--ff);text-decoration:none}
+@media (prefers-color-scheme:dark){.zap{background:#0F2E1C;color:#7EE2A8;border-color:#2E9E5B}}
 .s-Nova,.s-Em,.s-Aguardando{background:var(--warning-subtle);color:var(--warning-text);border-color:transparent}
 .s-Pedido{background:var(--primary-subtle);color:var(--primary-text);border-color:transparent}
 .s-Entregue{background:var(--success-subtle);color:var(--success-text);border-color:transparent}.s-Cancelada{background:var(--danger-subtle);color:var(--danger-text);border-color:transparent}
@@ -58,13 +63,14 @@ video{width:100%;border-radius:10px;background:#000;max-height:46vh;object-fit:c
       <h2>O que você precisa?</h2>
       <div class="opcoes" role="radiogroup" aria-label="Tipo de pedido">
         <button type="button" class="op" role="radio" data-modo="abast"><b>Abastecimento</b><span>Canhoto para o posto</span></button>
-        <button type="button" class="op" role="radio" data-modo="balcao"><b>Material urgente</b><span>Compra no balcão, com canhoto</span></button>
-        <button type="button" class="op" role="radio" data-modo="req"><b>Material para a obra</b><span>Suprimentos cota e compra</span></button>
+        <button type="button" class="op" role="radio" data-modo="balcao"><b>Material</b><span>Retirada de material na cidade, com canhoto</span></button>
       </div>
+      <div class="ou">ou</div>
+      <button type="button" class="op op-cot" role="radio" data-modo="req"><span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg></span><span><b>Cotação de material</b><span>Suprimentos cota, compra e entrega</span></span></button>
     </div>
 
     <div class="card hide" id="cardReq">
-      <h2>Requisição de material</h2>
+      <h2>Cotação de material</h2>
       <p class="lead">Suprimentos faz a cotação e a compra. Você acompanha tudo em Minhas: cotação, pedido, previsão de entrega.</p>
       <form id="fReq" autocomplete="off" novalidate>
         <label for="rColab">Quem está pedindo</label>
@@ -73,7 +79,7 @@ video{width:100%;border-radius:10px;background:#000;max-height:46vh;object-fit:c
         <div class="seg"><button type="button" class="tab on" data-remp="HS">HS</button><button type="button" class="tab" data-remp="MC">MC</button></div>
         <label>O material é para</label>
         <div class="seg"><button type="button" class="tab on" data-dest="Obra">Obra</button><button type="button" class="tab" data-dest="Frota">Veículo</button><button type="button" class="tab" data-dest="Estoque">Estoque</button></div>
-        <div id="rBlObra"><label for="rObra">Obra</label><input id="rObra" placeholder="Toque para ver a lista ou digite o nº / cliente"><div id="rObraInfo" class="opt" style="margin-top:4px"></div></div>
+        <div id="rBlObra"><label for="rOrc">Orçamento / proposta <span class="opt">(opcional)</span></label><input id="rOrc" maxlength="120" placeholder="Nº do orçamento ou da proposta, se tiver"></div>
         <div id="rBlFrota" class="hide"><label for="rFrota">Veículo</label><select id="rFrota"><option value="">Carregando a lista…</option></select></div>
         <label>Itens</label>
         <div id="rItens"></div>
@@ -87,7 +93,8 @@ video{width:100%;border-radius:10px;background:#000;max-height:46vh;object-fit:c
         <label for="rArq">Foto ou lista <span class="opt">(opcional: foto do material, da lista do projeto ou PDF)</span></label>
         <input type="file" id="rArq" accept="image/*,application/pdf"><div class="opt" id="rArqInfo" style="margin-top:4px"></div>
         <div id="msgReq"></div>
-        <button class="btn" type="submit" id="btnReq" style="margin-top:12px">Enviar requisição</button>
+        <button class="btn" type="submit" id="btnReq" style="margin-top:12px">Pedir cotação</button>
+        <a class="zap" id="rZap" target="_blank" rel="noopener" href="https://wa.me/"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>Falar com o Suprimentos no WhatsApp</a>
       </form>
     </div>
 
@@ -429,17 +436,14 @@ video{width:100%;border-radius:10px;background:#000;max-height:46vh;object-fit:c
   document.querySelectorAll("[data-remp]").forEach(function (b) { b.addEventListener("click", function () { remp = b.getAttribute("data-remp"); document.querySelectorAll("[data-remp]").forEach(function (x) { x.classList.toggle("on", x === b); }); }); });
   document.querySelectorAll("[data-dest]").forEach(function (b) { b.addEventListener("click", function () {
     dest = b.getAttribute("data-dest"); document.querySelectorAll("[data-dest]").forEach(function (x) { x.classList.toggle("on", x === b); });
-    $("rBlObra").classList.toggle("hide", dest !== "Obra"); $("rBlFrota").classList.toggle("hide", dest !== "Frota");
+    $("rBlFrota").classList.toggle("hide", dest !== "Frota");
   }); });
-  HSObras.carregar().then(function (j) { OBRAS = j; });
-  HSObras.ligar($("rObra"));
-  function infoObra() {
-    var v = $("rObra").value.trim(), o = OBRAS.filter(function (x) { return String(x.n) === v; })[0];
-    $("rObraInfo").textContent = o ? [o.e, o.c, o.d].filter(Boolean).join(" · ") : (v && OBRAS.length ? "Obra fora do cadastro oficial: confira o número." : "");
-    if (o && (o.e === "HS" || o.e === "MC") && o.e !== remp) { var b = document.querySelector('[data-remp="' + o.e + '"]'); if (b) b.click(); }
-    return o;
-  }
-  $("rObra").addEventListener("input", infoObra); $("rObra").addEventListener("change", infoObra);
+  function infoObra() { return null; }
+  // WhatsApp do Suprimentos (parâmetro WhatsSuprimentos da planilha); sem número, o WhatsApp abre para escolher o contato
+  var WHATS = ""; fetch("/api/compras/requisicao?config=1").then(function (r) { return r.json(); }).then(function (j) { WHATS = (j && j.whats) || ""; }).catch(function () {});
+  function zap(texto) { var t = WHATS; if (t.length >= 10 && t.length <= 11) t = "55" + t; return "https://wa.me/" + t + "?text=" + encodeURIComponent(texto); }
+  function quemSou() { var c = ($("rColab").value || "").replace(/^\d+\s+/, "").trim(); return c ? " Aqui é " + c + "." : ""; }
+  $("rZap").addEventListener("click", function () { this.href = zap("Olá, Suprimentos!" + quemSou() + " "); });   // a cotação não pede a obra (o "Para que é" explica); o orçamento/proposta é opcional
   $("rData").value = hojeMais(3); $("rData").min = hojeMais(0);
 
   // ---- itens ----
@@ -487,10 +491,10 @@ video{width:100%;border-radius:10px;background:#000;max-height:46vh;object-fit:c
       itens.push({ descricao: desc, qtd: q, unidade: d.querySelector(".iUn").value });
     });
     var o = infoObra();
-    var corpo = { solicitante: $("rColab").value.trim(), empresa: remp, destino: dest, obra: dest === "Obra" ? $("rObra").value.trim() : "", obra_desc: o ? [o.c, o.d].filter(Boolean).join(" - ") : "",
+    var corpo = { solicitante: $("rColab").value.trim(), empresa: remp, destino: dest, obra: "", obra_desc: "", orcamento: $("rOrc").value.trim(),
       frota: dest === "Frota" ? $("rFrota").value.trim() : "", prioridade: $("rPrio").value, data_necessaria: $("rData").value, justificativa: $("rJust").value.trim(), local_entrega: $("rLocal").value.trim(), itens: itens, anexo: anexo };
     if (!corpo.solicitante) return msg("Selecione quem está pedindo.");
-    if (dest === "Obra" && !corpo.obra) return msg("Informe a obra.");
+
     if (dest === "Frota" && !corpo.frota) return msg("Escolha o veículo.");
     if (!itens.length) return msg("Informe ao menos um item.");
     if (semQtd) return msg("Informe a quantidade de cada item.");
@@ -503,14 +507,16 @@ video{width:100%;border-radius:10px;background:#000;max-height:46vh;object-fit:c
         if (!j.ok) throw new Error(j.msg || "Não foi possível enviar (" + (j.erro || "erro") + ").");
         guardar(j.numero, j.chave); try { localStorage.setItem(LS_COLAB, corpo.solicitante); } catch (e) {}
         $("rItens").innerHTML = ""; novoItem(); $("rJust").value = ""; $("rLocal").value = ""; $("rArq").value = ""; $("rArqInfo").textContent = ""; anexo = null; $("rData").value = hojeMais(3); $("rPrio").value = "Normal";
-        var info = [["Para", dest === "Obra" ? "Obra " + corpo.obra : dest === "Frota" ? corpo.frota : "Estoque"], ["Itens", itens.length], ["Para quando", dataBR(corpo.data_necessaria)], ["Prioridade", corpo.prioridade]];
+        var info = [["Para", dest === "Obra" ? "Obra" : dest === "Frota" ? corpo.frota : "Estoque"], ["Orçamento / proposta", corpo.orcamento], ["Itens", itens.length], ["Para quando", dataBR(corpo.data_necessaria)], ["Prioridade", corpo.prioridade]];
         if (window.hsEnviado) hsEnviado({ app: "autorizacao", titulo: "Requisição enviada", numero: j.numero, sub: "Suprimentos recebeu. Acompanhe a cotação, o pedido e a previsão de entrega em Minhas.", linhas: info,
           compartilhar: "Requisição " + j.numero + " · " + info[0][1] + " · " + itens.length + " item(ns) para " + dataBR(corpo.data_necessaria) + " · app HS Gestão",
-          botoes: [{ txt: "Acompanhar em Minhas", primario: true, fn: function () { $("tMinhas").click(); } }, { txt: "Fazer outra requisição" }] });
+          botoes: [{ txt: "Acompanhar em Minhas", primario: true, fn: function () { $("tMinhas").click(); } },
+            { txt: "Avisar o Suprimentos no WhatsApp", fn: function () { window.open(zap("Olá, Suprimentos! Pedi a cotação " + j.numero + " pelo app." + quemSou() + "\n" + itens.map(function (x) { return "• " + x.descricao + " — " + String(x.qtd).replace(".", ",") + " " + x.unidade; }).join("\n") + "\nPara quando: " + dataBR(corpo.data_necessaria) + (corpo.orcamento ? "\nOrçamento/proposta: " + corpo.orcamento : "") + "\nPara: " + corpo.justificativa), "_blank"); } },
+            { txt: "Pedir outra cotação" }] });
         else { msg("Requisição " + j.numero + " enviada.", "ok"); }
       })
       .catch(function (e) { msg((e && e.message) || "Sem conexão. Tente de novo quando tiver sinal."); })
-      .then(function () { b.disabled = false; b.textContent = "Enviar requisição"; });
+      .then(function () { b.disabled = false; b.textContent = "Pedir cotação"; });
   });
 
   // ---- minhas requisições ----
@@ -518,7 +524,7 @@ video{width:100%;border-radius:10px;background:#000;max-height:46vh;object-fit:c
   function cartao(r) {
     if (r.nao_encontrada) return '<div class="card"><span class="num">' + esc(r.numero) + '</span><div class="meta">Não encontrada.</div></div>';
     var cls = "s-" + String(r.status).split(" ")[0], h = '<div class="card"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><span class="num">' + esc(r.numero) + '</span><span class="badge ' + cls + '">' + esc(r.status) + "</span></div>";
-    h += '<div class="meta">' + esc(r.destino === "Frota" ? r.frota : r.destino === "Estoque" ? "Estoque" : (r.empresa ? r.empresa + " · " : "") + "Obra " + r.obra) + " · para " + esc(dataBR(r.data_necessaria)) + (r.prioridade !== "Normal" ? " · " + esc(r.prioridade) : "") + "</div>";
+    h += '<div class="meta">' + esc(r.destino === "Frota" ? r.frota : r.destino === "Estoque" ? "Estoque" : (r.empresa ? r.empresa + " · " : "") + "Obra" + (r.obra ? " " + r.obra : "") + (r.orcamento ? " · orç. " + r.orcamento : "")) + " · para " + esc(dataBR(r.data_necessaria)) + (r.prioridade !== "Normal" ? " · " + esc(r.prioridade) : "") + "</div>";
     h += '<ul class="lista-itens">' + (r.itens || []).map(function (x) { return "<li>" + esc(x.descricao) + " — " + esc(String(x.qtd).replace(".", ",")) + " " + esc(x.unidade || "") + "</li>"; }).join("") + "</ul>";
     if (r.status !== "Cancelada") {
       var passos = []; (r.eventos || []).forEach(function (e) { if (e.para && passos.indexOf(e.para) < 0) passos.push(e.para); });
@@ -542,17 +548,18 @@ video{width:100%;border-radius:10px;background:#000;max-height:46vh;object-fit:c
         '<button class="btn" type="button" data-rok="1" style="margin-top:10px">Salvar recebimento</button><div class="rmsg"></div></div>';
       h += "</div>";
     });
+    h += '<a class="zap" target="_blank" rel="noopener" href="' + esc(zap("Olá, Suprimentos! Sobre a cotação " + r.numero + ": ")) + '">Mandar recado no WhatsApp</a>';
     return h + '<div class="meta" style="margin-top:8px">Enviada em ' + esc(quando(r.criado_em)) + (r.atualizado_em && r.atualizado_em !== r.criado_em ? " · atualizada em " + esc(quando(r.atualizado_em)) : "") + "</div></div>";
   }
   function carregar() {
     var l = ler();
     if (!l.length) { $("listaReq").innerHTML = ""; $("tituloAut").hidden = true; return; }
     $("tituloAut").hidden = false;
-    $("listaReq").innerHTML = '<div class="sec-t">Requisições de material</div><div class="vazio">Carregando…</div>';
+    $("listaReq").innerHTML = '<div class="sec-t">Cotações de material</div><div class="vazio">Carregando…</div>';
     fetch("/api/compras/requisicao?l=" + encodeURIComponent(l.map(function (x) { return x.n + ":" + x.k; }).join(","))).then(function (r) { return r.json(); }).then(function (j) {
       if (!j.ok) throw new Error();
-      $("listaReq").innerHTML = '<div class="sec-t">Requisições de material</div>' + j.requisicoes.map(cartao).join("");
-    }).catch(function () { $("listaReq").innerHTML = '<div class="sec-t">Requisições de material</div><div class="msg err">Sem conexão para ver as requisições.</div>'; });
+      $("listaReq").innerHTML = '<div class="sec-t">Cotações de material</div>' + j.requisicoes.map(cartao).join("");
+    }).catch(function () { $("listaReq").innerHTML = '<div class="sec-t">Cotações de material</div><div class="msg err">Sem conexão para ver as requisições.</div>'; });
   }
   $("listaReq").addEventListener("change", function (e) { if (e.target.classList.contains("rprob")) e.target.closest(".frcb").querySelector(".robs").classList.toggle("hide", !e.target.checked); });
   $("listaReq").addEventListener("click", function (e) {

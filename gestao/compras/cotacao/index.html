@@ -95,7 +95,7 @@
   function desenhar() {
     var r = D.requisicao;
     $("tit").textContent = "Cotação " + r.numero;
-    $("sub").textContent = [r.destino === "Obra" ? (r.empresa ? r.empresa + " · " : "") + "Obra " + r.obra + (r.obra_desc ? " · " + r.obra_desc : "") : r.destino === "Frota" ? r.frota : "Estoque",
+    $("sub").textContent = [r.destino === "Obra" ? (r.empresa ? r.empresa + " · " : "") + "Obra" + (r.obra ? " " + r.obra : "") + (r.obra_desc ? " · " + r.obra_desc : "") + (r.orcamento ? " · orçamento/proposta " + r.orcamento : "") : r.destino === "Frota" ? r.frota : "Estoque",
       "pedida por " + r.solicitante, "para " + br(r.data_necessaria) + (r.prioridade !== "Normal" ? " (" + r.prioridade + ")" : ""), r.status].join(" · ");
     // 1. itens
     $("itens").innerHTML = r.itens.map(function (x) {

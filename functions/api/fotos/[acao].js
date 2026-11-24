@@ -54,7 +54,7 @@ export async function onRequest({ request, env, params }) {
       .bind(S(l[0], 20), S(l[1]) || "", S(l[2], 120), S(l[3], 80), S(l[4], 40), S(l[5], 120), S(l[6], 60), S(l[7], 2), normCompras([l[0], l[1], l[2], l[6]].join(" "))));
     else if (t === "nf") st = L.filter((l) => S(l[0]) && N(l[1]) != null).map((l) => db.prepare("INSERT INTO compras_nf (pc, item, qtd_nf, nfs, ultima, preco_nf) VALUES (?1, ?2, ?3, ?4, ?5, ?6) ON CONFLICT(pc, item) DO UPDATE SET qtd_nf = ?3, nfs = ?4, ultima = ?5, preco_nf = ?6")
       .bind(S(l[0], 20), N(l[1]), N(l[2]), S(l[3], 120), S(l[4], 10), N(l[5])));
-    else if (t === "config") st = L.filter((l) => /^(LimiteAprovacao|Aprovadores)$/.test(String(l[0]))).map((l) => db.prepare("INSERT INTO compras_config (chave, valor) VALUES (?1, ?2) ON CONFLICT(chave) DO UPDATE SET valor = ?2").bind(String(l[0]), S(l[1], 500)));
+    else if (t === "config") st = L.filter((l) => /^(LimiteAprovacao|Aprovadores|WhatsSuprimentos)$/.test(String(l[0]))).map((l) => db.prepare("INSERT INTO compras_config (chave, valor) VALUES (?1, ?2) ON CONFLICT(chave) DO UPDATE SET valor = ?2").bind(String(l[0]), S(l[1], 500)));
     else if (t === "precos") st =L.filter((l) => S(l[0]) && S(l[1])).map((l) => db.prepare("INSERT INTO compras_precos (id_fx, cnpj, data, preco, qtd, nf, vezes) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7) ON CONFLICT(id_fx, cnpj) DO UPDATE SET data = ?3, preco = ?4, qtd = ?5, nf = ?6, vezes = ?7")
       .bind(S(l[0], 20), S(l[1], 20), S(l[2], 10), N(l[3]), N(l[4]), S(l[5], 20), N(l[6])));
     else return resp({ ok: false, erro: "tipo_invalido" }, 400);
@@ -107,7 +107,7 @@ export async function onRequest({ request, env, params }) {
     return tsv((rs.results || []).map(function (r) {
       return [r.numero, local(r.criado_em), r.solicitante, r.empresa || "", r.obra || "", r.frota || "", r.prioridade || "", r.data_necessaria || "", "", r.justificativa || "",
         r.item, r.codigo_fx || "", r.descricao, r.qtd == null ? "" : r.qtd, r.unidade || "", r.pedido || "", r.status === "Cancelada" ? "Sim" : "",
-        "App: " + r.status + (r.previsao ? " · previsão " + r.previsao : "") + (r.comprador ? " · " + String(r.comprador).split("@")[0] : "") + (r.obs_suprimentos ? " · " + r.obs_suprimentos : "") + (r.motivo ? " · motivo: " + r.motivo : "")];
+        "App: " + r.status + (r.orcamento ? " · orçamento/proposta " + r.orcamento : "") + (r.previsao ? " · previsão " + r.previsao : "") + (r.comprador ? " · " + String(r.comprador).split("@")[0] : "") + (r.obs_suprimentos ? " · " + r.obs_suprimentos : "") + (r.motivo ? " · motivo: " + r.motivo : "")];
     }));
   }
   // tabela dos relatórios salvos no servidor (cria sozinha na 1ª vez; nas outras não faz nada)

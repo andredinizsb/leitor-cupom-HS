@@ -24,8 +24,8 @@ export async function onRequestPost({ request, env }) {
   await garantir(db);
   const numero = await proximaReq(db, new Date().getFullYear()), chave = aleatorio(18), r = v.req, quando = agora();
   const ops = [
-    db.prepare("INSERT INTO compras_req (numero, criado_em, solicitante, empresa, obra, obra_desc, frota, destino, prioridade, data_necessaria, justificativa, local_entrega, status, atualizado_em, chave) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, 'Nova', ?2, ?13)")
-      .bind(numero, quando, r.solicitante, r.empresa, r.obra, r.obra_desc, r.frota, r.destino, r.prioridade, r.data_necessaria, r.justificativa, r.local_entrega, chave),
+    db.prepare("INSERT INTO compras_req (numero, criado_em, solicitante, empresa, obra, obra_desc, frota, destino, prioridade, data_necessaria, justificativa, local_entrega, status, atualizado_em, chave, orcamento) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, 'Nova', ?2, ?13, ?14)")
+      .bind(numero, quando, r.solicitante, r.empresa, r.obra, r.obra_desc, r.frota, r.destino, r.prioridade, r.data_necessaria, r.justificativa, r.local_entrega, chave, r.orcamento),
     evento(db, numero, r.solicitante, null, "Nova", "enviada pelo app")
   ];
   v.itens.forEach(function (x, i) {
@@ -40,6 +40,10 @@ export async function onRequestGet({ request, env }) {
   if (semBanco(env)) return resp(ERRO_BANCO, 503);
   const db = env.DB;
   await garantir(db);
+  if (new URL(request.url).searchParams.get("config") === "1") {   // WhatsApp do Suprimentos (parâmetro WhatsSuprimentos da planilha)
+    const w = await db.prepare("SELECT valor FROM compras_config WHERE chave = 'WhatsSuprimentos'").first();
+    return resp({ ok: true, whats: w && w.valor ? String(w.valor).replace(/\D/g, "") : "" });
+  }
   const pares = String(new URL(request.url).searchParams.get("l") || "").split(",").slice(0, 40)
     .map(function (p) { const i = p.lastIndexOf(":"); return i > 0 ? [p.slice(0, i).trim(), p.slice(i + 1).trim()] : null; }).filter(Boolean);
   const out = [];
