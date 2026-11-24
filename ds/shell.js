@@ -12,6 +12,7 @@
     documentos: '<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/>',
     pedidos: '<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="m9 15 2 2 4-4"/>',
     compras: '<circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/>',
+    refeicoes: '<path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/>',
     despesas: '<path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 17.5v-11"/>',
     apps: '<rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/>',
     menu: '<path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/>',
@@ -39,7 +40,7 @@
     ["Compras", [["compras", "Requisições", "/gestao/compras/"], ["pedidos", "Pedidos de compra", "/gestao/compras/pedidos/"], ["autorizacoes", "Autorizações (canhotos)", "/gestao/"]]],
     ["Operação", [["rdo", "RDOs", "/gestao/rdo/"], ["checklist", "Checklists", "/gestao/checklist/"]]],
     ["Frota", [["frota", "Manutenções e pendências", "/gestao/frota/"], ["documentos", "Documentos", "/gestao/frota/documentos/"]]],
-    ["Financeiro", [["despesas", "Despesas", "/gestao/despesas/"]]]
+    ["Financeiro", [["despesas", "Despesas", "/gestao/despesas/"], ["refeicoes", "Refeições por colaborador", "/gestao/despesas/refeicoes/"]]]
   ];
   var b = document.body, mod = b.getAttribute("data-mod") || "", nome = "Gestão";
   b.classList.add("hs-app");

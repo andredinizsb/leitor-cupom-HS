@@ -924,6 +924,7 @@ function ligarObras(inp, desc) {
     applyConditions();
     document.getElementById("btnAgain").addEventListener("click", function () { resultEl.classList.remove("on"); startCamera(); });
     document.getElementById("btnEnviar").addEventListener("click", enviar);
+    setTimeout(avisoRefeicao, 0);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -941,7 +942,30 @@ function ligarObras(inp, desc) {
         updateColabChips();
       });
     });
+    avisoRefeicao();
   }
+
+  // 24/11 · teto de refeição: R$ 45,00 por pessoa no almoço e na janta. Só avisa (não bloqueia e não muda o que é enviado).
+  var TETO_REF = 45;
+  function avisoRefeicao() { try { avisoRefeicao_(); } catch (e) {} }   // nunca atrapalha o lançamento
+  function avisoRefeicao_() {
+    var box = document.getElementById("colabChips"); if (!box) return;
+    var el = document.getElementById("avisoRef");
+    if (!el) { el = document.createElement("div"); el.id = "avisoRef"; el.setAttribute("role", "status"); box.parentNode.insertBefore(el, box.nextSibling); }
+    var ic2 = document.getElementById("itemCount"), count = ic2 ? parseInt(ic2.value, 10) || 0 : 0, n = resultEl.querySelectorAll(".colabChk:checked").length, msgs = [];
+    for (var i = 0; i < count; i++) {
+      var inc = document.querySelector('.itemInc[data-i="' + i + '"]'); if (inc && !inc.checked) continue;
+      var t = document.getElementById("fTipo" + i), vEl = document.getElementById("fValor" + i);
+      if (!t || !vEl || !/refei/i.test(t.value) || !/almo|jant/i.test(t.value)) continue;
+      var v = parseFloat(brNum(vEl.value)); if (isNaN(v) || v <= 0) continue;
+      if (!n) { msgs.push("Marque todos os colaboradores que comeram: o valor da refeição é dividido entre eles no controle do teto."); break; }
+      var pp = v / n;
+      if (pp > TETO_REF + 0.005) msgs.push(t.value + ": " + fmtBRL(pp) + " por pessoa (" + fmtBRL(v) + " ÷ " + n + "), acima do teto de " + fmtBRL(TETO_REF) + ". Confira o valor e se todos os colaboradores estão marcados.");
+    }
+    el.innerHTML = msgs.length ? '<div style="margin-top:8px;padding:10px 12px;border-radius:10px;background:var(--warning-subtle);color:var(--warning-text);font-size:14px;line-height:20px">' + msgs.map(esc).join("<br>") + "</div>" : "";
+  }
+  document.addEventListener("input", function (e) { if (e.target && /^fValor\d+$/.test(e.target.id || "")) avisoRefeicao(); });
+  document.addEventListener("change", function (e) { if (e.target && (/^fTipo\d+$/.test(e.target.id || "") || e.target.classList.contains("colabChk") || e.target.classList.contains("itemInc"))) avisoRefeicao(); });
 
   function updateTotal() {
     var ic2 = document.getElementById("itemCount"); if (!ic2) return;
