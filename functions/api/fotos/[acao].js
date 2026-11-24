@@ -59,6 +59,14 @@ export async function onRequest({ request, env, params }) {
     if (st.length) await db.batch(st);
     return tsv([["gravadas", st.length]]);
   }
+  //   GET  recebimentos -> HS Compras C4: 10 colunas da tRecebimentos (Data, Pedido, Item, Código FX, Descrição, Qtd Recebida, NF, Conforme, Observação, Recebido por)
+  if (acao === "recebimentos") {
+    await garantirCompras(db);
+    const rs = await db.prepare("SELECT r.*, i.codigo_fx, i.descricao FROM compras_receb r LEFT JOIN compras_pc_itens i ON i.numero = r.pc AND i.item = r.item ORDER BY r.pc, r.id").all();
+    return tsv((rs.results || []).map(function (r) {
+      return [r.em ? new Date(Date.parse(r.em) - 3 * 3600e3).toISOString().slice(0, 10) : "", r.pc, r.item, r.codigo_fx || "", r.descricao || "", r.qtd, r.nf || "", r.conforme || "", [r.obs, "pelo app (" + (r.origem || "") + ")"].filter(Boolean).join(" · "), r.recebido_por || ""];
+    }));
+  }
   //   GET  pedidos -> HS Compras C3: 1 linha por item, 27 colunas na ordem da tabela Pedidos (BasePedidos) — Data … Data Aprovação, sem as fórmulas
   if (acao === "pedidos") {
     await garantirCompras(db);

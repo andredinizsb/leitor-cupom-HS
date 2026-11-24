@@ -10,16 +10,18 @@
 //     confirmar {numero, data_prometida}           fornecedor confirmou: a data vira a previsão da requisição
 //     cancelar  {numero, motivo}
 import { resp, origemOk, semBanco, ERRO_BANCO, txt, agora, assinaturaValida } from "../../../lib/aut.js";
-import { garantir, evento, carregarReq, dia, proximoPedido, config, STATUS_PC } from "../../../lib/compras.js";
+import { garantir, evento, carregarReq, dia, proximoPedido, config, STATUS_PC, receber } from "../../../lib/compras.js";
 import { relatorioHtml } from "../../../lib/relatorio.js";
 
-const ABERTOS = ["Aguardando aprovação", "Aprovado", "Enviado", "Confirmado"];
+const ABERTOS = ["Aguardando aprovação", "Aprovado", "Enviado", "Confirmado", "Recebido parcial"];
 async function pedidos(db, where, bind) {
   const rs = await db.prepare("SELECT * FROM compras_pc " + where + " ORDER BY criado_em DESC LIMIT 300").bind(...bind).all(), L = rs.results || [];
   if (!L.length) return L;
   const it = await db.prepare("SELECT * FROM compras_pc_itens WHERE numero IN (" + L.map(function (_, i) { return "?" + (i + 1); }).join(",") + ") ORDER BY numero, item").bind(...L.map(function (p) { return p.numero; })).all();
-  const I = {}; (it.results || []).forEach(function (x) { (I[x.numero] = I[x.numero] || []).push(x); });
-  return L.map(function (p) { p.itens = I[p.numero] || []; p.tem_assinatura = !!p.assinatura; delete p.assinatura; return p; });
+  const rc = await db.prepare("SELECT * FROM compras_receb WHERE pc IN (" + L.map(function (_, i) { return "?" + (i + 1); }).join(",") + ") ORDER BY id").bind(...L.map(function (p) { return p.numero; })).all();
+  const I = {}, R = {}; (rc.results || []).forEach(function (x) { (R[x.pc] = R[x.pc] || []).push(x); });
+  (it.results || []).forEach(function (x) { x.recebido = (R[x.numero] || []).filter(function (r) { return r.item === x.item; }).reduce(function (s, r) { return s + Number(r.qtd); }, 0); (I[x.numero] = I[x.numero] || []).push(x); });
+  return L.map(function (p) { p.itens = I[p.numero] || []; p.recebimentos = R[p.numero] || []; p.tem_assinatura = !!p.assinatura; delete p.assinatura; return p; });
 }
 
 export async function onRequestGet({ request, env, data }) {
@@ -86,6 +88,10 @@ export async function onRequestPost({ request, env, data }) {
     return resp({ ok: true, pedidos: gerados });
   }
 
+  if (acao === "receber") {   // C4: recebimento no escritório / almoxarifado
+    const x = await receber(db, txt(d.numero, 20), d, quem, "escritório");
+    return x.ok ? resp({ ok: true, status: x.status }) : resp({ ok: false, erro: x.erro, msg: x.msg }, x.st);
+  }
   const p = await db.prepare("SELECT * FROM compras_pc WHERE numero = ?1").bind(txt(d.numero, 20) || "").first();
   if (!p) return resp({ ok: false, erro: "nao_encontrado", msg: "Pedido não encontrado." }, 404);
   const ops = [];
@@ -129,7 +135,7 @@ export async function onRequestPost({ request, env, data }) {
 
   const pcNovo = { aprovar: "Aprovado", recusar: "Recusado", cancelar: "Cancelado", enviado: "Enviado", confirmar: "Confirmado" }[acao];
   const r = await carregarReq(db, p.req, false);
-  if (r && !["Cancelada", "Entregue", "Entregue parcial"].includes(r.status)) {
+  if (r && !["Cancelada", "Entregue", "Entregue parcial"].includes(r.status) && !(acao === "cancelar" && p.status.indexOf("Recebido") === 0)) {
     const rn = await reqDepois(pcNovo);
     if (rn !== r.status) {
       ops.push(db.prepare("UPDATE compras_req SET status = ?2, atualizado_em = ?3 WHERE numero = ?1").bind(r.numero, rn, quando));

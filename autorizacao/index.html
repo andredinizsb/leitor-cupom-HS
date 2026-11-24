@@ -532,6 +532,16 @@ video{width:100%;border-radius:10px;background:#000;max-height:46vh;object-fit:c
     if (r.obs_suprimentos) inf.push(esc(r.obs_suprimentos));
     if (r.status === "Cancelada" && r.motivo) inf.push("Cancelada: " + esc(r.motivo));
     if (inf.length) h += '<div class="aviso-sup">' + inf.join("<br>") + "</div>";
+    (r.pedidos || []).forEach(function (p) {
+      var falta = p.itens.filter(function (x) { return Number(x.recebido || 0) < Number(x.qtd) - 0.0001; });
+      h += '<div class="aviso-sup" data-pc="' + esc(p.numero) + '" data-req="' + esc(r.numero) + '"><b>Pedido ' + esc(p.numero) + "</b> · " + esc(p.fornecedor) + " · " + esc(p.status) + (p.data_prometida ? " · entrega " + esc(dataBR(p.data_prometida)) : "") +
+        '<ul class="lista-itens">' + p.itens.map(function (x) { return "<li>" + esc(x.descricao) + " — chegou " + esc(String(x.recebido || 0).replace(".", ",")) + " de " + esc(String(x.qtd).replace(".", ",")) + " " + esc(x.unidade || "") + "</li>"; }).join("") + "</ul>";
+      if (falta.length) h += '<button class="btn ghost sm" type="button" data-rcb="1" style="margin-top:8px">Confirmar recebimento</button><div class="frcb hide">' + falta.map(function (x) {
+        return '<label>' + esc(x.descricao) + ' <span class="opt">(faltam ' + esc(String(Number(x.qtd) - Number(x.recebido || 0)).replace(".", ",")) + " " + esc(x.unidade || "") + ')</span></label><input data-rq="' + x.item + '" inputmode="decimal" value="' + esc(String(Number(x.qtd) - Number(x.recebido || 0)).replace(".", ",")) + '">'; }).join("") +
+        '<label class="chk"><input type="checkbox" class="rprob"> Chegou com problema (avaria, item errado, faltando)</label><input class="robs hide" placeholder="O que aconteceu?"><label>Nº da nota fiscal <span class="opt">(se tiver)</span></label><input class="rnf" inputmode="numeric">' +
+        '<button class="btn" type="button" data-rok="1" style="margin-top:10px">Salvar recebimento</button><div class="rmsg"></div></div>';
+      h += "</div>";
+    });
     return h + '<div class="meta" style="margin-top:8px">Enviada em ' + esc(quando(r.criado_em)) + (r.atualizado_em && r.atualizado_em !== r.criado_em ? " · atualizada em " + esc(quando(r.atualizado_em)) : "") + "</div></div>";
   }
   function carregar() {
@@ -544,6 +554,19 @@ video{width:100%;border-radius:10px;background:#000;max-height:46vh;object-fit:c
       $("listaReq").innerHTML = '<div class="sec-t">Requisições de material</div>' + j.requisicoes.map(cartao).join("");
     }).catch(function () { $("listaReq").innerHTML = '<div class="sec-t">Requisições de material</div><div class="msg err">Sem conexão para ver as requisições.</div>'; });
   }
+  $("listaReq").addEventListener("change", function (e) { if (e.target.classList.contains("rprob")) e.target.closest(".frcb").querySelector(".robs").classList.toggle("hide", !e.target.checked); });
+  $("listaReq").addEventListener("click", function (e) {
+    var bx = e.target.closest("[data-pc]"); if (!bx) return;
+    if (e.target.hasAttribute("data-rcb")) { bx.querySelector(".frcb").classList.toggle("hide"); return; }
+    if (!e.target.hasAttribute("data-rok")) return;
+    var n = bx.getAttribute("data-req"), k = (ler().filter(function (x) { return x.n === n; })[0] || {}).k, prob = bx.querySelector(".rprob").checked, obs = bx.querySelector(".robs").value.trim(), out = bx.querySelector(".rmsg");
+    if (prob && !obs) { out.innerHTML = '<div class="msg err">Conte o que aconteceu com o material.</div>'; return; }
+    var its = [].map.call(bx.querySelectorAll("[data-rq]"), function (i) { return { item: +i.getAttribute("data-rq"), qtd: i.value, conforme: prob ? "Não" : "Sim", obs: prob ? obs : "" }; });
+    e.target.disabled = true;
+    fetch("/api/compras/requisicao", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ acao: "receber", n: n, k: k, pc: bx.getAttribute("data-pc"), nf: bx.querySelector(".rnf").value, itens: its }) })
+      .then(function (r) { return r.json(); }).then(function (j) { if (!j.ok) throw new Error(j.msg || j.erro); carregar(); })
+      .catch(function (x) { e.target.disabled = false; out.innerHTML = '<div class="msg err">' + esc(x.message || "Sem conexão.") + "</div>"; });
+  });
   $("tMinhas").addEventListener("click", carregar); $("btnAtualizar").addEventListener("click", carregar);
 })();
 </script>

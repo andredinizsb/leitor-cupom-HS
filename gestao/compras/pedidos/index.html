@@ -35,7 +35,7 @@
   function atrasado(p) { return p.status === "Confirmado" && p.data_prometida && p.data_prometida < hoje; }
   var F = [["acao", "Pede ação", function (p) { return ["Aguardando aprovação", "Aprovado"].indexOf(p.status) >= 0 || atrasado(p); }],
     ["Aguardando aprovação", "Aguardando aprovação"], ["Aprovado", "A enviar"], ["Enviado", "Sem confirmação"], ["Confirmado", "Confirmados"], ["atrasados", "Atrasados", atrasado],
-    ["Recusado", "Recusados"], ["Cancelado", "Cancelados"], ["todos", "Todos", function () { return true; }]];
+    ["Recebido parcial", "Recebidos em parte"], ["Recebido", "Recebidos"], ["Recusado", "Recusados"], ["Cancelado", "Cancelados"], ["todos", "Todos", function () { return true; }]];
   function filtro(k) { var x = F.filter(function (y) { return y[0] === k; })[0]; return x[2] || function (p) { return p.status === k; }; }
   function carregar() {
     fetch("/api/gestao/compras-pedido?situacao=todos").then(function (r) { return r.json(); }).then(function (j) {
@@ -48,7 +48,7 @@
     $("chips").innerHTML = F.map(function (x) { return '<button type="button" class="chip' + (x[0] === f ? " on" : "") + '" data-f="' + esc(x[0]) + '">' + esc(x[1]) + "<b>" + L.filter(filtro(x[0])).length + "</b></button>"; }).join("");
     var q = $("q").value.trim().toLowerCase();
     var V = L.filter(filtro(f)).filter(function (p) { return !q || [p.numero, p.fornecedor, p.req, p.obra, p.frota, p.itens.map(function (x) { return x.descricao; }).join(" ")].join(" ").toLowerCase().indexOf(q) >= 0; });
-    var ab = L.filter(function (p) { return ["Aguardando aprovação", "Aprovado", "Enviado", "Confirmado"].indexOf(p.status) >= 0; });
+    var ab = L.filter(function (p) { return ["Aguardando aprovação", "Aprovado", "Enviado", "Confirmado", "Recebido parcial"].indexOf(p.status) >= 0; });
     $("resumo").innerHTML = "<span><b>" + L.filter(filtro("Aguardando aprovação")).length + "</b> aguardando aprovação</span><span><b>" + L.filter(filtro("Aprovado")).length + "</b> a enviar ao fornecedor</span>" +
       "<span><b>" + L.filter(atrasado).length + "</b> com entrega atrasada</span><span><b>" + rs(ab.reduce(function (s, p) { return s + Number(p.total || 0); }, 0)) + "</b> em pedidos abertos</span>";
     HSPedidos.render($("lista"), V, { config: cfg, hoje: hoje, depois: carregar });
