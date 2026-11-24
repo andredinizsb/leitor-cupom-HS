@@ -10,6 +10,7 @@
     checklist: '<rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/>',
     frota: '<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>',
     documentos: '<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/>',
+    pedidos: '<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="m9 15 2 2 4-4"/>',
     compras: '<circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/>',
     despesas: '<path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 17.5v-11"/>',
     apps: '<rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/>',
@@ -35,7 +36,7 @@
 
   var MENU = [
     ["Visão geral", [["painel", "Painel", "/gestao/painel/"]]],
-    ["Compras", [["compras", "Requisições", "/gestao/compras/"], ["autorizacoes", "Autorizações (canhotos)", "/gestao/"]]],
+    ["Compras", [["compras", "Requisições", "/gestao/compras/"], ["pedidos", "Pedidos de compra", "/gestao/compras/pedidos/"], ["autorizacoes", "Autorizações (canhotos)", "/gestao/"]]],
     ["Operação", [["rdo", "RDOs", "/gestao/rdo/"], ["checklist", "Checklists", "/gestao/checklist/"]]],
     ["Frota", [["frota", "Manutenções e pendências", "/gestao/frota/"], ["documentos", "Documentos", "/gestao/frota/documentos/"]]],
     ["Financeiro", [["despesas", "Despesas", "/gestao/despesas/"]]]
@@ -93,4 +94,5 @@
   }
   contador("autorizacoes", "/api/gestao/autorizacoes?status=todas", function (j) { return j && j.contagem && j.contagem.Pendente; });
   contador("compras", "/api/gestao/compras?situacao=Nova", function (j) { return j && j.contagem && j.contagem.Nova; });
+  contador("pedidos", "/api/gestao/compras-pedido", function (j) { return j && j.contagem && j.contagem["Aguardando aprovação"]; });
 })();

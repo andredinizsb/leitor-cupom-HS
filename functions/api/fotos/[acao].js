@@ -52,11 +52,26 @@ export async function onRequest({ request, env, params }) {
       .bind(S(l[0], 20), S(l[1]) || "", S(l[2], 60), S(l[3], 60), S(l[4], 10), normCompras([l[0], l[1], l[2]].join(" "))));
     else if (t === "forn") st = L.filter((l) => S(l[0])).map((l) => db.prepare("INSERT INTO compras_forn (cnpj, nome, fantasia, contato, telefone, email, cidade, uf, busca) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9) ON CONFLICT(cnpj) DO UPDATE SET nome = ?2, fantasia = ?3, contato = ?4, telefone = ?5, email = coalesce(?6, email), cidade = ?7, uf = ?8, busca = ?9")
       .bind(S(l[0], 20), S(l[1]) || "", S(l[2], 120), S(l[3], 80), S(l[4], 40), S(l[5], 120), S(l[6], 60), S(l[7], 2), normCompras([l[0], l[1], l[2], l[6]].join(" "))));
-    else if (t === "precos") st = L.filter((l) => S(l[0]) && S(l[1])).map((l) => db.prepare("INSERT INTO compras_precos (id_fx, cnpj, data, preco, qtd, nf, vezes) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7) ON CONFLICT(id_fx, cnpj) DO UPDATE SET data = ?3, preco = ?4, qtd = ?5, nf = ?6, vezes = ?7")
+    else if (t === "config") st = L.filter((l) => /^(LimiteAprovacao|Aprovadores)$/.test(String(l[0]))).map((l) => db.prepare("INSERT INTO compras_config (chave, valor) VALUES (?1, ?2) ON CONFLICT(chave) DO UPDATE SET valor = ?2").bind(String(l[0]), S(l[1], 500)));
+    else if (t === "precos") st =L.filter((l) => S(l[0]) && S(l[1])).map((l) => db.prepare("INSERT INTO compras_precos (id_fx, cnpj, data, preco, qtd, nf, vezes) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7) ON CONFLICT(id_fx, cnpj) DO UPDATE SET data = ?3, preco = ?4, qtd = ?5, nf = ?6, vezes = ?7")
       .bind(S(l[0], 20), S(l[1], 20), S(l[2], 10), N(l[3]), N(l[4]), S(l[5], 20), N(l[6])));
     else return resp({ ok: false, erro: "tipo_invalido" }, 400);
     if (st.length) await db.batch(st);
     return tsv([["gravadas", st.length]]);
+  }
+  //   GET  pedidos -> HS Compras C3: 1 linha por item, 27 colunas na ordem da tabela Pedidos (BasePedidos) — Data … Data Aprovação, sem as fórmulas
+  if (acao === "pedidos") {
+    await garantirCompras(db);
+    const rs = await db.prepare("SELECT p.*, i.item, i.codigo_fx, i.descricao, i.qtd, i.unidade, i.preco, i.impostos, i.total AS total_item FROM compras_pc p JOIN compras_pc_itens i ON i.numero = p.numero ORDER BY p.numero, i.item").all();
+    const local = function (iso) { return iso ? new Date(Date.parse(iso) - 3 * 3600e3).toISOString().slice(0, 10) : ""; };
+    const cnpj = function (c) { const d = String(c || "").replace(/\D/g, ""); return d.length === 14 ? d.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5") : (c || ""); };
+    return tsv((rs.results || []).map(function (p) {
+      return [local(p.criado_em), p.numero, cnpj(p.cnpj), p.fornecedor, p.contato || "", p.telefone || "", p.cond_pagto || "", p.data_prometida || (p.prazo_dias != null ? p.prazo_dias + " dias" : ""),
+        "", "", p.frete_tipo === "CIF" ? "Sim" : "", p.frete_tipo === "FOB" ? "Sim" : "", p.item, p.codigo_fx || "", p.descricao, p.qtd == null ? "" : p.qtd, p.unidade || "",
+        p.preco == null ? "" : p.preco, p.total_item == null ? "" : p.total_item, p.destino === "Obra" ? (p.obra || "") : "", p.destino === "Frota" ? (p.frota || "") : "", p.destino === "Estoque" ? "ESTOQUE" : "",
+        ["Pedido do app HS Compras", p.impostos ? "impostos não inclusos R$ " + p.impostos + "/un" : "", p.frete_tipo === "FOB" && p.frete_valor ? "frete FOB R$ " + p.frete_valor : "", p.motivo ? "motivo: " + p.motivo : "", p.obs || ""].filter(Boolean).join(" · "),
+        p.req, p.status, p.aprovador_nome || "", local(p.aprovado_em)];
+    }));
   }
   //   GET  cotacoes -> HS Compras C2: 1 linha por fornecedor × item respondido (mesmas 23 colunas da aba BaseCotacoes)
   if (acao === "cotacoes") {

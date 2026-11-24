@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Pedidos de compra · Gestão HS</title>
+<link rel="icon" href="/icons/gestao.svg" type="image/svg+xml">
+<link rel="manifest" href="/icons/gestao.webmanifest">
+<meta name="theme-color" content="#0E1217">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/ds/hs.css?v=1">
+<style>.filtros{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}.ped .topo b{font-variant-numeric:tabular-nums}</style>
+</head>
+<body data-mod="pedidos">
+<script src="/ds/shell.js?v=3"></script>
+<main>
+  <header class="hs-ph"><div class="tt"><div class="hs-crumbs"><a href="/gestao/painel/">Gestão</a> / Compras</div><h1>Pedidos de compra</h1>
+    <p>Pedidos gerados a partir das cotações: aprove com assinatura, envie ao fornecedor e registre a data de entrega prometida.</p></div>
+    <div class="acoes"><button class="btn ghost" type="button" id="btnAtu">Atualizar</button></div></header>
+  <div class="filtros" id="chips" role="group" aria-label="Filtrar pedidos"></div>
+  <div class="barra"><input class="busca" id="q" placeholder="Buscar por nº, fornecedor, requisição, item…" aria-label="Buscar"></div>
+  <div class="resumo" id="resumo"></div>
+  <div id="aviso"></div>
+  <div class="grid" id="lista"></div>
+</main>
+<script>
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+  var L = [], cfg = {}, hoje = "", f = "acao";
+  function esc(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
+  function rs(v) { return Number(v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }); }
+  function atrasado(p) { return p.status === "Confirmado" && p.data_prometida && p.data_prometida < hoje; }
+  var F = [["acao", "Pede ação", function (p) { return ["Aguardando aprovação", "Aprovado"].indexOf(p.status) >= 0 || atrasado(p); }],
+    ["Aguardando aprovação", "Aguardando aprovação"], ["Aprovado", "A enviar"], ["Enviado", "Sem confirmação"], ["Confirmado", "Confirmados"], ["atrasados", "Atrasados", atrasado],
+    ["Recusado", "Recusados"], ["Cancelado", "Cancelados"], ["todos", "Todos", function () { return true; }]];
+  function filtro(k) { var x = F.filter(function (y) { return y[0] === k; })[0]; return x[2] || function (p) { return p.status === k; }; }
+  function carregar() {
+    fetch("/api/gestao/compras-pedido?situacao=todos").then(function (r) { return r.json(); }).then(function (j) {
+      if (!j.ok) throw new Error(j.msg || j.erro);
+      if (j.quem) $("quem").textContent = j.quem;
+      L = j.pedidos; cfg = j.config; hoje = j.hoje; desenhar();
+    }).catch(function (e) { $("aviso").innerHTML = '<div class="msg">' + esc(e.message) + "</div>"; });
+  }
+  function desenhar() {
+    $("chips").innerHTML = F.map(function (x) { return '<button type="button" class="chip' + (x[0] === f ? " on" : "") + '" data-f="' + esc(x[0]) + '">' + esc(x[1]) + "<b>" + L.filter(filtro(x[0])).length + "</b></button>"; }).join("");
+    var q = $("q").value.trim().toLowerCase();
+    var V = L.filter(filtro(f)).filter(function (p) { return !q || [p.numero, p.fornecedor, p.req, p.obra, p.frota, p.itens.map(function (x) { return x.descricao; }).join(" ")].join(" ").toLowerCase().indexOf(q) >= 0; });
+    var ab = L.filter(function (p) { return ["Aguardando aprovação", "Aprovado", "Enviado", "Confirmado"].indexOf(p.status) >= 0; });
+    $("resumo").innerHTML = "<span><b>" + L.filter(filtro("Aguardando aprovação")).length + "</b> aguardando aprovação</span><span><b>" + L.filter(filtro("Aprovado")).length + "</b> a enviar ao fornecedor</span>" +
+      "<span><b>" + L.filter(atrasado).length + "</b> com entrega atrasada</span><span><b>" + rs(ab.reduce(function (s, p) { return s + Number(p.total || 0); }, 0)) + "</b> em pedidos abertos</span>";
+    HSPedidos.render($("lista"), V, { config: cfg, hoje: hoje, depois: carregar });
+  }
+  $("chips").addEventListener("click", function (e) { var b = e.target.closest("[data-f]"); if (b) { f = b.getAttribute("data-f"); desenhar(); } });
+  $("q").addEventListener("input", desenhar); $("btnAtu").addEventListener("click", carregar);
+  carregar();
+})();
+</script>
+<script src="/gestao/compras/pedidos.js?v=1"></script>
+<script src="/icons/assinatura.js?v=3"></script>
+<script src="/gestao/aviso-limites.js?v=4" defer></script>
+</body>
+</html>

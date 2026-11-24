@@ -63,6 +63,10 @@
     <button class="btn" type="button" id="btnEsc">Registrar escolha</button>
   </div>
   <div id="msgEsc"></div>
+
+  <div class="passo"><span class="n">4</span><h2>Pedido de compra</h2><span class="sp"></span><span class="m" id="pcInfo"></span><button class="btn" type="button" id="btnGerar">Gerar pedido(s)</button></div>
+  <div id="msgPc"></div>
+  <div class="grid" id="pcs"></div>
 </main>
 <script>
 (function () {
@@ -83,7 +87,7 @@
       if (!j.ok) throw new Error(j.msg || j.erro || "erro");
       if (j.quem) $("quem").textContent = j.quem;
       D = j; esc_ = {}; D.requisicao.itens.forEach(function (x) { if (x.escolha_cot) esc_[x.item] = x.escolha_cot; });
-      desenhar();
+      desenhar(); pedidos();
     }).catch(function (e) { aviso(e.message); });
   }
   function custo(x) { return x && x.disponivel && x.preco != null ? Number(x.preco) + Number(x.impostos || 0) : null; }
@@ -220,9 +224,31 @@
       $("msgEsc").innerHTML = '<div class="msg ok">Escolha registrada no histórico da requisição. Próximo passo: emitir o pedido de compra e informar o nº na requisição.</div>'; return carregar();
     }).catch(function (x) { $("msgEsc").innerHTML = '<div class="msg">' + esc(x.message) + "</div>"; var j = x.j && x.j.item && document.querySelector('[data-just="' + x.j.item + '"]'); if (j) j.focus(); });
   });
+  // ---- 4. pedidos ----
+  function pedidos() {
+    fetch("/api/gestao/compras-pedido?req=" + encodeURIComponent(N)).then(function (r) { return r.json(); }).then(function (j) {
+      if (!j.ok) throw new Error(j.msg || j.erro);
+      var ativos = j.pedidos.filter(function (p) { return p.status !== "Recusado" && p.status !== "Cancelado"; }), escolheu = D.requisicao.itens.some(function (x) { return x.escolha_cot; });
+      $("btnGerar").hidden = !!ativos.length || !escolheu;
+      $("pcInfo").textContent = j.config.limite > 0 ? "Até " + rs(j.config.limite) + " não precisa de aprovação" : "Todo pedido passa por aprovação (" + (j.config.aprovadores.join(", ") || "aba Parametros") + ")";
+      if (!escolheu && !j.pedidos.length) { $("pcs").innerHTML = '<div class="vazio">Registre a escolha no comparativo para gerar o pedido.</div>'; return; }
+      HSPedidos.render($("pcs"), j.pedidos, { config: j.config, hoje: new Date().toISOString().slice(0, 10), depois: carregar });
+    }).catch(function (e) { $("msgPc").innerHTML = '<div class="msg">' + esc(e.message) + "</div>"; });
+  }
+  $("btnGerar").addEventListener("click", function () {
+    var b = this; b.disabled = true; $("msgPc").innerHTML = "";
+    fetch("/api/gestao/compras-pedido", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ acao: "gerar", req: N }) })
+      .then(function (r) { return r.json(); }).then(function (j) {
+        if (!j.ok) throw new Error(j.msg || j.erro);
+        $("msgPc").innerHTML = '<div class="msg ok">' + j.pedidos.length + " pedido(s) gerado(s): " + esc(j.pedidos.map(function (p) { return p.numero + " · " + p.fornecedor + " · " + rs(p.total); }).join(" | ")) + "</div>";
+        return carregar();
+      }).catch(function (e) { $("msgPc").innerHTML = '<div class="msg">' + esc(e.message) + "</div>"; }).then(function () { b.disabled = false; });
+  });
   if (!N) aviso("Abra a cotação pela lista de requisições."); else carregar();
 })();
 </script>
+<script src="/gestao/compras/pedidos.js?v=1"></script>
+<script src="/icons/assinatura.js?v=3"></script>
 <script src="/gestao/aviso-limites.js?v=4" defer></script>
 </body>
 </html>
