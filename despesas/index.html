@@ -960,7 +960,7 @@ function ligarObras(inp, desc) {
       var v = parseFloat(brNum(vEl.value)); if (isNaN(v) || v <= 0) continue;
       if (!n) { msgs.push("Marque todos os colaboradores que comeram: o valor da refeição é dividido entre eles no controle do teto."); break; }
       var pp = v / n;
-      if (pp > TETO_REF + 0.005) msgs.push(t.value + ": " + fmtBRL(pp) + " por pessoa (" + fmtBRL(v) + " ÷ " + n + "), acima do teto de " + fmtBRL(TETO_REF) + ". Confira o valor e se todos os colaboradores estão marcados.");
+      if (pp > TETO_REF + 0.005) msgs.push(t.value + ": " + fmtBRL(pp) + " por pessoa (" + fmtBRL(v) + " ÷ " + n + "), acima de " + fmtBRL(TETO_REF) + ". Vale a média do mês de cada colaborador: confira o valor e se todos os colaboradores estão marcados.");
     }
     el.innerHTML = msgs.length ? '<div style="margin-top:8px;padding:10px 12px;border-radius:10px;background:var(--warning-subtle);color:var(--warning-text);font-size:14px;line-height:20px">' + msgs.map(esc).join("<br>") + "</div>" : "";
   }

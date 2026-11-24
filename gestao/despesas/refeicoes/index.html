@@ -36,7 +36,7 @@ dialog{padding:0;width:min(860px,calc(100vw - 24px))}.dh{display:flex;align-item
   <div id="aviso"></div>
   <div class="kpis" id="kpis"></div>
   <div class="hs-sec"><h2>Por colaborador</h2><span class="sp"></span><span class="m">Clique para ver dia a dia</span></div>
-  <div class="wrap"><table class="tabela"><thead><tr><th>Colaborador</th><th class="q">Refeições</th><th class="q opc">Dias</th><th class="q">Total</th><th class="q opc">Média</th><th class="q">Acima do teto</th><th class="q">Excesso</th></tr></thead><tbody id="lista"></tbody></table></div>
+  <div class="wrap"><table class="tabela"><thead><tr><th>Colaborador</th><th class="q">Refeições</th><th class="q opc">Dias</th><th class="q">Total</th><th class="q">Média por refeição</th><th class="q opc">Refeições acima de R$ 45</th><th class="q">Excesso pela média</th></tr></thead><tbody id="lista"></tbody></table></div>
   <div class="hs-sec"><h2>Lançamentos para revisar</h2><span class="sp"></span><a class="btn ghost pq" href="/gestao/despesas/">Corrigir em Despesas</a></div>
   <div class="wrap"><table class="tabela"><thead><tr><th>Data</th><th>Tipo / fornecedor</th><th>Problema</th><th class="q">Valor</th></tr></thead><tbody id="revisar"></tbody></table></div>
 </main>
@@ -52,7 +52,7 @@ dialog{padding:0;width:min(860px,calc(100vw - 24px))}.dh{display:flex;align-item
   function dia(d) { return new Date(d.getTime() - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 10); }
   function n1(v) { return String(Math.round(v * 10) / 10).replace(".", ","); }
   var hoje = new Date(); $("de").value = dia(new Date(hoje.getFullYear(), hoje.getMonth(), 1)); $("ate").value = dia(hoje);
-  $("regra").textContent = "Teto de " + rs(TETO) + " por pessoa no almoço e no jantar. Despesa lançada para vários colaboradores é dividida igualmente entre eles (ex.: R$ 200,00 com 5 colaboradores = R$ 40,00 por pessoa). Café e lanche aparecem, mas sem teto.";
+  $("regra").textContent = "Teto de " + rs(TETO) + " por refeição (almoço e janta), conferido pela MÉDIA de cada colaborador no período: total gasto ÷ nº de refeições. Quem economiza numa refeição pode gastar um pouco mais em outra. Despesa lançada para vários colaboradores é dividida igualmente (R$ 200,00 com 5 colaboradores = R$ 40,00 por pessoa). Café e lanche entram no total, mas não na média.";
 
   // uma despesa de refeição -> parte de cada colaborador
   function dividir(x) {
@@ -84,16 +84,20 @@ dialog{padding:0;width:min(860px,calc(100vw - 24px))}.dh{display:flex;align-item
       if (d.problema) R.push({ x: x, d: d });
       var nomes = x.colaboradores.length ? x.colaboradores : ["(sem colaborador)"];
       nomes.forEach(function (c) {
-        var p = porColab[c] = porColab[c] || { nome: c, refeicoes: 0, total: 0, acima: 0, excesso: 0, dias: {}, itens: [] };
-        p.refeicoes += d.refeicoes; p.total += d.parte; p.excesso += d.excesso; if (d.acima) p.acima++;
+        var p = porColab[c] = porColab[c] || { nome: c, refeicoes: 0, total: 0, acima: 0, refTeto: 0, totTeto: 0, dias: {}, itens: [] };
+        p.refeicoes += d.refeicoes; p.total += d.parte; if (d.acima) p.acima++;
+        if (d.comTeto) { p.refTeto += d.refeicoes; p.totTeto += d.parte; }
         p.dias[x.data] = (p.dias[x.data] || 0) + (d.comTeto ? d.refeicoes : 0); p.itens.push({ x: x, d: d });
       });
-      refs += d.refeicoes * d.pessoas; if (d.acima) acima++; exc += d.excesso * d.pessoas;
+      refs += d.refeicoes * d.pessoas;
     });
+    // média por colaborador (almoço e janta): excesso só quando a média passa do teto
+    var rt = 0, tt = 0;
+    Object.keys(porColab).forEach(function (k) { var p = porColab[k]; p.media = p.refTeto ? p.totTeto / p.refTeto : 0; p.excesso = Math.max(0, p.totTeto - TETO * p.refTeto); if (p.excesso > 0.005) acima++; exc += p.excesso; rt += p.refTeto; tt += p.totTeto; });
     $("kpis").innerHTML = '<div class="kpi"><small>Gasto com refeições</small><b>' + rs(tot) + "</b><span>" + D.length + " lançamento(s)</span></div>" +
       '<div class="kpi"><small>Refeições por pessoa</small><b>' + Math.round(refs) + "</b><span>média " + rs(refs ? tot / refs : 0) + " por refeição</span></div>" +
-      '<div class="kpi"><small>Acima do teto</small><b>' + acima + "</b><span>lançamento(s) acima de " + rs(TETO) + "/pessoa</span></div>" +
-      '<div class="kpi"><small>Excesso no período</small><b class="' + (exc > 0 ? "ex" : "") + '">' + rs(exc) + "</b><span>quanto passou do teto</span></div>";
+      '<div class="kpi"><small>Média geral (almoço e janta)</small><b class="' + (rt && tt / rt > TETO ? "ex" : "") + '">' + rs(rt ? tt / rt : 0) + "</b><span>teto " + rs(TETO) + " por refeição</span></div>" +
+      '<div class="kpi"><small>Acima da média de ' + rs(TETO) + "</small><b>" + acima + "</b><span>colaborador(es) · excesso " + rs(exc) + "</span></div>";
     desenhar();
     $("revisar").innerHTML = R.length ? R.map(function (r) { return "<tr><td>" + esc(br(r.x.data)) + "</td><td>" + esc(r.x.tipo) + '<div class="m">' + esc([r.x.fornecedor, r.x.obra ? "Obra " + r.x.obra : "", r.x.colaboradores.join(", ")].filter(Boolean).join(" · ")) + "</div></td><td>" + esc(r.d.problema) + '</td><td class="q">' + rs(r.x.valor) + "</td></tr>"; }).join("")
       : '<tr><td colspan="4" class="vazio">Nenhum lançamento com problema no período.</td></tr>';
@@ -101,25 +105,25 @@ dialog{padding:0;width:min(860px,calc(100vw - 24px))}.dh{display:flex;align-item
   function desenhar() {
     var q = $("q").value.trim().toLowerCase();
     var L = Object.keys(porColab).map(function (k) { return porColab[k]; }).filter(function (p) { return !q || p.nome.toLowerCase().indexOf(q) >= 0; })
-      .sort(function (a, b) { return b.excesso - a.excesso || b.total - a.total; });
+      .sort(function (a, b) { return b.excesso - a.excesso || b.media - a.media; });
     $("lista").innerHTML = L.length ? L.map(function (p) {
       var dias = Object.keys(p.dias), mais2 = dias.filter(function (d) { return p.dias[d] > 2; }).length;
       return '<tr data-c="' + esc(p.nome) + '" tabindex="0"><td><b>' + esc(p.nome) + "</b>" + (mais2 ? '<div class="m ex">' + mais2 + " dia(s) com mais de 2 refeições</div>" : "") + '</td><td class="q">' + n1(p.refeicoes) + '</td><td class="q opc">' + dias.length +
-        '</td><td class="q">' + rs(p.total) + '</td><td class="q opc">' + rs(p.refeicoes ? p.total / p.refeicoes : 0) + '</td><td class="q">' + (p.acima ? '<span class="badge s-danger">' + p.acima + "</span>" : '<span class="badge s-ok">0</span>') +
+        '</td><td class="q">' + rs(p.total) + '</td><td class="q">' + (p.refTeto ? '<span class="badge ' + (p.media > TETO + 0.005 ? "s-danger" : "s-ok") + '">' + rs(p.media) + "</span>" : '<span class="m">sem almoço/janta</span>') + '</td><td class="q opc">' + (p.acima ? p.acima : "0") +
         '</td><td class="q ' + (p.excesso > 0 ? "ex" : "") + '">' + rs(p.excesso) + "</td></tr>";
     }).join("") : '<tr><td colspan="7" class="vazio">Nenhuma refeição no período.</td></tr>';
   }
   function detalhe(nome) {
     var p = porColab[nome]; if (!p) return;
     var por = {}; p.itens.forEach(function (i) { (por[i.x.data] = por[i.x.data] || []).push(i); });
-    $("dTit").textContent = nome + " · " + rs(p.total) + " em " + n1(p.refeicoes) + " refeição(ões)";
+    $("dTit").textContent = nome + " · média " + rs(p.media) + " por refeição (" + rs(p.totTeto) + " ÷ " + n1(p.refTeto) + ")" + (p.excesso > 0.005 ? " · excesso " + rs(p.excesso) : " · dentro do teto");
     $("dCorpo").innerHTML = '<table class="tabela"><thead><tr><th>Tipo / onde</th><th class="q">Despesa</th><th class="q">Dividida por</th><th class="q">Por refeição</th><th></th></tr></thead><tbody>' +
       Object.keys(por).sort().reverse().map(function (d) {
         var l = por[d], s = l.reduce(function (a, i) { return a + i.d.parte; }, 0);
         return '<tr class="dia"><td colspan="5">' + esc(br(d)) + " · " + rs(s) + "</td></tr>" + l.map(function (i) {
           return "<tr><td>" + esc(i.x.tipo) + '<div class="m">' + esc([i.x.fornecedor, i.x.obra ? "Obra " + i.x.obra : "", i.x.nf ? "NF " + i.x.nf : ""].filter(Boolean).join(" · ")) + "</div>" +
             (i.x.colaboradores.length > 1 ? '<div class="m">Dividida entre: ' + esc(i.x.colaboradores.map(function (c) { return c.replace(/^\d+\s+/, ""); }).join(", ")) + "</div>" : '<div class="m">Só este colaborador marcado na despesa</div>') + '</td><td class="q">' + rs(i.x.valor) + '</td><td class="q">' + i.d.pessoas + (i.d.refeicoes > 1 ? " × " + i.d.refeicoes : "") +
-            '</td><td class="q">' + rs(i.d.porRef) + "</td><td>" + (!i.d.comTeto ? '<span class="badge">sem teto</span>' : i.d.acima ? '<span class="badge s-danger">+' + rs(i.d.porRef - TETO) + "</span>" : '<span class="badge s-ok">ok</span>') + "</td></tr>";
+            '</td><td class="q">' + rs(i.d.porRef) + "</td><td>" + (!i.d.comTeto ? '<span class="badge">fora da média</span>' : i.d.acima ? '<span class="badge s-warn">' + rs(i.d.porRef - TETO) + " acima</span>" : '<span class="badge s-ok">' + rs(TETO - i.d.porRef) + " abaixo</span>") + "</td></tr>";
         }).join("");
       }).join("") + "</tbody></table>";
     if (!$("dlg").open) $("dlg").showModal();
@@ -130,9 +134,11 @@ dialog{padding:0;width:min(860px,calc(100vw - 24px))}.dh{display:flex;align-item
   $("q").addEventListener("input", desenhar);
   ["de", "ate", "fObra"].forEach(function (id) { $(id).addEventListener("change", carregar); }); $("btnBuscar").addEventListener("click", carregar);
   $("btnCsv").addEventListener("click", function () {
-    var c = function (v) { v = String(v == null ? "" : v); return /[";\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; }, L = ["Colaborador;Data;Tipo;Obra;Fornecedor;NF;Valor da despesa;Pessoas;Refeições por pessoa;Parte do colaborador;Por refeição;Acima do teto;Excesso"];
+    var c = function (v) { v = String(v == null ? "" : v); return /[";\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; }, L = ["Colaborador;Data;Tipo;Obra;Fornecedor;NF;Valor da despesa;Pessoas;Refeições por pessoa;Parte do colaborador;Por refeição;Acima de 45 nesta refeição;Diferença para 45"];
     Object.keys(porColab).sort().forEach(function (k) { porColab[k].itens.forEach(function (i) {
       L.push([k, br(i.x.data), i.x.tipo, i.x.obra, i.x.fornecedor, i.x.nf, i.x.valor.toFixed(2).replace(".", ","), i.d.pessoas, i.d.refeicoes, i.d.parte.toFixed(2).replace(".", ","), i.d.porRef.toFixed(2).replace(".", ","), i.d.acima ? "Sim" : "", i.d.excesso.toFixed(2).replace(".", ",")].map(c).join(";")); }); });
+    L.push("", "Resumo por colaborador;Refeições (almoço e janta);Total almoço e janta;Média por refeição;Teto;Excesso pela média;Total geral (com café/lanche)");
+    Object.keys(porColab).sort().forEach(function (k) { var p = porColab[k]; L.push([k, n1(p.refTeto), p.totTeto.toFixed(2).replace(".", ","), p.media.toFixed(2).replace(".", ","), TETO.toFixed(2).replace(".", ","), p.excesso.toFixed(2).replace(".", ","), p.total.toFixed(2).replace(".", ",")].map(c).join(";")); });
     var a = document.createElement("a"); a.href = URL.createObjectURL(new Blob(["﻿" + L.join("\r\n")], { type: "text/csv" })); a.download = "refeicoes " + $("de").value + " a " + $("ate").value + ".csv"; a.click();
   });
   carregar();
