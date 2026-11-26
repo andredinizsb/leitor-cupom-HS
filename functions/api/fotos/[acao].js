@@ -18,7 +18,7 @@ import { TABELAS, SQL_BYTES, DIAS_CHECKLIST, DIAS_FROTA, nomeFoto, nomeArquivoFr
 //   GET  listar?tipo=rdo&dias=180                -> RDOs de qualquer obra com mais de N dias (limpeza por espaço; a macro decide N pelo uso)
 
 const GUARDADA = "(dados IS NOT NULL OR r2_key IS NOT NULL)";
-const TIPOS_REL = ["rdo", "checklist", "frota", "autorizacao", "frota-docs", "frota-pend", "jotform", "pedido"];
+const TIPOS_REL = ["rdo", "checklist", "frota", "autorizacao", "frota-docs", "frota-pend", "jotform", "pedido", "requisicao"];
 // só arquiva (e apaga do app) o que já tem o relatório final salvo no servidor
 const COM_RELATORIO = (tipo, col) => "EXISTS (SELECT 1 FROM relatorios x WHERE x.tipo = '" + tipo + "' AND x.numero = " + col + ")";
 //   GET  relatorios?tipo=rdo|checklist|frota    -> registros sem relatório salvo: numero, empresa|frota, obra, data
@@ -153,12 +153,17 @@ export async function onRequest({ request, env, params }) {
   }
   if (request.method !== "GET") return resp({ ok: false, erro: "metodo" }, 405);
   if (acao === "relatorios") {
-    if (tipo === "pedido") await garantirCompras(db);
+    if (tipo === "pedido" || tipo === "requisicao") await garantirCompras(db);
     // registros que ainda não têm o relatório salvo no servidor: numero, a, b, data (rdo: empresa, obra | checklist/frota: frota)
+    // autorizacao/pedido/requisicao: b = "estado" — quando muda, o PDF é salvo de novo (autorização pendente também vai, 26/11)
+    const CNT = (t, w) => "(SELECT count(*) FROM " + t + " WHERE " + w + ")";
     const sql = {
+      requisicao: "SELECT numero, a, b, d FROM (SELECT r.numero, coalesce(r.empresa, '') AS a, substr(r.status || ' ' || " + CNT("compras_eventos e", "e.numero = r.numero") + " || '.' || " + CNT("compras_cot c", "c.numero = r.numero") +
+        " || '.' || " + CNT("compras_cot c", "c.numero = r.numero AND c.respondida_em IS NOT NULL") + " || '.' || " + CNT("compras_receb x JOIN compras_pc p ON p.numero = x.pc", "p.req = r.numero") + " || '.' || " + CNT("compras_anexos n", "n.numero = r.numero") +
+        ", 1, 40) AS b, substr(r.criado_em, 1, 10) AS d FROM compras_req r) q WHERE NOT EXISTS (SELECT 1 FROM relatorios x WHERE x.tipo = 'requisicao' AND x.numero = q.numero AND coalesce(x.estado, '') = q.b) ORDER BY q.numero",
       rdo: "SELECT r.numero, coalesce(r.empresa, '') AS a, coalesce(r.obra, '') AS b, substr(r.data_inicio, 1, 10) AS d FROM rdo r WHERE r.status = 'Finalizado' AND NOT EXISTS (SELECT 1 FROM relatorios x WHERE x.tipo = 'rdo' AND x.numero = r.numero) ORDER BY r.numero",
       checklist: "SELECT c.numero, coalesce(c.frota, '') AS a, '' AS b, substr(c.data_check, 1, 10) AS d FROM checklist c WHERE NOT EXISTS (SELECT 1 FROM relatorios x WHERE x.tipo = 'checklist' AND x.numero = c.numero) ORDER BY c.numero",
-      autorizacao: "SELECT a.numero, coalesce(a.empresa, '') AS a, a.status AS b, substr(a.solicitado_em, 1, 10) AS d FROM autorizacoes a WHERE a.status <> 'Pendente' AND NOT EXISTS (SELECT 1 FROM relatorios x WHERE x.tipo = 'autorizacao' AND x.numero = a.numero AND coalesce(x.estado, '') = a.status) ORDER BY a.numero",
+      autorizacao: "SELECT a.numero, coalesce(a.empresa, '') AS a, a.status AS b, substr(a.solicitado_em, 1, 10) AS d FROM autorizacoes a WHERE NOT EXISTS (SELECT 1 FROM relatorios x WHERE x.tipo = 'autorizacao' AND x.numero = a.numero AND coalesce(x.estado, '') = a.status) ORDER BY a.numero",
       pedido: "SELECT p.numero, coalesce(p.fornecedor, '') AS a, p.status AS b, substr(p.criado_em, 1, 10) AS d FROM compras_pc p WHERE p.status <> 'Aguardando aprovação' AND NOT EXISTS (SELECT 1 FROM relatorios x WHERE x.tipo = 'pedido' AND x.numero = p.numero AND coalesce(x.estado, '') = p.status) ORDER BY p.numero",
       frota: "SELECT m.numero, coalesce(m.frota, '') AS a, '' AS b, substr(m.data, 1, 10) AS d FROM frota_manut m WHERE m.excluido = 0 AND NOT EXISTS (SELECT 1 FROM relatorios x WHERE x.tipo = 'frota' AND x.numero = m.numero) ORDER BY m.numero"
     }[tipo];
@@ -178,6 +183,7 @@ export async function onRequest({ request, env, params }) {
   }
   if (acao === "relatorio") {
     // relatório completo com as fotos embutidas (a planilha grava em PDF no servidor; abre sem internet e sem login)
+    if (tipo === "requisicao") await garantirCompras(db);
     const d = await dadosRelatorio(env, tipo, txt(q.get("numero"), 30));
     if (!d) return resp({ ok: false, erro: "nao_encontrado" }, 404);
     const fotos = [];
@@ -187,6 +193,23 @@ export async function onRequest({ request, env, params }) {
   if (acao === "uso") {
     const s = situacao(await uso(env)), espaco = s.itens.filter(function (i) { return !/antes de passar|no mês/.test(i.nome); });
     return tsv([["maior", Math.max.apply(null, espaco.map(function (i) { return i.pct; }))]].concat(s.itens.map(function (i) { return [i.nome, i.usado, i.teto, i.pct]; })));
+  }
+  //   GET  listar?tipo=requisicao&numero=REQ-... -> id, arquivo, bytes (anexos da requisição; a macro grava na pasta do dossiê)
+  //   GET  baixar?tipo=requisicao&id=N          -> o anexo (bytes). Os anexos ficam no app (nada é apagado).
+  if (tipo === "requisicao" && (acao === "listar" || acao === "baixar")) {
+    await garantirCompras(db);
+    const bytesAnexo = (s) => b64ParaBytes(String(s || "").replace(/^data:[^,]*,/, ""));
+    if (acao === "baixar") {
+      const a = await db.prepare("SELECT tipo, dados FROM compras_anexos WHERE id = ?1").bind(parseInt(q.get("id") || "", 10) || 0).first();
+      if (!a || !a.dados) return resp({ ok: false, erro: "nao_encontrada" }, 404);
+      return new Response(bytesAnexo(a.dados), { headers: { "Content-Type": a.tipo || "application/octet-stream", "Cache-Control": "no-store" } });
+    }
+    const numero = txt(q.get("numero"), 30), EXT = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "application/pdf": "pdf" };
+    const rs = await db.prepare("SELECT id, nome, tipo, dados FROM compras_anexos WHERE numero = ?1 AND dados IS NOT NULL ORDER BY id").bind(numero).all();
+    return tsv((rs.results || []).map(function (a, i) {
+      const nome = String(a.nome || "").replace(/\.[A-Za-z0-9]{2,4}$/, "").replace(/[\\/:*?"<>|\t\r\n]+/g, " ").trim().slice(0, 50);
+      return [a.id, numero + " anexo " + (i + 1) + (nome ? " - " + nome : "") + "." + (EXT[a.tipo] || "bin"), bytesAnexo(a.dados).length];
+    }));
   }
   const t = TABELAS[tipo];
   if (!t) return resp({ ok: false, erro: "tipo_invalido" }, 400);
