@@ -53,7 +53,7 @@ h2{font-size:17px;line-height:24px;font-weight:600;margin:0 0 12px}
     <div id="avisoForm"></div>
   </form>
   <div class="barra"><label>Situação<select id="fSit"><option value="">Todas</option><option>VENCIDO</option><option>VENCE EM 30 DIAS</option><option>Em dia</option><option>Sem data</option><option>Sem vencimento</option></select></label>
-    <input class="busca" id="q" placeholder="Buscar por frota, placa, documento…"></div>
+    <input class="busca" id="q" list="placas" autocomplete="off" placeholder="Buscar por frota, placa, documento…"></div>
   <div class="resumo" id="resumo"></div><div id="aviso"></div><div class="grid" id="lista"></div>
 </main>
 <script>
@@ -96,7 +96,8 @@ h2{font-size:17px;line-height:24px;font-weight:600;margin:0 0 12px}
       [cont["VENCIDO"] ? cont["VENCIDO"] + " documento(s) vencido(s)" : "", cont["VENCE EM 30 DIAS"] ? cont["VENCE EM 30 DIAS"] + " vencem nos próximos 30 dias" : ""].filter(Boolean).join(" e ") + '.</div>' : "";
     $("resumo").innerHTML = "<span><b>" + DOCS.length + "</b> documentos</span><span><b>" + cont["VENCIDO"] + "</b> vencidos</span><span><b>" + cont["VENCE EM 30 DIAS"] + "</b> vencem em 30 dias</span><span><b>" + cont["Em dia"] + "</b> em dia</span><span><b>" + cont["Sem data"] + "</b> sem data</span>" + (cont["Sem vencimento"] ? "<span><b>" + cont["Sem vencimento"] + "</b> sem vencimento</span>" : "");
     var L = DOCS.filter(function (d) { return !f || situacao(d) === f; })
-      .filter(function (d) { return !q || [d.frota, d.veiculo, d.documento, d.numero, d.responsavel, d.obs].join(" ").toLowerCase().indexOf(q) >= 0; })
+      // veículo escolhido da lista ("81000 BNK8D82 Munck") = todos os documentos daquela frota
+      .filter(function (d) { var fq = /^(8\d{4})\b/.exec(q); return !q || (fq ? String(d.frota || "") === fq[1] : [d.frota, d.veiculo, d.documento, d.numero, d.responsavel, d.obs].join(" ").toLowerCase().indexOf(q) >= 0); })
       .sort(function (a, b) { return (ORDEM[situacao(a)] - ORDEM[situacao(b)]) || String(a.vencimento || "").localeCompare(String(b.vencimento || "")); });
     $("lista").innerHTML = L.length ? L.map(function (d) {
       var s = situacao(d), n = diasPara(d), cls = s === "VENCIDO" ? " pb" : s === "VENCE EM 30 DIAS" ? " at" : s === "Sem data" ? " cz" : "";
