@@ -3,6 +3,7 @@ import { resp, origemOk, semBanco, ERRO_BANCO, txt, num, agora, assinaturaValida
 import { MAX_FOTOS, MAX_FOTO_B64, inteiro, dataHora, separarFoto, b64ParaBytes } from "../../../lib/rdo.js";
 import { AVARIAS, SECOES, ITENS, avarias, proximoNumeroChk } from "../../../lib/checklist.js";
 import { ondeGuardar, comR2Contado, bytesB64 } from "../../../lib/fotos.js";
+import { conferirCampo } from "../../../lib/acessos.js";
 
 function erro(cod, msg) { return resp({ ok: false, erro: cod, msg: msg }, 400); }
 
@@ -31,6 +32,8 @@ export async function onRequestPost({ request, env }) {
     if (p.b64.length > MAX_FOTO_B64) return erro("foto_grande", "Uma das fotos ficou grande demais. Tire de novo.");
     fotos.push({ tipo: p.tipo, b64: p.b64, secao: SECOES.includes(f.secao) ? f.secao : "Geral", legenda: txt(f.legenda, 200) });
   }
+  const cp = await conferirCampo(request, env, "checklist");   // PIN / limite de envios / registro (lib/acessos.js)
+  if (cp.bloqueio) return cp.bloqueio;
   // tetos do plano grátis (lib/fotos.js): sem espaço = checklist vai sem as fotos, com aviso
   env = comR2Contado(env);
   let aviso = null;
@@ -57,5 +60,6 @@ export async function onRequestPost({ request, env }) {
     await db.prepare("INSERT INTO checklist_fotos (numero, ordem, secao, legenda, tipo, tamanho, r2_key, dados, criado_em) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)")
       .bind(numero, i + 1, f.secao, f.legenda, f.tipo, bytesB64(f.b64), r2, dados, quando).run();
   }
+  await cp.feito(numero);
   return resp({ ok: true, numero: numero, fotos: fotos.length, problemas: prob.length, aviso: aviso });
 }

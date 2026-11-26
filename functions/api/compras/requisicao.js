@@ -3,6 +3,7 @@
 //   GET  ?l=REQ-2026-0001:chave,REQ-2026-0002:chave  -> situação das requisições guardadas neste celular
 import { resp, origemOk, semBanco, ERRO_BANCO, agora, aleatorio } from "../../../lib/aut.js";
 import { garantir, proximaReq, evento, lerRequisicao, carregarReq, publicoReq, receber, pedidosComReceb } from "../../../lib/compras.js";
+import { conferirCampo } from "../../../lib/acessos.js";
 
 export async function onRequestPost({ request, env }) {
   if (!origemOk(request)) return resp({ ok: false, erro: "origem_nao_permitida" }, 403);
@@ -20,6 +21,8 @@ export async function onRequestPost({ request, env }) {
   }
   const v = lerRequisicao(d);
   if (v.erro) return resp({ ok: false, erro: v.erro, msg: v.msg }, 400);
+  const cp = await conferirCampo(request, env, "compras");   // PIN / limite de envios / registro (lib/acessos.js)
+  if (cp.bloqueio) return cp.bloqueio;
   const db = env.DB;
   await garantir(db);
   const numero = await proximaReq(db, new Date().getFullYear()), chave = aleatorio(18), r = v.req, quando = agora();
@@ -33,6 +36,7 @@ export async function onRequestPost({ request, env }) {
   });
   if (v.anexo) ops.push(db.prepare("INSERT INTO compras_anexos (numero, nome, tipo, dados, criado_em) VALUES (?1, ?2, ?3, ?4, ?5)").bind(numero, v.anexo.nome, v.anexo.tipo, v.anexo.dados, quando));
   await db.batch(ops);
+  await cp.feito(numero);
   return resp({ ok: true, numero: numero, chave: chave, status: "Nova" });
 }
 

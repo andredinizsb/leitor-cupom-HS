@@ -41,10 +41,11 @@ dialog{padding:0;width:min(860px,calc(100vw - 24px))}.dh{display:flex;align-item
   <div class="wrap"><table class="tabela"><thead><tr><th>Data</th><th>Tipo / fornecedor</th><th>Problema</th><th class="q">Valor</th></tr></thead><tbody id="revisar"></tbody></table></div>
 </main>
 <dialog id="dlg" aria-labelledby="dTit"><div class="dh"><b id="dTit"></b><span class="sp"></span><button class="btn ghost pq" type="button" id="dX" aria-label="Fechar">✕</button></div><div class="dc" id="dCorpo"></div></dialog>
+<script src="/gestao/despesas/refeicoes/regras.js?v=1"></script>
 <script>
 (function () {
   "use strict";
-  var TETO = 45, $ = function (id) { return document.getElementById(id); };
+  var RG = window.HSRefeicoes, TETO = RG.TETO, TETO_CAFE = RG.TETO_CAFE, montar = RG.montar, $ = function (id) { return document.getElementById(id); };
   var D = [], R = [], porColab = {};
   function esc(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
   function rs(v) { return Number(v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }); }
@@ -52,57 +53,8 @@ dialog{padding:0;width:min(860px,calc(100vw - 24px))}.dh{display:flex;align-item
   function dia(d) { return new Date(d.getTime() - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 10); }
   function n1(v) { return String(Math.round(v * 10) / 10).replace(".", ","); }
   var hoje = new Date(); $("de").value = dia(new Date(hoje.getFullYear(), hoje.getMonth(), 1)); $("ate").value = dia(hoje);
-  $("regra").textContent = "Teto de " + rs(TETO) + " por refeição (almoço e janta), conferido pela MÉDIA de cada colaborador no período: total gasto ÷ nº de refeições. Quem economiza numa refeição pode gastar um pouco mais em outra. Despesa lançada para vários colaboradores é dividida igualmente (R$ 200,00 com 5 colaboradores = R$ 40,00 por pessoa). Café e lanche entram no total, mas não na média.";
+  $("regra").textContent = "Teto de " + rs(TETO) + " por refeição (almoço e janta) e " + rs(TETO_CAFE) + " no café da manhã, conferidos pela MÉDIA de cada colaborador no período: total gasto ÷ nº de refeições. Quem economiza numa refeição pode gastar um pouco mais em outra. Água, refrigerante e lanche do dia entram na refeição (com almoço e janta, o lanche vai para a de menor valor). Dia só com mercado/lanche, sem refeição, vale como uma refeição de até " + rs(TETO) + ". Despesa lançada para vários colaboradores é dividida igualmente (R$ 200,00 com 5 colaboradores = R$ 40,00 por pessoa).";
 
-  // uma despesa de refeição -> parte de cada colaborador
-  // ---- junta os lançamentos numa refeição de verdade ----
-  // 1) itens da mesma nota (mesmo dia + fornecedor + nº da NF, ou lançados no mesmo minuto) = uma refeição só
-  // 2) bebida / alimento (tipo Mercado-alimentício ou Água) da mesma nota, ou de outra nota no mesmo dia e dos mesmos colaboradores,
-  //    entra na refeição daquele dia lançada mais perto no horário. O Jotform não guarda a hora da nota: vale a hora do lançamento.
-  var ALIM = /agua|água|coca|refri|refrigerante|suco|salgad|lanche|cafe|café|pao|pão|biscoit|bolach|chocolate|sorvete|energetic|cha |chá|leite|iogurte|fruta|bala|doce|cerveja|guarana|guaraná|sanduiche|pastel|coxinha|bolo/i;
-  function nota(x) { return x.data + "|" + (x.fornecedor || "").toLowerCase() + "|" + (x.nf ? "nf" + x.nf : String(x.enviado || "").slice(0, 16)); }
-  function minutos(x) { var t = Date.parse(String(x.enviado || "").replace(" ", "T")); return isNaN(t) ? 0 : t / 6e4; }
-  function mesmaTurma(a, b) { if (!a.length || !b.length) return true; return a.some(function (c) { return b.indexOf(c) >= 0; }); }
-  function montar(todas) {
-    var R = {}, refs = [], alim = [];
-    todas.forEach(function (x) {
-      if (/refei/i.test(x.tipo)) {
-        var k = nota(x) + "|" + x.colaboradores.slice().sort().join(",");
-        if (!R[k]) { R[k] = Object.assign({}, x, { valor: 0, linhas: [], extras: [], colaboradores: x.colaboradores.slice() }); refs.push(R[k]); }
-        R[k].valor += x.valor; R[k].linhas.push(x);
-        if (/almo|jant/i.test(x.tipo) && !/almo|jant/i.test(R[k].tipo)) R[k].tipo = x.tipo;
-      } else if (/mercado|aliment|água|agua|bebida/i.test(x.tipo)) alim.push(x);
-    });
-    refs.forEach(function (m) { if (m.linhas.length > 1) m.qtd = ""; });   // vários itens de uma nota: a quantidade de cada item não é nº de refeições
-    var soltos = [];
-    alim.forEach(function (a) {
-      var mesmaNota = refs.filter(function (m) { return nota(m) === nota(a); })[0];
-      var alvo = mesmaNota;
-      if (!alvo && ALIM.test((a.obs || "") + " " + (a.descricao || "") + " " + a.tipo)) {
-        var dia = refs.filter(function (m) { return m.data === a.data && mesmaTurma(m.colaboradores, a.colaboradores); });
-        dia.sort(function (p, q) { return Math.abs(minutos(p) - minutos(a)) - Math.abs(minutos(q) - minutos(a)); });
-        alvo = dia[0];
-      }
-      if (alvo) { alvo.valor += a.valor; alvo.extras.push(Object.assign({ mesmaNota: !!mesmaNota }, a)); }
-      else if (ALIM.test((a.obs || "") + " " + (a.descricao || "") + " " + a.tipo)) soltos.push(a);
-    });
-    // alimento sem refeição no dia: entra no total do colaborador, fora da média (não é refeição)
-    soltos.forEach(function (a) { refs.push(Object.assign({}, a, { tipo: "Alimento sem refeição no dia", linhas: [a], extras: [], solto: true })); });
-    return refs;
-  }
-
-  function dividir(x) {
-    var nc = x.colaboradores.length, q = parseFloat(String(x.qtd || "").replace(",", ".")) || 1;
-    // quantidade com o valor digitado no lugar (ex.: 259,5) ou fora de proporção: vale o nº de colaboradores
-    if (Math.abs(q - x.valor) < 0.01 || q > Math.max(nc, 1) * 4) q = nc || 1;
-    var comTeto = /almo|jant/i.test(x.tipo), porPessoa = 1, pessoas = nc || Math.max(1, Math.round(q)), problema = "";
-    if (!nc) problema = "Sem colaborador: não dá para saber de quem é";
-    else if (q > nc && Math.abs(q / nc - Math.round(q / nc)) < 0.001) porPessoa = Math.round(q / nc);
-    else if (Math.abs(q - nc) > 0.001 && q > 1) problema = "Quantidade (" + n1(q) + ") não fecha com " + nc + " colaborador(es)";
-    var parte = x.valor / pessoas, porRef = parte / porPessoa;
-    if (x.solto) { problema = ""; porRef = parte; }
-    return { parte: parte, porRef: porRef, refeicoes: x.solto ? 0 : porPessoa, comTeto: comTeto && !x.solto, acima: comTeto && porRef > TETO + 0.005, excesso: comTeto ? Math.max(0, porRef - TETO) * porPessoa : 0, pessoas: pessoas, problema: problema };
-  }
   function carregar() {
     $("aviso").innerHTML = ""; $("lista").innerHTML = '<tr><td colspan="7"><span class="hs-skel" style="height:40px"></span></td></tr>';
     fetch("/api/gestao/despesas?de=" + $("de").value + "&ate=" + $("ate").value + "&obra=" + encodeURIComponent($("fObra").value))
@@ -114,23 +66,8 @@ dialog{padding:0;width:min(860px,calc(100vw - 24px))}.dh{display:flex;align-item
       }).catch(function (e) { $("lista").innerHTML = ""; $("aviso").innerHTML = '<div class="msg">' + esc(e.message) + "</div>"; });
   }
   function calcular() {
-    porColab = {}; R = [];
-    var tot = 0, refs = 0, acima = 0, exc = 0;
-    D.forEach(function (x) {
-      var d = dividir(x); tot += x.valor;
-      if (d.problema) R.push({ x: x, d: d });
-      var nomes = x.colaboradores.length ? x.colaboradores : ["(sem colaborador)"];
-      nomes.forEach(function (c) {
-        var p = porColab[c] = porColab[c] || { nome: c, refeicoes: 0, total: 0, acima: 0, refTeto: 0, totTeto: 0, dias: {}, itens: [] };
-        p.refeicoes += d.refeicoes; p.total += d.parte; if (d.acima) p.acima++;
-        if (d.comTeto) { p.refTeto += d.refeicoes; p.totTeto += d.parte; }
-        p.dias[x.data] = (p.dias[x.data] || 0) + (d.comTeto ? d.refeicoes : 0); p.itens.push({ x: x, d: d });
-      });
-      refs += d.refeicoes * d.pessoas;
-    });
-    // média por colaborador (almoço e janta): excesso só quando a média passa do teto
-    var rt = 0, tt = 0;
-    Object.keys(porColab).forEach(function (k) { var p = porColab[k]; p.media = p.refTeto ? p.totTeto / p.refTeto : 0; p.excesso = Math.max(0, p.totTeto - TETO * p.refTeto); if (p.excesso > 0.005) acima++; exc += p.excesso; rt += p.refTeto; tt += p.totTeto; });
+    var S = RG.resumir(D), tot = S.tot, refs = S.refs, acima = S.acima, exc = S.exc, rt = S.rt, tt = S.tt;
+    porColab = S.porColab; R = S.R;
     $("kpis").innerHTML = '<div class="kpi"><small>Gasto com refeições</small><b>' + rs(tot) + "</b><span>" + D.length + " lançamento(s)</span></div>" +
       '<div class="kpi"><small>Refeições por pessoa</small><b>' + Math.round(refs) + "</b><span>média " + rs(refs ? tot / refs : 0) + " por refeição</span></div>" +
       '<div class="kpi"><small>Média geral (almoço e janta)</small><b class="' + (rt && tt / rt > TETO ? "ex" : "") + '">' + rs(rt ? tt / rt : 0) + "</b><span>teto " + rs(TETO) + " por refeição</span></div>" +
@@ -146,7 +83,7 @@ dialog{padding:0;width:min(860px,calc(100vw - 24px))}.dh{display:flex;align-item
     $("lista").innerHTML = L.length ? L.map(function (p) {
       var dias = Object.keys(p.dias), mais2 = dias.filter(function (d) { return p.dias[d] > 2; }).length;
       return '<tr data-c="' + esc(p.nome) + '" tabindex="0"><td><b>' + esc(p.nome) + "</b>" + (mais2 ? '<div class="m ex">' + mais2 + " dia(s) com mais de 2 refeições</div>" : "") + '</td><td class="q">' + n1(p.refeicoes) + '</td><td class="q opc">' + dias.length +
-        '</td><td class="q">' + rs(p.total) + '</td><td class="q">' + (p.refTeto ? '<span class="badge ' + (p.media > TETO + 0.005 ? "s-danger" : "s-ok") + '">' + rs(p.media) + "</span>" : '<span class="m">sem almoço/janta</span>') + '</td><td class="q opc">' + (p.acima ? p.acima : "0") +
+        '</td><td class="q">' + rs(p.total) + '</td><td class="q">' + (p.refTeto ? '<span class="badge ' + (p.media > TETO + 0.005 ? "s-danger" : "s-ok") + '">' + rs(p.media) + "</span>" : '<span class="m">sem almoço/janta</span>') + (p.refCafe ? '<div class="m' + (p.mediaCafe > TETO_CAFE + 0.005 ? " ex" : "") + '">café ' + rs(p.mediaCafe) + "</div>" : "") + '</td><td class="q opc">' + (p.acima ? p.acima : "0") +
         '</td><td class="q ' + (p.excesso > 0 ? "ex" : "") + '">' + rs(p.excesso) + "</td></tr>";
     }).join("") : '<tr><td colspan="7" class="vazio">Nenhuma refeição no período.</td></tr>';
   }
@@ -161,7 +98,7 @@ dialog{padding:0;width:min(860px,calc(100vw - 24px))}.dh{display:flex;align-item
           return "<tr><td>" + esc(i.x.tipo) + '<div class="m">' + esc([i.x.fornecedor, i.x.obra ? "Obra " + i.x.obra : "", i.x.nf ? "NF " + i.x.nf : ""].filter(Boolean).join(" · ")) + "</div>" +
             ((i.x.linhas && i.x.linhas.length > 1) || (i.x.extras && i.x.extras.length) ? '<div class="m">Soma: ' + esc((i.x.linhas || []).map(function (l) { return (l.obs || l.tipo) + " " + rs(l.valor); }).concat((i.x.extras || []).map(function (e) { return "+ " + (e.obs || e.tipo) + " " + rs(e.valor) + (e.mesmaNota ? "" : " (outra nota, " + (e.fornecedor || "") + ")"); })).join(" · ")) + "</div>" : "") +
             (i.x.colaboradores.length > 1 ? '<div class="m">Dividida entre: ' + esc(i.x.colaboradores.map(function (c) { return c.replace(/^\d+\s+/, ""); }).join(", ")) + "</div>" : '<div class="m">Só este colaborador marcado na despesa</div>') + '</td><td class="q">' + rs(i.x.valor) + '</td><td class="q">' + i.d.pessoas + (i.d.refeicoes > 1 ? " × " + i.d.refeicoes : "") +
-            '</td><td class="q">' + rs(i.d.porRef) + "</td><td>" + (!i.d.comTeto ? '<span class="badge">fora da média</span>' : i.d.acima ? '<span class="badge s-warn">' + rs(i.d.porRef - TETO) + " acima</span>" : '<span class="badge s-ok">' + rs(TETO - i.d.porRef) + " abaixo</span>") + "</td></tr>";
+            '</td><td class="q">' + rs(i.d.porRef) + "</td><td>" + (!i.d.comTeto ? '<span class="badge">fora da média</span>' : i.d.acima ? '<span class="badge s-warn">' + rs(i.d.porRef - i.d.teto) + " acima</span>" : '<span class="badge s-ok">' + rs(i.d.teto - i.d.porRef) + " abaixo</span>") + "</td></tr>";
         }).join("");
       }).join("") + "</tbody></table>";
     if (!$("dlg").open) $("dlg").showModal();
@@ -172,11 +109,12 @@ dialog{padding:0;width:min(860px,calc(100vw - 24px))}.dh{display:flex;align-item
   $("q").addEventListener("input", desenhar);
   ["de", "ate", "fObra"].forEach(function (id) { $(id).addEventListener("change", carregar); }); $("btnBuscar").addEventListener("click", carregar);
   $("btnCsv").addEventListener("click", function () {
-    var c = function (v) { v = String(v == null ? "" : v); return /[";\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; }, L = ["Colaborador;Data;Tipo;Obra;Fornecedor;NF;Valor da despesa;Pessoas;Refeições por pessoa;Parte do colaborador;Por refeição;Acima de 45 nesta refeição;Diferença para 45"];
+    var c = function (v) { v = String(v == null ? "" : v); return /[";\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; }, L = ["Colaborador;Data;Tipo;Obra;Fornecedor;NF;Valor da despesa;Pessoas;Refeições por pessoa;Parte do colaborador;Por refeição;Teto;Acima do teto nesta refeição;Diferença para o teto"];
     Object.keys(porColab).sort().forEach(function (k) { porColab[k].itens.forEach(function (i) {
-      L.push([k, br(i.x.data), i.x.tipo, i.x.obra, i.x.fornecedor, i.x.nf, i.x.valor.toFixed(2).replace(".", ","), i.d.pessoas, i.d.refeicoes, i.d.parte.toFixed(2).replace(".", ","), i.d.porRef.toFixed(2).replace(".", ","), i.d.acima ? "Sim" : "", i.d.excesso.toFixed(2).replace(".", ",")].map(c).join(";")); }); });
-    L.push("", "Resumo por colaborador;Refeições (almoço e janta);Total almoço e janta;Média por refeição;Teto;Excesso pela média;Total geral (com café/lanche)");
-    Object.keys(porColab).sort().forEach(function (k) { var p = porColab[k]; L.push([k, n1(p.refTeto), p.totTeto.toFixed(2).replace(".", ","), p.media.toFixed(2).replace(".", ","), TETO.toFixed(2).replace(".", ","), p.excesso.toFixed(2).replace(".", ","), p.total.toFixed(2).replace(".", ",")].map(c).join(";")); });
+      L.push([k, br(i.x.data), i.x.tipo, i.x.obra, i.x.fornecedor, i.x.nf, i.x.valor.toFixed(2).replace(".", ","), i.d.pessoas, i.d.refeicoes, i.d.parte.toFixed(2).replace(".", ","), i.d.porRef.toFixed(2).replace(".", ","), i.d.teto ? i.d.teto.toFixed(2).replace(".", ",") : "", i.d.acima ? "Sim" : "", i.d.excesso.toFixed(2).replace(".", ",")].map(c).join(";")); }); });
+    L.push("", "Resumo por colaborador;Refeições (almoço e janta);Total almoço e janta;Média por refeição;Teto;Excesso almoço/janta;Cafés da manhã;Média do café;Teto do café;Excesso café;Excesso total;Total geral");
+    var f2 = function (v) { return v.toFixed(2).replace(".", ","); };
+    Object.keys(porColab).sort().forEach(function (k) { var p = porColab[k]; L.push([k, n1(p.refTeto), f2(p.totTeto), f2(p.media), f2(TETO), f2(p.excessoRef), n1(p.refCafe), f2(p.mediaCafe), f2(TETO_CAFE), f2(p.excessoCafe), f2(p.excesso), f2(p.total)].map(c).join(";")); });
     var a = document.createElement("a"); a.href = URL.createObjectURL(new Blob(["﻿" + L.join("\r\n")], { type: "text/csv" })); a.download = "refeicoes " + $("de").value + " a " + $("ate").value + ".csv"; a.click();
   });
   carregar();

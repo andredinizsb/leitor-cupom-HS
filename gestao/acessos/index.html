@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Acessos · Gestão HS</title>
+<link rel="icon" href="/icons/gestao.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/icons/gestao-apple.png">
+<link rel="manifest" href="/icons/gestao.webmanifest">
+<meta name="theme-color" content="#0E1217">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/ds/hs.css?v=1">
+<style>
+section.bloco{background:var(--surface,transparent);border:1px solid var(--border,rgba(127,127,127,.3));border-radius:var(--r-md,12px);padding:16px;margin:0 0 16px}
+section.bloco h2{font-size:17px;margin:0 0 4px}section.bloco>p{margin:0 0 12px;color:var(--text-muted)}
+.form{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;margin:0 0 12px}.form label{display:flex;flex-direction:column;gap:4px;font-size:13px}
+.chk{display:flex;flex-wrap:wrap;gap:6px 14px;margin:6px 0 10px}.chk label{display:flex;gap:6px;align-items:center;font-size:14px}
+.wrap{overflow-x:auto}.m{color:var(--text-muted);font-size:12px}.pin{font:700 22px/1 ui-monospace,monospace;letter-spacing:.2em}
+.tag{display:inline-block;font-size:12px;border-radius:999px;padding:2px 8px;margin:1px;background:var(--neutral-subtle,rgba(127,127,127,.15))}
+.s-ok{color:var(--success-text)}.s-ruim{color:var(--danger-text)}
+</style>
+</head>
+<body data-mod="acessos">
+<script src="/ds/shell.js?v=4"></script>
+<main>
+  <header class="hs-ph"><div class="tt"><div class="hs-crumbs"><a href="/gestao/painel/">Gestão</a> / Administração</div><h1>Acessos</h1>
+    <p>Quem pode alterar cada área da gestão e o PIN dos colaboradores nos apps de campo.</p></div></header>
+  <div id="aviso"></div>
+  <div id="conteudo" hidden>
+  <section class="bloco">
+    <h2>Perfis da gestão</h2>
+    <p>Pelo e-mail do login (Cloudflare Access). Consultar continua livre para todos que entram; o perfil libera <b>alterar</b>. E-mail cadastrado sem nenhum perfil = só consulta.</p>
+    <div class="form"><label>E-mail<input type="email" id="pEmail" placeholder="nome@empresa.com.br" autocomplete="off"></label><label>Nome (opcional)<input id="pNome"></label></div>
+    <div class="chk" id="pPerfis"></div>
+    <button class="btn" type="button" id="pSalvar">Salvar perfis</button>
+    <div class="wrap" style="margin-top:12px"><table class="tabela"><thead><tr><th>E-mail</th><th>Perfis</th><th class="opc">Atualizado</th><th></th></tr></thead><tbody id="pLista"></tbody></table></div>
+    <div class="chk" style="margin-top:12px"><label><input type="checkbox" id="cRestrito"> <span><b>Somente quem está na lista</b> pode alterar. Desligado (transição): quem não está na lista continua com o acesso de hoje.</span></label></div>
+    <div class="m" id="fixos"></div>
+  </section>
+  <section class="bloco">
+    <h2>PIN dos apps de campo</h2>
+    <p>RDO, checklist, Compras/autorização e despesas (rota de reserva). O colaborador digita o PIN uma vez no celular (botão 🔑 PIN) e o app passa a identificar quem enviou.</p>
+    <div class="form">
+      <label>Modo<select id="cModo"><option value="desligado">Desligado: só registra os envios</option><option value="aviso">Aviso: o app pede o PIN, mas aceita sem</option><option value="obrigatorio">Obrigatório: sem PIN não envia</option></select></label>
+      <label>Envios por hora (por colaborador, ou por rede sem PIN)<input type="number" id="cLimite" min="5" max="10000" style="width:120px"></label>
+      <button class="btn" type="button" id="cSalvar">Salvar parâmetros</button>
+    </div>
+    <div class="form"><label>Colaborador<input id="kColab" list="kLista" placeholder="Nome como no app" autocomplete="off" style="min-width:240px"></label><datalist id="kLista"></datalist>
+      <button class="btn" type="button" id="kGerar">Gerar PIN</button></div>
+    <div id="kNovo"></div>
+    <div class="wrap"><table class="tabela"><thead><tr><th>Colaborador</th><th class="opc">Criado</th><th>Último uso</th><th></th></tr></thead><tbody id="kListaPins"></tbody></table></div>
+  </section>
+  <section class="bloco">
+    <h2>Últimos envios do campo</h2>
+    <p>Quem enviou, de qual rede e o que aconteceu (últimos 200).</p>
+    <div class="wrap"><table class="tabela"><thead><tr><th>Quando</th><th>App</th><th>Colaborador</th><th>Situação</th><th>Nº</th><th class="opc">Rede (IP)</th></tr></thead><tbody id="eLista"></tbody></table></div>
+  </section>
+  </div>
+</main>
+<script>
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); }, D = null;
+  function esc(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
+  function br(iso) { if (!iso) return ""; var d = new Date(iso); return isNaN(d) ? iso : d.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }); }
+  var SIT = { ok: ["PIN ok", "s-ok"], sem_pin: ["sem PIN", ""], pin_invalido: ["PIN errado (aceito)", "s-ruim"], bloqueado_pin: ["recusado: sem PIN", "s-ruim"], bloqueado_limite: ["recusado: limite", "s-ruim"] };
+  function aviso(t, ok) { $("aviso").innerHTML = t ? '<div class="msg' + (ok ? " ok" : "") + '">' + esc(t) + "</div>" : ""; }
+  function post(corpo) {
+    return fetch("/api/gestao/acessos", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(corpo) })
+      .then(function (r) { return r.json(); }).then(function (j) { try { sessionStorage.removeItem("hsAcesso"); } catch (e) {} aviso(j.msg || (j.ok ? "Salvo." : j.erro), j.ok); if (j.ok) carregar(); return j; });
+  }
+  function carregar() {
+    fetch("/api/gestao/acessos").then(function (r) { return r.json(); }).then(function (j) {
+      if (!j.ok) throw new Error(j.msg || j.erro);
+      D = j; if (j.eu && j.eu.email) $("quem").textContent = j.eu.email;
+      if (!j.eu.admin) { $("conteudo").hidden = true; aviso("Esta tela é só para o administrador. Seus perfis: " + (j.eu.perfis.join(", ") || "só consulta") + "."); return; }
+      $("conteudo").hidden = false;
+      if (j.eu.transicao) aviso("Transição: ainda não há administrador na lista, por isso você está vendo esta tela. Comece colocando o seu e-mail com o perfil Administrador.");
+      var P = j.perfis_disponiveis;
+      if (!$("pPerfis").children.length) $("pPerfis").innerHTML = Object.keys(P).map(function (k) { return '<label><input type="checkbox" value="' + k + '"> ' + esc(P[k]) + "</label>"; }).join("");
+      $("pLista").innerHTML = (j.usuarios || []).map(function (u) {
+        var ps = String(u.perfis || "").split(",").filter(Boolean);
+        return "<tr><td><b>" + esc(u.email) + "</b>" + (u.nome ? '<div class="m">' + esc(u.nome) + "</div>" : "") + "</td><td>" + (ps.length ? ps.map(function (p) { return '<span class="tag">' + esc(p) + "</span>"; }).join("") : '<span class="m">só consulta</span>') +
+          '</td><td class="opc m">' + esc(br(u.atualizado_em)) + " " + esc(u.atualizado_por || "") + '</td><td><button class="btn ghost pq" type="button" data-ed="' + esc(u.email) + '">Editar</button> <button class="btn ghost pq" type="button" data-rm="' + esc(u.email) + '">Remover</button></td></tr>';
+      }).join("") || '<tr><td colspan="4" class="vazio">Ninguém na lista ainda: todos que entram pelo login têm o acesso de hoje.</td></tr>';
+      $("cRestrito").checked = j.config.gestao_restrito === "1";
+      $("fixos").textContent = j.admins_fixos && j.admins_fixos.length ? "Administradores fixos (variável GESTAO_ADMINS no Cloudflare): " + j.admins_fixos.join(", ") : "";
+      $("cModo").value = j.config.campo_pin; $("cLimite").value = j.config.campo_limite_hora;
+      $("kListaPins").innerHTML = (j.pins || []).map(function (k) {
+        return "<tr><td><b>" + esc(k.colaborador) + '</b></td><td class="opc m">' + esc(br(k.criado_em)) + " " + esc(k.criado_por || "") + "</td><td>" + (k.usado_em ? esc(br(k.usado_em)) : '<span class="m">ainda não usou</span>') +
+          '</td><td><button class="btn ghost pq" type="button" data-novo="' + esc(k.colaborador) + '">Novo PIN</button> <button class="btn ghost pq" type="button" data-rmpin="' + k.id + '">Remover</button></td></tr>';
+      }).join("") || '<tr><td colspan="4" class="vazio">Nenhum PIN gerado.</td></tr>';
+      $("eLista").innerHTML = (j.envios || []).map(function (e) {
+        var s = SIT[e.situacao] || [e.situacao, ""];
+        return "<tr><td>" + esc(br(e.em)) + "</td><td>" + esc(e.app) + "</td><td>" + esc(e.colaborador || "—") + '</td><td class="' + s[1] + '">' + esc(s[0]) + "</td><td>" + esc(e.ref || "") + '</td><td class="opc m">' + esc(e.ip) + "</td></tr>";
+      }).join("") || '<tr><td colspan="6" class="vazio">Nenhum envio registrado ainda.</td></tr>';
+    }).catch(function (e) { aviso(e.message); });
+  }
+  // colaboradores do formulário (mesma lista dos apps)
+  fetch("/api/opcoes").then(function (r) { return r.json(); }).then(function (j) {
+    $("kLista").innerHTML = ((j && j.colaboradores) || []).map(function (c) { return "<option value=\"" + esc(c) + "\">"; }).join("");
+  }).catch(function () {});
+  $("pSalvar").addEventListener("click", function () {
+    var ps = Array.prototype.slice.call($("pPerfis").querySelectorAll("input:checked")).map(function (x) { return x.value; });
+    post({ acao: "perfil", email: $("pEmail").value.trim(), nome: $("pNome").value.trim(), perfis: ps }).then(function (j) { if (j.ok) { $("pEmail").value = ""; $("pNome").value = ""; $("pPerfis").querySelectorAll("input").forEach(function (x) { x.checked = false; }); } });
+  });
+  $("pLista").addEventListener("click", function (e) {
+    var ed = e.target.closest("[data-ed]"), rm = e.target.closest("[data-rm]");
+    if (ed) { var u = D.usuarios.filter(function (x) { return x.email === ed.getAttribute("data-ed"); })[0]; if (!u) return;
+      $("pEmail").value = u.email; $("pNome").value = u.nome || ""; var ps = String(u.perfis || "").split(",");
+      $("pPerfis").querySelectorAll("input").forEach(function (x) { x.checked = ps.indexOf(x.value) >= 0; }); $("pEmail").focus(); }
+    if (rm && confirm("Tirar " + rm.getAttribute("data-rm") + " da lista?")) post({ acao: "remover", email: rm.getAttribute("data-rm") });
+  });
+  $("cRestrito").addEventListener("change", function () {
+    var v = $("cRestrito").checked;
+    if (v && !confirm("A partir de agora, quem não está na lista só consulta. Confirmar?")) { $("cRestrito").checked = false; return; }
+    post({ acao: "config", gestao_restrito: v ? "1" : "0" }).then(function (j) { if (!j.ok) $("cRestrito").checked = !v; });
+  });
+  $("cSalvar").addEventListener("click", function () {
+    if ($("cModo").value === "obrigatorio" && !(D.pins || []).length && !confirm("Nenhum PIN foi gerado: ninguém vai conseguir enviar pelos apps. Ligar mesmo assim?")) return;
+    post({ acao: "config", campo_pin: $("cModo").value, campo_limite_hora: $("cLimite").value });
+  });
+  function gerar(c) {
+    if (!c) { aviso("Escolha o colaborador."); return; }
+    post({ acao: "gerar_pin", colaborador: c }).then(function (j) {
+      if (j.ok) $("kNovo").innerHTML = '<div class="msg ok">PIN de <b>' + esc(j.colaborador) + '</b>: <span class="pin">' + esc(j.pin) + "</span><div class=\"m\">Anote e passe ao colaborador. Ele não aparece de novo (se esquecer, gere outro).</div></div>";
+    });
+  }
+  $("kGerar").addEventListener("click", function () { gerar($("kColab").value.trim()); });
+  $("kListaPins").addEventListener("click", function (e) {
+    var n = e.target.closest("[data-novo]"), r = e.target.closest("[data-rmpin]");
+    if (n && confirm("Gerar um PIN novo para " + n.getAttribute("data-novo") + "? O antigo para de funcionar.")) gerar(n.getAttribute("data-novo"));
+    if (r && confirm("Remover este PIN?")) post({ acao: "remover_pin", id: r.getAttribute("data-rmpin") });
+  });
+  carregar();
+})();
+</script>
+</body>
+</html>

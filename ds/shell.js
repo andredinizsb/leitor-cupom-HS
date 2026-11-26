@@ -96,4 +96,46 @@
   contador("autorizacoes", "/api/gestao/autorizacoes?status=todas", function (j) { return j && j.contagem && j.contagem.Pendente; });
   contador("compras", "/api/gestao/compras?situacao=Nova", function (j) { return j && j.contagem && j.contagem.Nova; });
   contador("pedidos", "/api/gestao/compras-pedido", function (j) { return j && j.contagem && j.contagem["Aguardando aprovação"]; });
+
+  // perfis de acesso (Gestão > Acessos): sem o perfil da tela, os botões de alterar somem e aparece o aviso de "só consulta"
+  var PERFIL = { compras: "compras", pedidos: "compras", autorizacoes: "compras", rdo: "obras", checklist: "obras", frota: "frota", documentos: "frota", despesas: "despesas", acessos: "admin" };
+  var NOME_P = { compras: "Compras", obras: "RDO e checklist", frota: "Frota", despesas: "Despesas", admin: "Administrador" };
+  var BOTOES = "#btnSalvar,#btnNovo,#btnExcluir,#btnEsc,#btnGerar,#dSalvar,#assOk,[data-ed],[data-editar],[data-finalizar],[data-excluir],[data-salvar],[data-resp]," +
+    "[data-a=receber],[data-a=aprovar],[data-a=recusar],[data-a=confirmar],[data-a=abrirReceb],[data-a=cancelar],[data-ac=aprovar],[data-ac=recusar],[data-ac=cancelar],[data-perfil]";
+  var stl = document.createElement("style");
+  stl.textContent = ".hs-so-consulta :is(" + BOTOES + "){display:none!important}.hs-aviso-perfil{margin:0 0 12px}";
+  document.head.appendChild(stl);
+  function aplicar(a) {
+    if (document.readyState === "loading") return document.addEventListener("DOMContentLoaded", function () { aplicar(a); });
+    if (!a || !a.eu) return;
+    var p = a.eu.perfis || [], precisa = PERFIL[mod];
+    if (a.eu.admin && !side.querySelector('[data-cont="acessos"]')) {
+      var g = document.createElement("div"); g.className = "grp"; g.textContent = "Administração";
+      var l = document.createElement("a"); l.href = "/gestao/acessos/"; if (mod === "acessos") l.setAttribute("aria-current", "page");
+      l.innerHTML = icone("autorizacoes") + '<span>Acessos</span><span class="cont" data-cont="acessos" hidden></span>';
+      var nv = side.querySelector(".hs-nav"); nv.appendChild(g); nv.appendChild(l);
+    }
+    if (precisa && p.indexOf(precisa) < 0) {
+      raiz.classList.add("hs-so-consulta");
+      var m = document.createElement("div"); m.className = "msg hs-aviso-perfil"; m.setAttribute("role", "status");
+      m.textContent = "Você está só consultando esta tela: seu login não tem o perfil “" + NOME_P[precisa] + "”. Para alterar, peça a liberação ao administrador.";
+      var alvo = document.querySelector(".hs-ph"); if (alvo && alvo.parentNode) alvo.parentNode.insertBefore(m, alvo.nextSibling); else b.insertBefore(m, b.children[3] || null);
+    }
+  }
+  var KP = "hsAcesso", ac = null;
+  try { ac = JSON.parse(sessionStorage.getItem(KP) || "null"); } catch (e) {}
+  if (ac && Date.now() - ac.t < 12e4) aplicar(ac.a);
+  else fetch("/api/gestao/acessos").then(function (r) { return r.json(); }).then(function (j) {
+    if (!j || !j.ok) return;
+    var a = { eu: j.eu }; aplicar(a);
+    try { sessionStorage.setItem(KP, JSON.stringify({ t: Date.now(), a: a })); } catch (e) {}
+  }).catch(function () {});
+  // resposta "sem_perfil" de qualquer tela: mensagem clara na hora
+  var f0 = window.fetch.bind(window);
+  window.fetch = function (u, op) {
+    return f0(u, op).then(function (r) {
+      if (r.status === 403) r.clone().json().then(function (j) { if (j && j.erro === "sem_perfil") alert(j.msg); }).catch(function () {});
+      return r;
+    });
+  };
 })();

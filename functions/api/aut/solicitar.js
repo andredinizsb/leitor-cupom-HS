@@ -1,5 +1,6 @@
 // POST /api/aut/solicitar — o colaborador pede uma autorização (fica Pendente até Suprimentos aprovar)
 import { resp, origemOk, semBanco, ERRO_BANCO, TIPOS, COMBUSTIVEIS, txt, num, soDigitos, agora, aleatorio, proximoNumero, historico } from "../../../lib/aut.js";
+import { conferirCampo } from "../../../lib/acessos.js";
 
 export async function onRequestPost({ request, env }) {
   if (!origemOk(request)) return resp({ ok: false, erro: "origem_nao_permitida" }, 403);
@@ -23,6 +24,8 @@ export async function onRequestPost({ request, env }) {
   const justificativa = txt(d.justificativa, 400);
   if (!justificativa) return resp({ ok: false, erro: "sem_justificativa", msg: abast ? "Informe o destino da viagem." : "Informe a justificativa." }, 400);
 
+  const cp = await conferirCampo(request, env, "autorizacao");   // PIN / limite de envios / registro (lib/acessos.js)
+  if (cp.bloqueio) return cp.bloqueio;
   const db = env.DB;
   const ano = new Date().getFullYear();
   const numero = await proximoNumero(db, ano);
@@ -37,5 +40,6 @@ export async function onRequestPost({ request, env }) {
     ops.push(db.prepare("INSERT INTO autorizacao_itens (numero, item, descricao, qtd, unidade) VALUES (?1, ?2, ?3, ?4, ?5)").bind(numero, i + 1, x.descricao, x.qtd, x.unidade));
   });
   await db.batch(ops);
+  await cp.feito(numero);
   return resp({ ok: true, numero: numero, chave: chave, status: "Pendente" });
 }

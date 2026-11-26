@@ -2,6 +2,7 @@
 import { resp, origemOk, semBanco, ERRO_BANCO, txt, num, agora, aleatorio, assinaturaValida } from "../../../lib/aut.js";
 import { CLIMAS, ETAPAS, MAX_FOTOS, MAX_FOTO_B64, SEM_VEICULO, inteiro, dataHora, bool, proximoNumeroRdo, separarFoto, b64ParaBytes } from "../../../lib/rdo.js";
 import { ondeGuardar, comR2Contado, bytesB64 } from "../../../lib/fotos.js";
+import { conferirCampo } from "../../../lib/acessos.js";
 
 function erro(cod, msg) { return resp({ ok: false, erro: cod, msg: msg }, 400); }
 
@@ -55,6 +56,8 @@ export async function onRequestPost({ request, env }) {
     fotos.push({ tipo: p.tipo, b64: p.b64, etapa: ETAPAS.includes(f.etapa) ? f.etapa : null, legenda: txt(f.legenda, 200) });
   }
 
+  const cp = await conferirCampo(request, env, "rdo");   // PIN / limite de envios / registro (lib/acessos.js)
+  if (cp.bloqueio) return cp.bloqueio;
   // tetos do plano grátis (lib/fotos.js): D1 até ~1.500 fotos, depois R2; sem espaço = RDO vai sem as fotos, com aviso
   env = comR2Contado(env);
   let aviso = null;
@@ -93,5 +96,6 @@ export async function onRequestPost({ request, env }) {
       .bind(numero, i + 1, f.etapa, f.legenda, f.tipo, bytesB64(f.b64), r2, dados, quando).run();
     salvas++;
   }
+  await cp.feito(numero);
   return resp({ ok: true, numero: numero, chave: chave, fotos: salvas, aviso: aviso });
 }
