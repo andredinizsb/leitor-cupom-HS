@@ -113,6 +113,7 @@ dialog{padding:0;width:min(680px,calc(100vw - 24px))}
 </dialog>
 <datalist id="lsObras"></datalist>
 
+<script src="/ds/refeicoes.js?v=2"></script>
 <script>
 (function () {
   "use strict";
@@ -165,17 +166,21 @@ dialog{padding:0;width:min(680px,calc(100vw - 24px))}
     }).join("") + (g.length > 12 ? '<div class="m" style="color:var(--mut);font-size:12.5px">+ ' + (g.length - 12) + " outros</div>" : "") : '<div class="vazio">Sem dados</div>';
   }
   // ---- mapa do que ficou sem amarrar (sem dono, sem obra, sem nota, alimento fora de refeição) ----
-  var amSel = null;
+  var amSel = null, alimInfo = new Map();
+  function alimNota(x) {
+    var i = alimInfo.get(x); if (!i) return "";
+    if (i.m.solto) return "Bebida sozinha no dia: fica fora da média";
+    var caro = HSRefeicoes.lugarCaro(i.m.obra);
+    return "Dia somado: " + rs(i.m.valor) + (i.d.pessoas > 1 ? " ÷ " + i.d.pessoas + " = " + rs(i.d.porRef) + " por pessoa" : "") + " · teto " + rs(i.d.teto) + (caro ? " (" + caro + ")" : "") + (i.d.acima ? " · ACIMA em " + rs(i.d.porRef - i.d.teto) : " · dentro do teto");
+  }
   function grupos() {
-    var refDia = {}; L.forEach(function (x) { if (/refei/i.test(x.tipo)) x.colaboradores.concat(["*"]).forEach(function (c) { refDia[x.data + "|" + c] = 1; }); });
-    function alimentoSolto(x) {
-      if (!/mercado|aliment|água|agua|bebida/i.test(x.tipo)) return false;
-      if (!x.colaboradores.length) return !refDia[x.data + "|*"];
-      return !x.colaboradores.some(function (c) { return refDia[x.data + "|" + c]; });
-    }
+    // mercado/lanche sem refeição no dia: somados como UMA refeição (regras em /ds/refeicoes.js, as mesmas da tela Refeições)
+    var RG = window.HSRefeicoes; alimInfo = new Map();
+    if (RG) RG.montar(L).forEach(function (m) { if (m.agrupada || m.solto) { var d = RG.dividir(m); m.linhas.forEach(function (x) { alimInfo.set(x, { m: m, d: d }); }); } });
+    function alimentoSolto(x) { return alimInfo.has(x); }
     return [
       ["semColab", "Sem colaborador", "não dá para saber quem consumiu", function (x) { return !x.colaboradores.length; }],
-      ["alimSolto", "Alimento fora de refeição", "mercado/água num dia sem refeição dos mesmos colaboradores", alimentoSolto],
+      ["alimSolto", "Mercado/lanche sem refeição", "somados no dia como 1 refeição (teto " + rs(window.HSRefeicoes ? HSRefeicoes.TETO : 35) + "; " + rs(window.HSRefeicoes ? HSRefeicoes.TETO_CARO : 45) + " em lugar caro)", alimentoSolto],
       ["semObra", "Sem obra", "custo que não cai em nenhuma obra", function (x) { return !x.obra; }],
       ["semNota", "Sem nota ou recibo", "sem nº de NF/recibo para conferir", function (x) { return !x.nf; }]
     ];
@@ -190,7 +195,7 @@ dialog{padding:0;width:min(680px,calc(100vw - 24px))}
     if (!sel) { $("amarrarLista").innerHTML = ""; return; }
     var l = L.filter(sel[3]);
     $("amarrarLista").innerHTML = l.length ? '<div style="overflow-x:auto"><table class="tab"><thead><tr><th>Data</th><th>Tipo / fornecedor</th><th>Obra</th><th>Colaboradores</th><th class="v">Valor</th><th></th></tr></thead><tbody>' + l.map(function (x) {
-      return "<tr><td>" + esc(br(x.data)) + "</td><td>" + esc(x.tipo || "—") + '<div class="m">' + esc([x.fornecedor, x.obs].filter(Boolean).join(" · ")) + "</div></td><td>" + esc(x.obra || "—") + '</td><td class="m">' + esc(x.colaboradores.join(", ") || "—") +
+      return "<tr><td>" + esc(br(x.data)) + "</td><td>" + esc(x.tipo || "—") + '<div class="m">' + esc([x.fornecedor, x.obs].filter(Boolean).join(" · ")) + "</div>" + (alimInfo.has(x) ? '<div class="m" style="color:' + (alimInfo.get(x).d.acima ? "var(--danger-text)" : "var(--success-text)") + '">' + esc(alimNota(x)) + "</div>" : "") + "</td><td>" + esc(x.obra || "—") + '</td><td class="m">' + esc(x.colaboradores.join(", ") || "—") +
         '</td><td class="v">' + rs(x.valor) + '</td><td><button class="btn ghost pq" type="button" data-ed="' + L.indexOf(x) + '">Corrigir</button></td></tr>';
     }).join("") + "</tbody></table></div>" : '<div class="vazio">Nada aqui no período.</div>';
   }

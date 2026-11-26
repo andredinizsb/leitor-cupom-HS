@@ -944,8 +944,9 @@ function ligarObras(inp, desc) {
     avisoRefeicao();
   }
 
-  // 24/11 · teto de refeição: R$ 45,00 por pessoa no almoço e na janta. Só avisa (não bloqueia e não muda o que é enviado).
-  var TETO_REF = 45;
+  // teto de refeição por pessoa no almoço e na janta: R$ 35,00, ou R$ 45,00 nas obras de lugar caro (lista em /ds/refeicoes.js).
+  // Só avisa (não bloqueia e não muda o que é enviado).
+  function tetoRef() { var o = document.getElementById("fObra"); return window.HSRefeicoes ? HSRefeicoes.tetoObra(o ? o.value : "") : 35; }
   function avisoRefeicao() { try { avisoRefeicao_(); } catch (e) {} }   // nunca atrapalha o lançamento
   function avisoRefeicao_() {
     var box = document.getElementById("colabChips"); if (!box) return;
@@ -958,12 +959,12 @@ function ligarObras(inp, desc) {
       if (!t || !vEl || !/refei/i.test(t.value) || !/almo|jant/i.test(t.value)) continue;
       var v = parseFloat(brNum(vEl.value)); if (isNaN(v) || v <= 0) continue;
       if (!n) { msgs.push("Marque todos os colaboradores que comeram: o valor da refeição é dividido entre eles no controle do teto."); break; }
-      var pp = v / n;
+      var pp = v / n, TETO_REF = tetoRef();
       if (pp > TETO_REF + 0.005) msgs.push(t.value + ": " + fmtBRL(pp) + " por pessoa (" + fmtBRL(v) + " ÷ " + n + "), acima de " + fmtBRL(TETO_REF) + ". Vale a média do mês de cada colaborador: confira o valor e se todos os colaboradores estão marcados.");
     }
     el.innerHTML = msgs.length ? '<div style="margin-top:8px;padding:10px 12px;border-radius:10px;background:var(--warning-subtle);color:var(--warning-text);font-size:14px;line-height:20px">' + msgs.map(esc).join("<br>") + "</div>" : "";
   }
-  document.addEventListener("input", function (e) { if (e.target && /^fValor\d+$/.test(e.target.id || "")) avisoRefeicao(); });
+  document.addEventListener("input", function (e) { if (e.target && /^(fValor\d+|fObra)$/.test(e.target.id || "")) avisoRefeicao(); });
   document.addEventListener("change", function (e) { if (e.target && (/^fTipo\d+$/.test(e.target.id || "") || e.target.classList.contains("colabChk") || e.target.classList.contains("itemInc"))) avisoRefeicao(); });
 
   function updateTotal() {
@@ -1218,6 +1219,7 @@ function ligarObras(inp, desc) {
   loadOpcoes();
 })();
 </script>
+<script src="/ds/refeicoes.js?v=2" defer></script>
 <script src="/ds/campo.js?v=1" defer></script>
 </body>
 </html>
