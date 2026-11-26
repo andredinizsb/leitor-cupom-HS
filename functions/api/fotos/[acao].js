@@ -12,7 +12,7 @@ import { relatorioHtml, dadosRelatorio, dataUri, regRdoJotform } from "../../../
 import { ITENS } from "../../../lib/checklist.js";
 import { garantir as garantirCompras, norm as normCompras } from "../../../lib/compras.js";
 import { TABELAS, SQL_BYTES, DIAS_CHECKLIST, DIAS_FROTA, nomeFoto, nomeArquivoFrota, tsv, resumoHtml, resumoFrotaHtml, uso, situacao, comR2Contado } from "../../../lib/fotos.js";
-//   GET  listar?tipo=frota&dias=180              -> id, ref, arquivo, bytes, frota, data (NF/PDF/fotos das manutenções com +N dias; arquivos de documentos: todos)
+//   GET  listar?tipo=frota&dias=180              -> id, ref, arquivo, bytes, frota, data, documento (NF/PDF/fotos das manutenções com +N dias; arquivos de documentos: todos)
 //   GET  resumo?tipo=frota&numero=MAN:MAN-2026-000001 (ou DOC:12)
 //   GET  uso                                     -> "maior <pct>" (maior % de espaço usado, D1 ou R2) e cada teto: nome, usado, teto, pct
 //   GET  listar?tipo=rdo&dias=180                -> RDOs de qualquer obra com mais de N dias (limpeza por espaço; a macro decide N pelo uso)
@@ -235,7 +235,7 @@ export async function onRequest({ request, env, params }) {
       // Arquivos dos DOCUMENTOS (CRLV, apólice, ANTT...) vão todos, de qualquer idade: ficam só no servidor (26/11) — na nuvem só de passagem.
       const dias = Math.max(1, parseInt(q.get("dias") || DIAS_FROTA, 10) || DIAS_FROTA);
       rs = await db.prepare("SELECT a.id, a.ref AS numero, a.nome, a.tipo, a.r2_key, " + SQL_BYTES.replace(/\b(dados|tamanho)\b/g, "a.$1") + " AS bytes, " +
-        "coalesce(m.frota, d.frota, '') AS frota, substr(a.criado_em, 1, 10) AS data FROM frota_arquivos a " +
+        "coalesce(m.frota, d.frota, '') AS frota, substr(a.criado_em, 1, 10) AS data, coalesce(d.documento, '') AS documento FROM frota_arquivos a " +
         "LEFT JOIN frota_manut m ON a.ref = 'MAN:' || m.numero LEFT JOIN frota_docs d ON a.ref = 'DOC:' || d.id " +
         "WHERE (a.dados IS NOT NULL OR a.r2_key IS NOT NULL) AND (a.ref LIKE 'DOC:%' OR (a.criado_em < ?1 AND " + COM_RELATORIO("frota", "substr(a.ref, 5)") + ")) " +
         "ORDER BY a.ref, a.id LIMIT 2000")
@@ -250,6 +250,7 @@ export async function onRequest({ request, env, params }) {
     for (const f of rs.results || []) {
       const l = [f.id, f.numero, tipo === "frota" ? nomeArquivoFrota(f) : nomeFoto(f, t.grupo), await bytesR2(env, f)];
       if (tipo === "rdo") l.push(f.empresa, f.obra); else l.push(f.frota, f.data);
+      if (tipo === "frota") l.push(f.documento || "");     // 7ª coluna: a macro grava o arquivo do documento em RELATORIOS\FROTA\DOCUMENTOS\<frota - placa>\<documento>\
       out.push(l);
     }
     return tsv(out);
