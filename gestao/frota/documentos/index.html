@@ -25,6 +25,8 @@ h2{font-size:17px;line-height:24px;font-weight:600;margin:0 0 12px}
 .form :is(input,select,textarea){width:100%;min-height:44px;padding:8px 12px}.form textarea{min-height:64px;resize:vertical}
 #fd>.acoes{margin-top:16px;padding-top:16px;border-top:1px solid var(--border);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .arq{font-size:13px;color:var(--text-muted)}
+.form .chk{display:flex;gap:8px;align-items:center;font-weight:400;font-size:13px;color:var(--text-muted)}.form .chk input{width:18px;min-height:18px;height:18px;padding:0}
+.serv{font-size:12px;color:var(--text-muted);word-break:break-all;flex-basis:100%}
 </style>
 </head>
 <body data-mod="documentos">
@@ -38,19 +40,19 @@ h2{font-size:17px;line-height:24px;font-weight:600;margin:0 0 12px}
     <h2 id="tituloForm">Novo documento</h2>
     <div class="form">
       <label>Veículo<input name="veiculo" id="veiculo" list="placas" placeholder="81000 BNK8D82 ou nome do equipamento" required><datalist id="placas"></datalist></label>
-      <label>Documento<input name="documento" list="tiposDoc" required placeholder="CRLV / Licenciamento, Seguro…"><datalist id="tiposDoc"></datalist></label>
+      <label>Documento<input name="documento" list="tiposDoc" required maxlength="120" placeholder="Escolha da lista ou digite um nome novo"><datalist id="tiposDoc"></datalist></label>
       <label>Número / apólice<input name="numero"></label>
       <label>Emissão<input type="date" name="emissao"></label>
-      <label>Vencimento<input type="date" name="vencimento"></label>
+      <label>Vencimento<input type="date" name="vencimento" id="venc"><span class="chk"><input type="checkbox" id="semVenc"> Sem vencimento (não vence)</span></label>
       <label>Responsável<input name="responsavel"></label>
       <label class="larga">Observação<textarea name="obs"></textarea></label>
-      <label class="larga">Arquivo do documento (foto ou PDF)<input type="file" id="arq" accept="image/*,application/pdf"></label>
+      <label class="larga">Arquivo do documento (foto ou PDF, até 25 MB — fica guardado no servidor da empresa)<input type="file" id="arq" accept="image/*,application/pdf"></label>
     </div>
     <div class="acoes"><button class="btn" type="submit" id="btnSalvar">Salvar</button><button class="btn ghost" type="button" id="btnCancelar">Cancelar</button>
       <button class="btn ghost" type="button" id="btnExcluir" hidden>Excluir documento</button><span class="arq" id="arqInfo"></span></div>
     <div id="avisoForm"></div>
   </form>
-  <div class="barra"><label>Situação<select id="fSit"><option value="">Todas</option><option>VENCIDO</option><option>VENCE EM 30 DIAS</option><option>Em dia</option><option>Sem data</option></select></label>
+  <div class="barra"><label>Situação<select id="fSit"><option value="">Todas</option><option>VENCIDO</option><option>VENCE EM 30 DIAS</option><option>Em dia</option><option>Sem data</option><option>Sem vencimento</option></select></label>
     <input class="busca" id="q" placeholder="Buscar por frota, placa, documento…"></div>
   <div class="resumo" id="resumo"></div><div id="aviso"></div><div class="grid" id="lista"></div>
 </main>
@@ -66,10 +68,13 @@ h2{font-size:17px;line-height:24px;font-weight:600;margin:0 0 12px}
       .then(function (j) { if (!j.ok) throw new Error(j.msg || j.erro || "erro"); if (j.quem) $("quem").textContent = j.quem; return j; });
   }
   var DOCS = [], HOJE = "", fd = $("fd"), editando = null, arquivo = null;
-  // mesma regra da tDocFrota: VENCIDO / VENCE EM 30 DIAS / Em dia / Sem data
-  function diasPara(d) { return d.vencimento ? Math.round((Date.parse(d.vencimento) - Date.parse(HOJE)) / 864e5) : null; }
-  function situacao(d) { var n = diasPara(d); return n == null ? "Sem data" : n < 0 ? "VENCIDO" : n <= 30 ? "VENCE EM 30 DIAS" : "Em dia"; }
-  var ORDEM = { "VENCIDO": 1, "VENCE EM 30 DIAS": 2, "Sem data": 3, "Em dia": 4 };
+  // mesma regra da tDocFrota: VENCIDO / VENCE EM 30 DIAS / Em dia / Sem data / Sem vencimento (ANTT etc.: não vence)
+  function diasPara(d) { return d.vencimento && !d.sem_vencimento ? Math.round((Date.parse(d.vencimento) - Date.parse(HOJE)) / 864e5) : null; }
+  function situacao(d) { if (d.sem_vencimento) return "Sem vencimento"; var n = diasPara(d); return n == null ? "Sem data" : n < 0 ? "VENCIDO" : n <= 30 ? "VENCE EM 30 DIAS" : "Em dia"; }
+  var ORDEM = { "VENCIDO": 1, "VENCE EM 30 DIAS": 2, "Sem data": 3, "Em dia": 4, "Sem vencimento": 5 };
+  // sugestões (o campo aceita qualquer nome); os tipos já cadastrados entram junto
+  var TIPOS_BASE = ["ANTT (RNTRC)", "CRLV / Licenciamento", "Seguro", "Aferição do tacógrafo (INMETRO)", "Laudo elétrico (NR-10)", "Laudo mecânico (NR-12) + ART", "Laudo linha de vida dos Muncks + ART", "Laudo cinta de içamento", "Autorização especial de trânsito (AET)"];
+  var MAX_ARQ = 25 * 1048576;
 
   fetch("/api/opcoes").then(function (r) { return r.json(); }).then(function (j) {
     $("placas").innerHTML = ((j && j.placa) || []).map(function (p) { return '<option value="' + esc(p) + '">'; }).join("");
@@ -79,17 +84,17 @@ h2{font-size:17px;line-height:24px;font-weight:600;margin:0 0 12px}
     $("lista").innerHTML = '<div class="vazio">Carregando…</div>';
     api("/api/gestao/frota-docs").then(function (j) {
       DOCS = j.documentos || []; HOJE = j.hoje;
-      var tipos = {}; DOCS.forEach(function (d) { tipos[d.documento] = 1; });
+      var tipos = {}; TIPOS_BASE.concat(DOCS.map(function (d) { return d.documento; })).forEach(function (t) { tipos[t] = 1; });
       $("tiposDoc").innerHTML = Object.keys(tipos).sort().map(function (t) { return '<option value="' + esc(t) + '">'; }).join("");
       desenhar();
     }).catch(function (e) { $("lista").innerHTML = ""; $("aviso").innerHTML = '<div class="msg">' + esc(e.message) + '</div>'; });
   }
   function desenhar() {
-    var f = $("fSit").value, q = $("q").value.trim().toLowerCase(), cont = { "VENCIDO": 0, "VENCE EM 30 DIAS": 0, "Em dia": 0, "Sem data": 0 };
+    var f = $("fSit").value, q = $("q").value.trim().toLowerCase(), cont = { "VENCIDO": 0, "VENCE EM 30 DIAS": 0, "Em dia": 0, "Sem data": 0, "Sem vencimento": 0 };
     DOCS.forEach(function (d) { cont[situacao(d)]++; });
     $("alerta").innerHTML = cont["VENCIDO"] || cont["VENCE EM 30 DIAS"] ? '<div class="msg' + (cont["VENCIDO"] ? "" : " at") + '"><b>Atenção:</b> ' +
       [cont["VENCIDO"] ? cont["VENCIDO"] + " documento(s) vencido(s)" : "", cont["VENCE EM 30 DIAS"] ? cont["VENCE EM 30 DIAS"] + " vencem nos próximos 30 dias" : ""].filter(Boolean).join(" e ") + '.</div>' : "";
-    $("resumo").innerHTML = "<span><b>" + DOCS.length + "</b> documentos</span><span><b>" + cont["VENCIDO"] + "</b> vencidos</span><span><b>" + cont["VENCE EM 30 DIAS"] + "</b> vencem em 30 dias</span><span><b>" + cont["Em dia"] + "</b> em dia</span><span><b>" + cont["Sem data"] + "</b> sem data</span>";
+    $("resumo").innerHTML = "<span><b>" + DOCS.length + "</b> documentos</span><span><b>" + cont["VENCIDO"] + "</b> vencidos</span><span><b>" + cont["VENCE EM 30 DIAS"] + "</b> vencem em 30 dias</span><span><b>" + cont["Em dia"] + "</b> em dia</span><span><b>" + cont["Sem data"] + "</b> sem data</span>" + (cont["Sem vencimento"] ? "<span><b>" + cont["Sem vencimento"] + "</b> sem vencimento</span>" : "");
     var L = DOCS.filter(function (d) { return !f || situacao(d) === f; })
       .filter(function (d) { return !q || [d.frota, d.veiculo, d.documento, d.numero, d.responsavel, d.obs].join(" ").toLowerCase().indexOf(q) >= 0; })
       .sort(function (a, b) { return (ORDEM[situacao(a)] - ORDEM[situacao(b)]) || String(a.vencimento || "").localeCompare(String(b.vencimento || "")); });
@@ -99,13 +104,18 @@ h2{font-size:17px;line-height:24px;font-weight:600;margin:0 0 12px}
       h += '<div class="meta">' + esc(d.veiculo || "") + '</div><dl><dt>Documento</dt><dd>' + esc(d.documento) + '</dd>';
       if (d.numero) h += '<dt>Número</dt><dd>' + esc(d.numero) + '</dd>';
       if (d.emissao) h += '<dt>Emissão</dt><dd>' + esc(brd(d.emissao)) + '</dd>';
-      h += '<dt>Vencimento</dt><dd>' + (d.vencimento ? esc(brd(d.vencimento)) + (n != null ? ' (' + (n < 0 ? "venceu há " + (-n) + " dia(s)" : n === 0 ? "vence hoje" : "faltam " + n + " dia(s)") + ')' : "") : "—") + '</dd>';
+      h += '<dt>Vencimento</dt><dd>' + (d.sem_vencimento ? "Sem vencimento" : d.vencimento ? esc(brd(d.vencimento)) + (n != null ? ' (' + (n < 0 ? "venceu há " + (-n) + " dia(s)" : n === 0 ? "vence hoje" : "faltam " + n + " dia(s)") + ')' : "") : "—") + '</dd>';
       if (d.responsavel) h += '<dt>Responsável</dt><dd>' + esc(d.responsavel) + '</dd>';
       var acao = s === "VENCIDO" ? "RENOVAR JÁ" : s === "VENCE EM 30 DIAS" ? "Agendar renovação" : s === "Sem data" ? "Localizar o documento e lançar as datas" : "";
       if (acao) h += '<dt>Próxima ação</dt><dd>' + esc(acao) + '</dd>';
       if (d.obs) h += '<dt>Obs.</dt><dd>' + esc(d.obs) + '</dd>';
-      h += '</dl><div class="acoes">' + (d.arquivo ? '<a class="btn ghost peq" target="_blank" rel="noopener" href="/api/gestao/frota-arquivo?id=' + d.arquivo.id + '">Ver arquivo</a>' : "");
-      return h + '<button class="btn ghost peq" type="button" data-editar="' + d.id + '">Editar / renovar</button></div></div>';
+      // arquivo: no servidor da empresa (depois do "Atualizar tudo" da planilha) ou ainda de passagem na nuvem
+      var a = d.arquivo, serv = a && a.servidor;
+      h += '</dl><div class="acoes">' + (serv ? '<button class="btn ghost peq" type="button" data-copiar="' + esc(serv) + '">Copiar caminho do arquivo</button>' :
+        a ? '<a class="btn ghost peq" target="_blank" rel="noopener" href="/api/gestao/frota-arquivo?id=' + a.id + '">Ver arquivo</a>' : "");
+      h += '<button class="btn ghost peq" type="button" data-editar="' + d.id + '">Editar / renovar</button>';
+      if (serv) h += '<div class="serv">No servidor: ' + esc(serv) + '</div>'; else if (a) h += '<div class="serv">Vai para o servidor no próximo "Atualizar tudo" da planilha.</div>';
+      return h + '</div></div>';
     }).join("") : '<div class="vazio">Nenhum documento.</div>';
   }
   function abrirForm(d) {
@@ -113,41 +123,56 @@ h2{font-size:17px;line-height:24px;font-weight:600;margin:0 0 12px}
     $("tituloForm").textContent = d ? "Editar documento" : "Novo documento"; $("btnExcluir").hidden = !d;
     if (d) ["documento", "numero", "emissao", "vencimento", "responsavel", "obs"].forEach(function (k) { fd.elements.namedItem(k).value = d[k] || ""; });
     if (d) fd.veiculo.value = d.veiculo || d.frota || "";
+    $("semVenc").checked = !!(d && d.sem_vencimento); travarVenc();
     fd.hidden = false; fd.scrollIntoView({ behavior: "smooth" }); fd.veiculo.focus();
   }
   $("btnNovo").addEventListener("click", function () { abrirForm(null); });
   $("btnCancelar").addEventListener("click", function () { fd.hidden = true; });
+  function travarVenc() { var s = $("semVenc").checked; $("venc").disabled = s; if (s) $("venc").value = ""; }
+  $("semVenc").addEventListener("change", travarVenc);
   $("lista").addEventListener("click", function (ev) {
+    var c = ev.target.getAttribute && ev.target.getAttribute("data-copiar");
+    if (c) { var b = ev.target; navigator.clipboard.writeText(c).then(function () { b.textContent = "Caminho copiado"; }, function () { prompt("Caminho do arquivo no servidor:", c); }); return; }
     var id = ev.target.getAttribute && ev.target.getAttribute("data-editar"); if (!id) return;
     abrirForm(DOCS.filter(function (d) { return String(d.id) === id; })[0]);
   });
   $("arq").addEventListener("change", function () {
     var f = this.files && this.files[0]; arquivo = null; $("arqInfo").textContent = "";
     if (!f) return;
-    if (!/^image\//.test(f.type) && f.type !== "application/pdf") { $("arqInfo").textContent = "Use foto ou PDF."; this.value = ""; return; }
-    var r = new FileReader();
-    r.onload = function () {
-      if (!/^image\//.test(f.type)) return fim(r.result);
-      var img = new Image(); img.onload = function () {
-        var M = 1800, k = Math.min(1, M / Math.max(img.naturalWidth, img.naturalHeight)), c = document.createElement("canvas");
-        c.width = Math.round(img.naturalWidth * k); c.height = Math.round(img.naturalHeight * k); c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
-        var q = 0.8, d = c.toDataURL("image/jpeg", q); while (d.length > 900000 && q > 0.35) { q -= 0.1; d = c.toDataURL("image/jpeg", q); } fim(d);
-      }; img.src = r.result;
+    if (!/^image\/(jpeg|png|webp)$/.test(f.type) && f.type !== "application/pdf") { $("arqInfo").textContent = "Use PDF ou foto (JPG/PNG)."; this.value = ""; return; }
+    // PDF vai como está (até 25 MB); foto grande é reduzida para ~2400 px (fica legível e mais leve)
+    if (f.type === "application/pdf" || f.size < 1500000) return fim(f, f.type);
+    var url = URL.createObjectURL(f), img = new Image();
+    img.onload = function () {
+      var M = 2400, k = Math.min(1, M / Math.max(img.naturalWidth, img.naturalHeight)), c = document.createElement("canvas");
+      c.width = Math.round(img.naturalWidth * k); c.height = Math.round(img.naturalHeight * k); c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url); c.toBlob(function (b) { fim(b && b.size < f.size ? b : f, b && b.size < f.size ? "image/jpeg" : f.type); }, "image/jpeg", 0.85);
     };
-    function fim(d) {
-      if (d.length > 1400000) { $("arqInfo").textContent = "Arquivo grande demais (máx. ~1 MB)."; $("arq").value = ""; return; }
-      arquivo = { nome: f.name, dados: d }; $("arqInfo").textContent = f.name + " · " + Math.round(d.length * 0.75 / 1024) + " KB";
+    img.onerror = function () { URL.revokeObjectURL(url); fim(f, f.type); };
+    img.src = url;
+    function fim(b, tipo) {
+      if (b.size > MAX_ARQ) { $("arqInfo").textContent = "Arquivo grande demais (máx. 25 MB)."; $("arq").value = ""; return; }
+      arquivo = { nome: tipo === "image/jpeg" && f.type !== "image/jpeg" ? f.name.replace(/\.\w+$/, "") + ".jpg" : f.name, blob: b, tipo: tipo };
+      $("arqInfo").textContent = f.name + " · " + (b.size >= 1048576 ? (b.size / 1048576).toFixed(1).replace(".", ",") + " MB" : Math.round(b.size / 1024) + " KB");
     }
-    r.readAsDataURL(f);
   });
+  // envia o arquivo em bytes (sem base64) para o documento já salvo
+  function enviarArquivo(id) {
+    if (!arquivo) return Promise.resolve();
+    $("arqInfo").textContent = "Enviando o arquivo…";
+    return fetch("/api/gestao/frota-arquivo?doc=" + id + "&nome=" + encodeURIComponent(arquivo.nome), { method: "POST", headers: { "Content-Type": arquivo.tipo }, body: arquivo.blob })
+      .then(function (r) { return r.json().catch(function () { throw new Error("Falha ao enviar o arquivo (" + r.status + ")"); }); })
+      .then(function (j) { if (!j.ok) throw new Error("Documento salvo, mas o arquivo não foi: " + (j.msg || j.erro)); });
+  }
   fd.addEventListener("submit", function (ev) {
     ev.preventDefault();
     var d = { id: editando ? editando.id : null };
     ["veiculo", "documento", "numero", "emissao", "vencimento", "responsavel", "obs"].forEach(function (k) { d[k] = fd.elements.namedItem(k).value; });
     var m = /^(8\d{4})\b/.exec(d.veiculo.trim()); d.frota = editando && d.veiculo === editando.veiculo ? (editando.frota || "") : m ? m[1] : "";
-    if (arquivo) d.arquivo = arquivo;
+    d.sem_vencimento = $("semVenc").checked; if (d.sem_vencimento) d.vencimento = "";
     $("btnSalvar").disabled = true;
-    api("/api/gestao/frota-docs", d).then(function () { fd.hidden = true; carregar(); })
+    api("/api/gestao/frota-docs", d).then(function (j) { editando = Object.assign({}, editando || {}, { id: j.id }); return enviarArquivo(j.id); })
+      .then(function () { fd.hidden = true; carregar(); })
       .catch(function (e) { $("avisoForm").innerHTML = '<div class="msg">' + esc(e.message) + '</div>'; })
       .then(function () { $("btnSalvar").disabled = false; });
   });

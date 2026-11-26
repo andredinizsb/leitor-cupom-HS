@@ -1,5 +1,7 @@
 // /api/gestao/frota-docs — documentos da frota com vencimento (CRLV, seguro, laudos, tacógrafo...) — login do Access, ver _middleware
-// GET: lista.   POST { id?, frota, veiculo, documento, numero, emissao, vencimento, responsavel, obs, arquivo: { nome, dados } } | { acao: "excluir", id }
+// GET: lista.   POST { id?, frota, veiculo, documento (qualquer nome), numero, emissao, vencimento, sem_vencimento, responsavel, obs } | { acao: "excluir", id }
+// O arquivo do documento vai depois, em bytes: POST /api/gestao/frota-arquivo?doc=<id>&nome=<arquivo> (até 25 MB, ver frota-arquivo.js).
+// (arquivo: { nome, dados } em base64 ainda é aceito aqui, até ~1 MB, por compatibilidade)
 import { resp, origemOk, semBanco, ERRO_BANCO, txt, agora } from "../../../lib/aut.js";
 import { dia, frotaDe, conferirArquivo, gravarArquivo, arquivosPorRef } from "../../../lib/frota.js";
 
@@ -28,13 +30,15 @@ export async function onRequestPost({ request, env, data }) {
   if (!frota && !veiculo) return resp({ ok: false, erro: "dados", msg: "Informe o veículo ou o equipamento." }, 400);
   const a = conferirArquivo(env, d.arquivo);
   if (!a.ok) return resp({ ok: false, erro: "arquivo", msg: a.msg }, 400);
-  const val = [frota, veiculo, documento, txt(d.numero, 60), dia(d.emissao), dia(d.vencimento), txt(d.responsavel, 80), txt(d.obs, 500), quando, quem];
+  // "Sem vencimento" (ANTT etc.): dispensa a data e não entra como "Sem data" nem vencido
+  const semVenc = d.sem_vencimento === true || d.sem_vencimento === 1 || d.sem_vencimento === "1" ? 1 : 0;
+  const val = [frota, veiculo, documento, txt(d.numero, 60), dia(d.emissao), semVenc ? null : dia(d.vencimento), txt(d.responsavel, 80), txt(d.obs, 500), quando, quem, semVenc];
   if (id) {
-    const ok = await db.prepare("UPDATE frota_docs SET frota = ?2, veiculo = ?3, documento = ?4, numero = ?5, emissao = ?6, vencimento = ?7, responsavel = ?8, obs = ?9, atualizado_em = ?10, atualizado_por = ?11 WHERE id = ?1 AND ativo = 1")
+    const ok = await db.prepare("UPDATE frota_docs SET frota = ?2, veiculo = ?3, documento = ?4, numero = ?5, emissao = ?6, vencimento = ?7, responsavel = ?8, obs = ?9, atualizado_em = ?10, atualizado_por = ?11, sem_vencimento = ?12 WHERE id = ?1 AND ativo = 1")
       .bind(id, ...val).run();
     if (!(ok.meta && ok.meta.changes)) return resp({ ok: false, erro: "nao_encontrado", msg: "Documento não encontrado." }, 404);
   } else {
-    const r = await db.prepare("INSERT INTO frota_docs (frota, veiculo, documento, numero, emissao, vencimento, responsavel, obs, atualizado_em, atualizado_por) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)")
+    const r = await db.prepare("INSERT INTO frota_docs (frota, veiculo, documento, numero, emissao, vencimento, responsavel, obs, atualizado_em, atualizado_por, sem_vencimento) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)")
       .bind(...val).run();
     id = r.meta && r.meta.last_row_id;
   }
