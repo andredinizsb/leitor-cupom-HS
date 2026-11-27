@@ -33,6 +33,13 @@ h2{font-size:17px;line-height:24px;font-weight:600;margin:28px 0 12px}
 .nova form{padding:16px}
 .pend-ed{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)}.pend-ed .larga{grid-column:1/-1}
 .pend-ed :is(input,select){width:100%;min-height:40px;padding:6px 10px;font-size:15px}
+.dica{font-size:12px;font-weight:400;color:var(--text-muted)}.dica.erro{color:var(--danger-text)}
+.linhas>b,.rot{font-size:14px;font-weight:600}.linhas>.btn{margin-top:8px}
+.linhas .item{border:1px dashed var(--border);border-radius:var(--r-md);padding:10px;margin-top:8px;display:grid;grid-template-columns:2.2fr 1fr 1.2fr 1.2fr auto;gap:8px;align-items:end}
+.linhas .item label{font-size:12px;font-weight:500;color:var(--text-muted);gap:4px}.form .linhas .item input{min-height:40px;padding:6px 10px}
+@media (max-width:640px){.linhas .item{grid-template-columns:1fr 1fr 1fr}.linhas .item .lDesc{grid-column:1/-1}.linhas .item .iDel{grid-column:1/-1}}
+.tot{display:flex;gap:8px 20px;flex-wrap:wrap;font-size:14px;padding:10px 12px;background:var(--surface-muted);border-radius:var(--r-md)}
+.auto{margin-top:6px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--r-md);font-size:14px;color:var(--text)}.auto.vz{color:var(--text-muted)}
 </style>
 </head>
 <body data-mod="frota">
@@ -53,15 +60,19 @@ h2{font-size:17px;line-height:24px;font-weight:600;margin:28px 0 12px}
         <label>Veículo<select name="veiculo" id="veiculo" required><option value="">Carregando…</option></select></label>
         <label>Km<input name="km" inputmode="numeric" placeholder="ex.: 187893"></label>
         <label>Tipo<select name="tipo" required><option>Preventiva</option><option>Corretiva</option></select></label>
-        <label>Item<input name="item" list="itens" required placeholder="Troca de Óleo, Freios…"><datalist id="itens"></datalist></label>
-        <label>Oficina / fornecedor<input name="oficina"></label>
-        <label class="larga">Serviço realizado<textarea name="servico"></textarea></label>
-        <label>Nº da NF<input name="nf"></label>
-        <label>Valor peças (R$)<input name="valor_pecas" inputmode="decimal" placeholder="0,00"></label>
-        <label>Valor serviço (R$)<input name="valor_servico" inputmode="decimal" placeholder="0,00"></label>
-        <label>Valor total (R$)<input name="valor_total" inputmode="decimal" placeholder="soma automática"></label>
-        <label class="larga">Observação<textarea name="obs"></textarea></label>
-        <label class="larga">Nota fiscal (foto ou PDF)<input type="file" id="arq" accept="image/*,application/pdf"></label>
+        <label>Manutenção (item do plano)<input name="item" list="itens" required placeholder="Troca de Óleo, Revisão de Freios…"><datalist id="itens"></datalist><small class="dica">Usado no controle das revisões. Escolha da lista quando houver.</small></label>
+        <div class="larga linhas"><b>Serviços realizados</b><div id="servicos"></div>
+          <button class="btn ghost peq" type="button" id="addServico">+ Adicionar serviço</button></div>
+        <div class="larga linhas"><b>Materiais aplicados (peças)</b><span class="dica"> Deixe em branco se não houve troca de peças.</span><div id="materiais"></div>
+          <button class="btn ghost peq" type="button" id="addMaterial">+ Adicionar material</button></div>
+        <label>Oficina / fornecedor<input name="oficina" placeholder="Nome da oficina ou loja"></label>
+        <label>CNPJ do fornecedor<input name="cnpj" id="cnpj" inputmode="numeric" placeholder="00.000.000/0000-00" maxlength="18"><small class="dica" id="cnpjInfo"></small></label>
+        <label>Documento<select name="doc_tipo"><option>Nota fiscal</option><option>Orçamento</option><option>O.S.</option></select></label>
+        <label>Nº do documento<input name="nf" placeholder="Número da nota, orçamento ou O.S."></label>
+        <div class="larga tot" id="totais"></div>
+        <div class="larga"><b class="rot">Observação automática</b><div class="auto" id="resumoAuto"></div></div>
+        <label class="larga">Complemento da observação (opcional)<textarea name="obs" placeholder="Algo a mais que a observação automática não disse"></textarea></label>
+        <label class="larga">Foto ou PDF do documento (nota, orçamento ou O.S.)<input type="file" id="arq" accept="image/*,application/pdf"></label>
       </div>
       <div class="acoes"><button class="btn" type="submit" id="btnSalvar">Salvar lançamento</button><span class="arq" id="arqInfo"></span></div>
       <div id="avisoForm"></div>
@@ -114,8 +125,71 @@ h2{font-size:17px;line-height:24px;font-weight:600;margin:28px 0 12px}
   // formulário
   var fm = $("fm"), arquivo = null;
   fm.data.value = hojeLocal();
-  function somar() { var p = num(fm.valor_pecas.value), s = num(fm.valor_servico.value); fm.valor_total.placeholder = (p != null || s != null) ? rs((p || 0) + (s || 0)) : "soma automática"; }
-  fm.valor_pecas.addEventListener("input", somar); fm.valor_servico.addEventListener("input", somar);
+  // linhas de serviços / materiais (mesmo jeito dos itens da autorização): descrição, qtd, unitário e total (qtd × unitário, pode editar)
+  function v2(v) { return (Math.round(v * 100) / 100).toFixed(2).replace(".", ","); }
+  function novaLinha(box, tipo) {
+    var d = document.createElement("div"); d.className = "item";
+    d.innerHTML = '<label class="lDesc">Descrição do ' + tipo + '<input class="iDesc" placeholder="' + (tipo === "material" ? "ex.: Pastilha de freio" : "ex.: Troca de óleo") + '"></label>' +
+      '<label>Quantidade<input class="iQtd" inputmode="decimal" placeholder="1"></label><label>Valor unitário (R$)<input class="iUn" inputmode="decimal" placeholder="0,00"></label>' +
+      '<label>Valor total (R$)<input class="iTot" inputmode="decimal" placeholder="qtd × unitário"></label><button type="button" class="btn ghost peq iDel">Remover</button>';
+    var q = d.querySelector(".iQtd"), u = d.querySelector(".iUn"), t = d.querySelector(".iTot");
+    function calc() { if (t.getAttribute("data-manual")) return; var a = num(q.value), b = num(u.value); if (a == null && b != null) a = 1; t.value = a != null && b != null ? v2(a * b) : ""; }
+    q.addEventListener("input", function () { calc(); atualizar(); }); u.addEventListener("input", function () { calc(); atualizar(); });
+    t.addEventListener("input", function () { if (t.value.trim()) t.setAttribute("data-manual", "1"); else { t.removeAttribute("data-manual"); calc(); } atualizar(); });
+    d.querySelector(".iDesc").addEventListener("input", atualizar);
+    d.querySelector(".iDel").addEventListener("click", function () { d.remove(); if (!box.children.length) novaLinha(box, tipo); atualizar(); });
+    box.appendChild(d); return d;
+  }
+  function coletar(box) {
+    var L = [];
+    box.querySelectorAll(".item").forEach(function (d) {
+      var l = { descricao: d.querySelector(".iDesc").value.trim(), qtd: num(d.querySelector(".iQtd").value), unitario: num(d.querySelector(".iUn").value), total: num(d.querySelector(".iTot").value) };
+      if (l.descricao || l.total != null || l.qtd != null || l.unitario != null) L.push(l);
+    });
+    return L;
+  }
+  var bS = $("servicos"), bM = $("materiais");
+  function limparLinhas() { bS.innerHTML = ""; bM.innerHTML = ""; novaLinha(bS, "serviço"); novaLinha(bM, "material"); }
+  $("addServico").addEventListener("click", function () { novaLinha(bS, "serviço").querySelector(".iDesc").focus(); });
+  $("addMaterial").addEventListener("click", function () { novaLinha(bM, "material").querySelector(".iDesc").focus(); });
+  function soma(L) { return L.reduce(function (s, l) { return s + (l.total || 0); }, 0); }
+  // CNPJ: só números, com máscara 00.000.000/0000-00 e conferência dos dígitos
+  function cnpjOk(c) {
+    if (!/^\d{14}$/.test(c) || /^(\d)\1+$/.test(c)) return false;
+    function dv(n) { var s = 0, p = n - 7; for (var i = 0; i < n; i++) { s += Number(c[i]) * p--; if (p < 2) p = 9; } var r = s % 11; return r < 2 ? 0 : 11 - r; }
+    return dv(12) === Number(c[12]) && dv(13) === Number(c[13]);
+  }
+  function cnpjDig() { return fm.cnpj.value.replace(/\D/g, ""); }
+  fm.cnpj.addEventListener("input", function () {
+    var d = cnpjDig().slice(0, 14);
+    fm.cnpj.value = d.replace(/^(\d{2})(\d)/, "$1.$2").replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3").replace(/\.(\d{3})(\d)/, ".$1/$2").replace(/(\d{4})(\d)/, "$1-$2");
+    var i = $("cnpjInfo"); i.className = "dica";
+    i.textContent = d.length === 14 ? (cnpjOk(d) ? "CNPJ conferido." : "CNPJ inválido: confira os números.") : "";
+    if (d.length === 14 && !cnpjOk(d)) i.className = "dica erro";
+  });
+  // observação automática: resumo curto do que foi preenchido
+  function minus(x, i) { return i && /^.[a-zà-ú]/.test(x) ? x.charAt(0).toLowerCase() + x.slice(1) : x; }
+  function juntar(L) { L = L.map(minus); return L.length > 1 ? L.slice(0, -1).join(", ") + " e " + L[L.length - 1] : L[0] || ""; }
+  function docTxt() { var n = fm.nf.value.trim(), t = fm.doc_tipo.value; return n ? (t === "Nota fiscal" ? "NF" : t) + " " + n : ""; }
+  function resumo() {
+    var S = coletar(bS), M = coletar(bM), oq = juntar(S.map(function (l) { return l.descricao; }).filter(Boolean)) || fm.item.value.trim();
+    var vt = String(fm.veiculo.value || "").toUpperCase().split(/\s+/), fr = vt.filter(function (x) { return /^8\d{4}$/.test(x); })[0], pl = vt.filter(function (x) { return /^[A-Z]{3}\d[A-Z0-9]\d{2}$/.test(x); })[0];
+    var km = fm.km.value.replace(/\D/g, ""), tot = soma(S) + soma(M);
+    if (!oq && !fr) return "";
+    var p = [(oq ? oq.charAt(0).toUpperCase() + oq.slice(1) : "Manutenção") + (fr ? " no " + fr + (pl ? " (" + pl + ")" : "") : "") + (km ? ", km " + Number(km).toLocaleString("pt-BR") : "")];
+    var mats = M.map(function (l) { return l.descricao; }).filter(Boolean);
+    if (mats.length) p.push("houve troca de peças (" + mats.map(function (x) { return minus(x, 1); }).join(", ") + ")");
+    if (tot) p.push("total " + rs(tot));
+    var f = [fm.oficina.value.trim(), docTxt()].filter(Boolean).join(", ");
+    return p.join("; ") + (f ? " — " + f : "") + ".";
+  }
+  function atualizar() {
+    var s = soma(coletar(bS)), m = soma(coletar(bM));
+    $("totais").innerHTML = "<span>Serviços: <b>" + rs(s) + "</b></span><span>Peças: <b>" + rs(m) + "</b></span><span>Valor total: <b>" + rs(s + m) + "</b></span>";
+    var r = resumo(), a = $("resumoAuto"); a.textContent = r || "A observação é montada sozinha conforme você preenche."; a.className = "auto" + (r ? "" : " vz");
+  }
+  ["item", "veiculo", "km", "oficina", "nf", "doc_tipo"].forEach(function (k) { var e = fm.elements.namedItem(k); e.addEventListener("input", atualizar); e.addEventListener("change", atualizar); });
+  limparLinhas(); atualizar();
   function reduzir(file) {
     return new Promise(function (ok, falha) {
       var url = URL.createObjectURL(file), img = new Image();
@@ -147,12 +221,18 @@ h2{font-size:17px;line-height:24px;font-weight:600;margin:28px 0 12px}
   });
   fm.addEventListener("submit", function (ev) {
     ev.preventDefault();
-    var d = {}; ["data", "veiculo", "km", "tipo", "item", "oficina", "servico", "nf", "valor_pecas", "valor_servico", "valor_total", "obs"].forEach(function (k) { d[k] = fm.elements.namedItem(k).value; });
+    var d = {}; ["data", "veiculo", "km", "tipo", "item", "oficina", "nf", "doc_tipo"].forEach(function (k) { d[k] = fm.elements.namedItem(k).value; });
+    d.cnpj = cnpjDig(); d.servicos = coletar(bS); d.materiais = coletar(bM);
+    var falta = d.servicos.concat(d.materiais).filter(function (l) { return !l.descricao; }).length;
+    var ob = resumo(), comp = fm.obs.value.trim(); d.obs = ob + (ob && comp ? "\n" : "") + comp;
+    $("avisoForm").innerHTML = "";
+    if (falta) { $("avisoForm").innerHTML = '<div class="msg">Preencha a descrição de cada serviço e material (ou remova a linha vazia).</div>'; return; }
+    if (d.cnpj && !cnpjOk(d.cnpj)) { $("avisoForm").innerHTML = '<div class="msg">CNPJ do fornecedor inválido. Confira os 14 números ou deixe em branco.</div>'; return; }
     if (arquivo) d.arquivo = arquivo;
-    $("btnSalvar").disabled = true; $("avisoForm").innerHTML = "";
+    $("btnSalvar").disabled = true;
     api("/api/gestao/frota", d).then(function (j) {
-      $("avisoForm").innerHTML = '<div class="msg ok">Lançamento ' + esc(j.numero) + ' salvo' + (j.arquivo ? " com a NF" : "") + '.</div>';
-      var manter = { data: fm.data.value }; fm.reset(); fm.data.value = manter.data; arquivo = null; $("arqInfo").textContent = ""; somar(); buscar();
+      $("avisoForm").innerHTML = '<div class="msg ok">Lançamento ' + esc(j.numero) + ' salvo' + (j.arquivo ? " com o documento anexado" : "") + '.</div>';
+      var manter = { data: fm.data.value }; fm.reset(); fm.data.value = manter.data; arquivo = null; $("arqInfo").textContent = ""; $("cnpjInfo").textContent = ""; limparLinhas(); atualizar(); buscar();
     }).catch(function (e) { $("avisoForm").innerHTML = '<div class="msg">' + esc(e.message) + '</div>'; })
       .then(function () { $("btnSalvar").disabled = false; });
   });
@@ -170,18 +250,22 @@ h2{font-size:17px;line-height:24px;font-weight:600;margin:28px 0 12px}
       $("lista").innerHTML = L.length ? L.map(cartao).join("") : '<div class="vazio">Nenhuma manutenção no período.</div>';
     }).catch(function (e) { $("lista").innerHTML = ""; $("aviso").innerHTML = '<div class="msg">' + esc(e.message) + '</div>'; });
   }
+  function linhas(s) { try { var v = JSON.parse(s || "null"); return Array.isArray(v) ? v : []; } catch (e) { return []; } }
+  function lin(l) { return esc(l.descricao) + (l.total != null ? " — " + (l.qtd != null && l.unitario != null ? esc(String(l.qtd).replace(".", ",")) + " × " + rs(l.unitario) + " = " : "") + rs(l.total) : ""); }
   function cartao(m) {
     var h = '<div class="card"><div class="topo"><span class="num">' + esc(m.numero) + '</span><span class="badge' + (m.tipo === "Corretiva" ? " at" : "") + '">' + esc(m.tipo) + '</span></div>';
     h += '<div class="meta">' + esc(brd(m.data)) + ' · lançado por ' + esc(m.criado_por || "—") + '</div><dl><dt>Veículo</dt><dd>' + esc(m.veiculo || m.frota) + '</dd><dt>Item</dt><dd>' + esc(m.item) + '</dd>';
     if (m.km != null) h += '<dt>Km</dt><dd>' + esc(Number(m.km).toLocaleString("pt-BR")) + '</dd>';
-    if (m.servico) h += '<dt>Serviço</dt><dd>' + esc(m.servico) + '</dd>';
-    if (m.oficina) h += '<dt>Oficina</dt><dd>' + esc(m.oficina) + '</dd>';
-    if (m.nf) h += '<dt>Nº NF</dt><dd>' + esc(m.nf) + '</dd>';
+    var S = linhas(m.servicos), M = linhas(m.materiais);
+    if (S.length) h += '<dt>Serviços</dt><dd>' + S.map(lin).join("\n") + '</dd>'; else if (m.servico) h += '<dt>Serviço</dt><dd>' + esc(m.servico) + '</dd>';
+    if (M.length) h += '<dt>Materiais</dt><dd>' + M.map(lin).join("\n") + '</dd>';
+    if (m.oficina || m.cnpj) h += '<dt>Oficina</dt><dd>' + esc(m.oficina || "") + (m.cnpj ? " · CNPJ " + esc(String(m.cnpj).replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5")) : "") + '</dd>';
+    if (m.nf) h += '<dt>' + esc(m.doc_tipo === "Orçamento" ? "Orçamento" : m.doc_tipo === "O.S." ? "O.S." : "Nº NF") + '</dt><dd>' + esc(m.nf) + '</dd>';
     if (m.valor_pecas != null) h += '<dt>Peças</dt><dd>' + rs(m.valor_pecas) + '</dd>';
     if (m.valor_servico != null) h += '<dt>Serviço (R$)</dt><dd>' + rs(m.valor_servico) + '</dd>';
     if (m.valor_total != null) h += '<dt>Total</dt><dd>' + rs(m.valor_total) + '</dd>';
     if (m.obs) h += '<dt>Obs.</dt><dd>' + esc(m.obs) + '</dd>';
-    h += '</dl><div class="acoes"><a class="btn ghost peq" target="_blank" rel="noopener" href="/api/gestao/relatorio?tipo=frota&numero=' + encodeURIComponent(m.numero) + '">Relatório</a>' + (m.arquivo ? '<a class="btn ghost peq" target="_blank" rel="noopener" href="/api/gestao/frota-arquivo?id=' + m.arquivo.id + '">Ver NF</a>' : '<span class="arq">Sem NF anexada</span>');
+    h += '</dl><div class="acoes"><a class="btn ghost peq" target="_blank" rel="noopener" href="/api/gestao/relatorio?tipo=frota&numero=' + encodeURIComponent(m.numero) + '">Relatório</a>' + (m.arquivo ? '<a class="btn ghost peq" target="_blank" rel="noopener" href="/api/gestao/frota-arquivo?id=' + m.arquivo.id + '">Ver documento</a>' : '<span class="arq">Sem documento anexado</span>');
     return h + '<button class="btn ghost peq" type="button" data-excluir="' + esc(m.numero) + '">Excluir</button></div></div>';
   }
   $("lista").addEventListener("click", function (ev) {

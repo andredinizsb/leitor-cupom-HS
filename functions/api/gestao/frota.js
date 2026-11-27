@@ -1,7 +1,7 @@
 // /api/gestao/frota — manutenções da frota lançadas pelo escritório (login do Access, ver _middleware)
 // GET ?de=AAAA-MM-DD&ate=AAAA-MM-DD&q=texto[&formato=csv]   POST { data, veiculo, km, tipo, item, ..., arquivo: { nome, dados } } | { acao: "excluir", numero }
 import { resp, origemOk, semBanco, ERRO_BANCO, agora } from "../../../lib/aut.js";
-import { dia, lerManut, linhaManut, conferirArquivo, gravarArquivo, arquivosPorRef, proximoNumeroMan, ITENS_PLANO, TIPOS_MANUT } from "../../../lib/frota.js";
+import { dia, lerManut, linhaManut, conferirArquivo, gravarArquivo, arquivosPorRef, proximoNumeroMan, ITENS_PLANO, TIPOS_MANUT, TIPOS_DOC } from "../../../lib/frota.js";
 
 function c(v) { if (v == null) return ""; const s = String(v); return /[";\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }
 
@@ -12,14 +12,14 @@ export async function onRequestGet({ request, env, data }) {
   const q = (u.searchParams.get("q") || "").trim().toLowerCase();
   const rs = await env.DB.prepare("SELECT * FROM frota_manut WHERE excluido = 0 AND data >= ?1 AND data <= ?2 ORDER BY data DESC, numero DESC LIMIT 2000").bind(de, ate).all();
   let L = rs.results || [];
-  if (q) L = L.filter(function (x) { return [x.numero, x.veiculo, x.item, x.tipo, x.servico, x.oficina, x.nf, x.obs].join(" ").toLowerCase().indexOf(q) >= 0; });
+  if (q) L = L.filter(function (x) { return [x.numero, x.veiculo, x.item, x.tipo, x.servico, x.oficina, x.nf, x.obs, x.cnpj, x.materiais].join(" ").toLowerCase().indexOf(q) >= 0; });
   const arqs = await arquivosPorRef(env.DB, "MAN:");
   if (u.searchParams.get("formato") === "csv") {
     const P = L.map(function (x) { return linhaManut(x, arqs["MAN:" + x.numero]); }), cab = Object.keys(linhaManut({}));
     const out = [cab.join(";")].concat(P.map(function (x) { return cab.map(function (k) { return c(x[k]); }).join(";"); }));
     return new Response("﻿" + out.join("\r\n"), { headers: { "Content-Type": "text/csv; charset=utf-8", "Content-Disposition": 'attachment; filename="manutencoes.csv"', "Cache-Control": "no-store" } });
   }
-  return resp({ ok: true, quem: data && data.quem, itens: ITENS_PLANO, tipos: TIPOS_MANUT,
+  return resp({ ok: true, quem: data && data.quem, itens: ITENS_PLANO, tipos: TIPOS_MANUT, tipos_doc: TIPOS_DOC,
     manutencoes: L.map(function (x) { const a = arqs["MAN:" + x.numero]; return Object.assign({}, x, { arquivo: a || null }); }) });
 }
 
@@ -42,9 +42,10 @@ export async function onRequestPost({ request, env, data }) {
   for (let t = 0; t < 3 && !numero; t++) {
     const n = await proximoNumeroMan(db, ano);
     try {
-      await db.prepare("INSERT INTO frota_manut (numero, criado_em, criado_por, data, veiculo, frota, placa, km, tipo, item, servico, oficina, nf, valor_pecas, valor_servico, valor_total, obs) " +
-        "VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17)")
-        .bind(n, quando, quem, m.data, m.veiculo, m.frota, m.placa, m.km, m.tipo, m.item, m.servico, m.oficina, m.nf, m.valor_pecas, m.valor_servico, m.valor_total, m.obs).run();
+      await db.prepare("INSERT INTO frota_manut (numero, criado_em, criado_por, data, veiculo, frota, placa, km, tipo, item, servico, oficina, nf, valor_pecas, valor_servico, valor_total, obs, cnpj, doc_tipo, materiais, servicos) " +
+        "VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21)")
+        .bind(n, quando, quem, m.data, m.veiculo, m.frota, m.placa, m.km, m.tipo, m.item, m.servico, m.oficina, m.nf, m.valor_pecas, m.valor_servico, m.valor_total, m.obs,
+          m.cnpj, m.doc_tipo, m.materiais, m.servicos).run();
       numero = n;
     } catch (e) { if (!/UNIQUE|constraint/i.test(String(e && e.message))) throw e; }
   }
